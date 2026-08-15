@@ -18,6 +18,16 @@ export interface ResolvedRuntimeAsset {
   readonly url: URL;
 }
 
+export interface LoadedRuntimeAsset extends RuntimeAsset {
+  readonly url: URL;
+  readonly bytes: Uint8Array;
+}
+
+export interface RuntimeAssetLoader {
+  readonly plan: readonly ResolvedRuntimeAsset[];
+  loadAssets(): Promise<ReadonlyMap<string, LoadedRuntimeAsset>>;
+}
+
 export interface TextGraphInstance {
   readonly state: 'ready' | 'disposing' | 'disposed';
   readonly<T>(operation: () => T | Promise<T>): Promise<T>;
