@@ -13,14 +13,19 @@ test('TextGraph scaffold reserves the public package identity without enabling p
   assert.equal(packageJson.type, 'module');
   assert.equal(packageJson.engines.node, '>=22');
   assert.equal(packageJson.scripts.test, 'node --test test/*.test.mjs');
-  assert.equal(packageJson.scripts.build, 'node --check src/index.js');
+  assert.equal(packageJson.scripts.build, 'node --check src/index.js && tsc -p tsconfig.json');
+  assert.equal(packageJson.types, './src/index.d.ts');
+  assert.equal(packageJson.exports['.'].types, './src/index.d.ts');
   assert.deepEqual(packageJson.files, ['src', 'generated/wasm', 'generated/wasm-manifest.json']);
 });
 
-test('TextGraph entry imports without claiming unavailable runtime behavior', async () => {
+test('TextGraph ESM entry initializes through an injected runtime loader', async () => {
   const textgraph = await import('../src/index.js');
 
-  assert.deepEqual(Object.keys(textgraph), []);
+  assert.equal(typeof textgraph.initializeTextGraph, 'function');
+  const runtime = { kind: 'textgraph' };
+  assert.equal(await textgraph.initializeTextGraph({ loadRuntime: async () => runtime }), runtime);
+  assert.equal(textgraph.abiManifest.packageName, '@drawmotive/textgraph');
 });
 
 test('local debug WASM is excluded from the public repository', async () => {

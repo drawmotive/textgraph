@@ -4,14 +4,21 @@
   "description": "TextGraph DSL and headless DrawMotive file toolkit",
   "private": true,
   "type": "module",
-  "exports": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    }
+  },
   "files": [
     "src",
     "generated/wasm",
     "generated/wasm-manifest.json"
   ],
   "scripts": {
-    "build": "node --check src/index.js",
+    "build": "node --check src/index.js && tsc -p tsconfig.json",
     "test": "node --test test/*.test.mjs",
     "prepack": "npm test && npm run build"
   },
@@ -22,5 +29,8 @@
   "license": "MIT",
   "engines": {
     "node": ">=22"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
   }
 }
