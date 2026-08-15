@@ -9,5 +9,10 @@ export async function initializeTextGraph(options = {}) {
   if (typeof options.loadRuntime !== 'function') {
     throw new TypeError('initializeTextGraph requires a loadRuntime function');
   }
-  return options.loadRuntime(options);
+  const runtime = await waitForInitialResource(() => options.loadRuntime(options), options.signal);
+  await validateAbi(runtime, abiManifest.abiVersion);
+  return createManagedInstance([runtime]);
 }
+import { createManagedInstance, validateAbi, waitForInitialResource } from './runtime/lifecycle.js';
+
+export { DrawMotiveError } from './runtime/errors.js';

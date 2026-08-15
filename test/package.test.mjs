@@ -23,8 +23,9 @@ test('TextGraph ESM entry initializes through an injected runtime loader', async
   const textgraph = await import('../src/index.js');
 
   assert.equal(typeof textgraph.initializeTextGraph, 'function');
-  const runtime = { kind: 'textgraph' };
-  assert.equal(await textgraph.initializeTextGraph({ loadRuntime: async () => runtime }), runtime);
+  const runtime = { abiVersion: '1.0.0' };
+  const instance = await textgraph.initializeTextGraph({ loadRuntime: async () => runtime });
+  assert.equal(instance.state, 'ready');
   assert.equal(textgraph.abiManifest.packageName, '@drawmotive/textgraph');
 });
 

@@ -6,11 +6,7 @@ import {
 } from '../src/index.js';
 
 const options: TextGraphInitializeOptions = {
-  loadRuntime: async (): Promise<TextGraphInstance> => ({
-    readonly: async (operation) => operation(),
-    mutate: async (operation) => operation(),
-    dispose: async () => undefined,
-  }),
+  loadRuntime: async () => ({ abiVersion: '1.0.0' }),
 };
 
 const instance: Promise<TextGraphInstance> = initializeTextGraph(options);
