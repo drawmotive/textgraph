@@ -1,9 +1,17 @@
-/** Resolves every manifest asset relative to a package-owned generated directory. */
-export function createRuntimeAssetPlan({ manifest, baseUrl, resolveAsset }) {
-  const base = new URL(baseUrl);
-  return manifest.assets.map((asset) => {
-    const defaultUrl = new URL(asset.path.replace(/^wasm\//, 'wasm/'), base);
-    const resolved = resolveAsset ? resolveAsset(asset, defaultUrl) : defaultUrl;
-    return { asset, url: resolved instanceof URL ? resolved : new URL(resolved) };
-  });
+import { resolveRuntimeAssets } from './assets.js';
+
+/** Resolves every manifest asset while preserving the initial loader's baseUrl option. */
+export function createRuntimeAssetPlan({ manifest, baseUrl, moduleUrl, resolveAsset }) {
+  if (baseUrl) {
+    const base = new URL(baseUrl);
+    return resolveRuntimeAssets({
+      manifest,
+      moduleUrl,
+      resolveAsset: (asset, _defaultUrl) => {
+        const defaultUrl = new URL(asset.path, base);
+        return resolveAsset ? resolveAsset(asset, defaultUrl) : defaultUrl;
+      },
+    });
+  }
+  return resolveRuntimeAssets({ manifest, moduleUrl, resolveAsset });
 }

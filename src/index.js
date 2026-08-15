@@ -3,6 +3,7 @@ import { createManagedInstance, validateAbi, waitForInitialResource } from './ru
 
 export { validateTextGraphAdapters } from './adapters.js';
 export { DrawMotiveError } from './runtime/errors.js';
+export { resolveRuntimeAssets } from './runtime/assets.js';
 
 export const abiManifest = Object.freeze({
   packageName: '@drawmotive/textgraph',

@@ -4,6 +4,20 @@ export interface TextGraphRuntimeManifest {
   readonly abiVersion: string;
 }
 
+export interface RuntimeAsset {
+  readonly path: string;
+  readonly mediaType?: string;
+}
+
+export interface RuntimeAssetManifest {
+  readonly assets: readonly RuntimeAsset[];
+}
+
+export interface ResolvedRuntimeAsset {
+  readonly asset: RuntimeAsset;
+  readonly url: URL;
+}
+
 export interface TextGraphInstance {
   readonly state: 'ready' | 'disposing' | 'disposed';
   readonly<T>(operation: () => T | Promise<T>): Promise<T>;
@@ -48,6 +62,12 @@ export declare class DrawMotiveError extends Error {
 }
 
 export declare function validateTextGraphAdapters(adapters?: TextGraphAdapters): Readonly<TextGraphAdapters>;
+
+export declare function resolveRuntimeAssets(options: {
+  manifest: RuntimeAssetManifest;
+  moduleUrl?: string | URL;
+  resolveAsset?(asset: RuntimeAsset, defaultUrl: URL): string | URL;
+}): readonly ResolvedRuntimeAsset[];
 
 export declare function initializeTextGraph(
   options: TextGraphInitializeOptions,
