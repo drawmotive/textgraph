@@ -17,7 +17,7 @@ import { zhCN } from "@drawmotive/textgraph-fonts-zh-cn";
 const textgraph = await initializeTextGraph({ languagePacks: [zhCN] });
 
 try {
-  const result = await textgraph.renderPng('A[开始] -> B[完成]', {
+  const result = await textgraph.renderPng('A: 开始\nB: 完成\nA -> B', {
     encoding: "base64",
   });
 
