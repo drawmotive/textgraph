@@ -2,7 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout } from "node:timers/promises";
 import { command } from "./command.mjs";
-import { assertRegistryState, assertPublishedState } from "./release-policy.mjs";
+import { assertRegistryState, assertPublishedState, assertLatestPreserved } from "./release-policy.mjs";
 import { packageRoot, verifyArtifact, verifyPackage } from "./release.mjs";
 
 /** Registry absence is valid for a first release; other failures must stop publishing. */
@@ -28,9 +28,7 @@ export async function waitForPublication(release, before, readRegistry, delay = 
   for (let attempt = 0; attempt < 6; attempt++) {
     const after = await readRegistry();
     assertRegistryState(release.version, after);
-    if (after && release.tag === "alpha" && before?.["dist-tags"]?.latest !== after["dist-tags"]?.latest) {
-      throw new Error("Alpha publication changed latest; inspect registry state before continuing.");
-    }
+    if (after) assertLatestPreserved(release, before, after);
     const published = after?.versions?.[release.version];
     if (published && published.dist?.integrity !== release.integrity) throw new Error("Published tarball integrity mismatch.");
     if (published && after?.["dist-tags"]?.[release.tag] === release.version) {
@@ -47,11 +45,6 @@ export async function publishRelease({ directory, expected, dryRun = false, read
   const release = await verifyArtifact(directory, expected);
   const before = await readRegistry();
   assertRegistryState(release.version, before);
-  // npm gives a first publication latest even with --tag alpha, and rejects
-  // deleting that tag. Enforce opt-in alpha at the pre-publication boundary.
-  if (release.tag === "alpha" && !before?.["dist-tags"]?.latest) {
-    throw new Error("Alpha publication requires an existing stable latest to preserve opt-in installation. Publish a genuine stable release first.");
-  }
   if (before?.versions?.[release.version]) {
     assertPublishedState(release, before, before);
     return { ...release, status: "already-published" };

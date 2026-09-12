@@ -26,7 +26,8 @@ test("registry preflight preserves stable defaults and refuses channel downgrade
   assert.doesNotThrow(() => assertRegistryState("0.2.0-alpha.3", registry));
   assert.throws(() => assertRegistryState("0.2.0-alpha.1", registry), /older/i);
   assert.throws(() => assertRegistryState("0.0.9", registry), /older/i);
-  assert.throws(() => assertRegistryState("0.2.0-alpha.3", { ...registry, "dist-tags": { latest: "0.2.0-alpha.2" } }), /latest/i);
+  assert.doesNotThrow(() => assertRegistryState("0.2.0-alpha.3", { ...registry, "dist-tags": { latest: "0.2.0-alpha.2" } }));
+  assert.doesNotThrow(() => assertRegistryState("0.2.0", { ...registry, "dist-tags": { latest: "0.2.0-alpha.2" } }));
   assert.throws(() => assertRegistryState("0.2.0-alpha.3", { ...registry, "dist-tags": { latest: "9.0.0" } }), /latest/i);
 });
 
@@ -34,7 +35,7 @@ test("publication postflight detects alpha promotion and verifies exact registry
   const release = { ...releaseChannel("0.1.0-alpha.1"), integrity: "sha512-example" };
   const published = { "dist-tags": { alpha: release.version }, versions: { [release.version]: { dist: { integrity: release.integrity } } } };
   assert.doesNotThrow(() => assertPublishedState(release, null, published));
-  assert.throws(() => assertPublishedState(release, null, { ...published, "dist-tags": { ...published["dist-tags"], latest: release.version } }), /latest/i);
+  assert.doesNotThrow(() => assertPublishedState(release, null, { ...published, "dist-tags": { ...published["dist-tags"], latest: release.version } }));
   assert.throws(() => assertPublishedState({ ...release, integrity: "sha512-wrong" }, null, published), /integrity/i);
   const before = { "dist-tags": { latest: "0.0.1" }, versions: { "0.0.1": {} } };
   assert.throws(() => assertPublishedState(release, before, published), /latest/i);
@@ -182,14 +183,19 @@ test("registry checks use live dist-tags instead of a cached default in install 
   finally { globalThis.fetch = originalFetch; }
 });
 
-test("alpha publication requires a real stable default before any registry write", async t => {
+test("alpha bootstrap accepts npm default and reruns without tag changes or republication", async t => {
   const { directory, release } = await artifact(t);
-  for (const registry of [null, { "dist-tags": {}, versions: {} }]) {
-    let writes = 0;
-    const run = async () => { writes++; };
-    await assert.rejects(publishRelease({ directory, expected: release, readRegistry: async () => registry, run }), /existing stable latest/i);
-    assert.equal(writes, 0);
-  }
+  let registry = null;
+  let writes = 0;
+  const run = async (_cmd, args) => {
+    assert.equal(args[0], "publish");
+    assert.equal(args[args.indexOf("--tag") + 1], "alpha");
+    writes++;
+    registry = { "dist-tags": { alpha: release.version, latest: release.version }, versions: { [release.version]: { dist: { integrity: release.integrity } } } };
+  };
+  assert.equal((await publishRelease({ directory, expected: release, readRegistry: async () => registry, run })).status, "published");
+  assert.equal((await publishRelease({ directory, expected: release, readRegistry: async () => registry, run })).status, "already-published");
+  assert.equal(writes, 1);
 });
 
 test("publication never removes a preexisting stable default or an unrelated latest", async t => {
@@ -215,7 +221,7 @@ test("postflight waits only for propagation and never retries an unsafe registry
   await waitForPublication(release, null, async () => snapshots.shift(), async () => { waits++; });
   assert.equal(waits, 2);
   const noWait = async () => assert.fail("Unsafe publication must fail immediately");
-  await assert.rejects(waitForPublication(release, null, async () => ({ ...after, "dist-tags": { latest: release.version } }), noWait), /latest/i);
+  await assert.rejects(waitForPublication(release, { "dist-tags": { latest: "0.0.1" }, versions: { "0.0.1": {} } }, async () => ({ ...after, "dist-tags": { latest: release.version } }), noWait), /latest/i);
   await assert.rejects(waitForPublication(release, null, async () => ({ ...after, versions: { [release.version]: { dist: { integrity: "wrong" } } } }), noWait), /integrity/i);
   await assert.rejects(waitForPublication(release, null, async () => null, async () => {}), /not visible/i);
   const stableBefore = { "dist-tags": { latest: "0.0.1" }, versions: { "0.0.1": {} } };

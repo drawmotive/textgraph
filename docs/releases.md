@@ -9,9 +9,9 @@ Releases are selected deliberately and published by `.github/workflows/release.y
 | `0.1.0-alpha.1` | `alpha` | `npm install @drawmotive/textgraph@alpha` |
 | `0.1.0` | `latest` | `npm install @drawmotive/textgraph` |
 
-An exact prerelease version also works: `npm install @drawmotive/textgraph@0.1.0-alpha.1`. To keep alpha opt-in, a genuine stable release must already own `latest` before publishing an alpha. npm assigns `latest` on a first publication even when another tag is specified, and the registry rejected deleting it with HTTP 400. The first `0.1.0-alpha.1` release therefore remains the default until a genuine stable version is published. See [npm/cli#8490](https://github.com/npm/cli/issues/8490).
+An exact prerelease version also works: `npm install @drawmotive/textgraph@0.1.0-alpha.1`. npm assigns `latest` on a first publication even when another tag is specified. This default is accepted: `0.1.0-alpha.1` currently owns both `alpha` and `latest`. Subsequent alpha releases update `alpha` and preserve the existing default. A stable release updates `latest`.
 
-The publication script now rejects alpha publication without an existing stable default. It never invents a stable placeholder, unpublishes a version, or silently accepts alpha under `latest`. Versions are immutable. To graduate an alpha, prepare and publish a new stable version instead of moving `latest` to an alpha.
+No stable release is required before publishing another alpha. The script verifies the existing default and immutable artifact integrity without attempting to delete tags. To graduate an alpha, prepare and publish a new stable version.
 
 The scripts accept stable SemVer and `X.Y.Z-alpha.N`. Other channels require an explicit release-policy change. The Chinese font package has its own release lifecycle and is not published by this workflow.
 
@@ -67,7 +67,7 @@ Commit the package changes on the task branch, review them, and integrate accord
 
 ## First publication
 
-When the package does not exist yet, its trusted publisher may not be configurable. For a new package that requires alpha opt-in, the first release must be genuinely stable. Bootstrap that verified stable release once from an authenticated terminal:
+When the package does not exist yet, its trusted publisher may not be configurable. Bootstrap the verified release once from an authenticated terminal; an initial alpha can also become the npm default:
 
 ```bash
 npm login --registry=https://registry.npmjs.org/
@@ -105,4 +105,4 @@ gh workflow run release.yml --ref textgraph-v0.1.0-alpha.1 -f tag=textgraph-v0.1
 
 If publication succeeded but a later check failed, the script accepts an identical registry artifact with the correct channel and refuses different bytes at the same version. Keep the original workflow artifact for diagnosing integrity differences.
 
-If an alpha accidentally acquires `latest` outside this workflow, restore the previously verified stable version using `npm dist-tag add @drawmotive/textgraph@<STABLE_VERSION> latest`. If no genuine stable version exists, stop and prepare one with the owner; do not keep retrying deletion of the mandatory first-release tag. Confirm registry state before retrying. Do not unpublish or overwrite versions as a routine recovery step.
+The first alpha owning `latest` is expected and requires no repair. If a later publication unexpectedly changes an existing default, inspect registry state before retrying. Do not unpublish, overwrite versions, or delete tags as a routine recovery step.
