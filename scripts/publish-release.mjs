@@ -24,20 +24,9 @@ export async function readPublicRegistry() {
 }
 
 /** Registry reads may lag a successful write; unsafe visible state is never retried. */
-export async function waitForPublication(release, before, readRegistry, delay = setTimeout, repairFirstLatest) {
+export async function waitForPublication(release, before, readRegistry, delay = setTimeout) {
   for (let attempt = 0; attempt < 6; attempt++) {
-    let after = await readRegistry();
-    // npm may add latest on initial publication even with --tag alpha. Remove
-    // only our verified first version, never an existing stable or other release.
-    if (repairFirstLatest && before === null && release.tag === "alpha"
-      && after?.["dist-tags"]?.latest === release.version
-      && after?.["dist-tags"]?.alpha === release.version
-      && after?.versions?.[release.version]?.dist?.integrity === release.integrity
-      && Object.keys(after.versions).length === 1) {
-      await repairFirstLatest();
-      repairFirstLatest = undefined;
-      after = await readRegistry();
-    }
+    const after = await readRegistry();
     assertRegistryState(release.version, after);
     if (after && release.tag === "alpha" && before?.["dist-tags"]?.latest !== after["dist-tags"]?.latest) {
       throw new Error("Alpha publication changed latest; inspect registry state before continuing.");
@@ -58,6 +47,11 @@ export async function publishRelease({ directory, expected, dryRun = false, read
   const release = await verifyArtifact(directory, expected);
   const before = await readRegistry();
   assertRegistryState(release.version, before);
+  // npm gives a first publication latest even with --tag alpha, and rejects
+  // deleting that tag. Enforce opt-in alpha at the pre-publication boundary.
+  if (release.tag === "alpha" && !before?.["dist-tags"]?.latest) {
+    throw new Error("Alpha publication requires an existing stable latest to preserve opt-in installation. Publish a genuine stable release first.");
+  }
   if (before?.versions?.[release.version]) {
     assertPublishedState(release, before, before);
     return { ...release, status: "already-published" };
@@ -65,8 +59,7 @@ export async function publishRelease({ directory, expected, dryRun = false, read
   const args = ["publish", path.join(directory, release.filename), "--ignore-scripts", "--access", "public", "--tag", release.tag, "--registry", "https://registry.npmjs.org/"];
   if (dryRun) args.push("--dry-run");
   await run("npm", args, packageRoot, { interactive: !dryRun });
-  if (!dryRun) await waitForPublication(release, before, readRegistry, setTimeout, () =>
-    run("npm", ["dist-tag", "rm", release.name, "latest", "--registry", "https://registry.npmjs.org/"], packageRoot, { interactive: true }));
+  if (!dryRun) await waitForPublication(release, before, readRegistry);
   return { ...release, status: dryRun ? "dry-run" : "published" };
 }
 

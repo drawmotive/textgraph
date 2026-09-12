@@ -141,7 +141,7 @@ test("publication sends an explicit alpha tag and checks registry state afterwar
 test("reruns accept identical publication and refuse immutable version collisions", async t => {
   const { directory, release } = await artifact(t);
   const run = async () => assert.fail("An existing version must never be republished");
-  const registry = { "dist-tags": { alpha: release.version }, versions: { [release.version]: { dist: { integrity: release.integrity } } } };
+  const registry = { "dist-tags": { alpha: release.version, latest: "0.0.1" }, versions: { "0.0.1": {}, [release.version]: { dist: { integrity: release.integrity } } } };
   assert.equal((await publishRelease({ directory, expected: release, readRegistry: async () => registry, run })).status, "already-published");
   registry.versions[release.version].dist.integrity = "sha512-other";
   await assert.rejects(publishRelease({ directory, expected: release, readRegistry: async () => registry, run }), /integrity/i);
@@ -150,7 +150,7 @@ test("reruns accept identical publication and refuse immutable version collision
 test("dry run never performs a registry write", async t => {
   const { directory, release } = await artifact(t);
   let calls = 0;
-  const result = await publishRelease({ directory, expected: release, dryRun: true, readRegistry: async () => null, run: async (_cmd, args) => {
+  const result = await publishRelease({ directory, expected: release, dryRun: true, readRegistry: async () => ({ "dist-tags": { latest: "0.0.1" }, versions: { "0.0.1": {} } }), run: async (_cmd, args) => {
     calls++;
     assert.equal(args.at(-1), "--dry-run");
     return { stdout: "dry run" };
@@ -182,23 +182,14 @@ test("registry checks use live dist-tags instead of a cached default in install 
   finally { globalThis.fetch = originalFetch; }
 });
 
-test("first alpha publication removes npm-created latest only after checking published bytes", async t => {
+test("alpha publication requires a real stable default before any registry write", async t => {
   const { directory, release } = await artifact(t);
-  let registry = null;
-  const calls = [];
-  const run = async (_command, args) => {
-    calls.push(args);
-    if (args[0] === "publish") {
-      registry = { "dist-tags": { alpha: release.version, latest: release.version }, versions: { [release.version]: { dist: { integrity: release.integrity } } } };
-    } else {
-      assert.deepEqual(args, ["dist-tag", "rm", "@drawmotive/textgraph", "latest", "--registry", "https://registry.npmjs.org/"]);
-      delete registry["dist-tags"].latest;
-    }
-  };
-  const result = await publishRelease({ directory, expected: release, readRegistry: async () => registry, run });
-  assert.equal(result.status, "published");
-  assert.equal(calls.length, 2);
-  assert.deepEqual(registry["dist-tags"], { alpha: "0.1.0-alpha.1" });
+  for (const registry of [null, { "dist-tags": {}, versions: {} }]) {
+    let writes = 0;
+    const run = async () => { writes++; };
+    await assert.rejects(publishRelease({ directory, expected: release, readRegistry: async () => registry, run }), /existing stable latest/i);
+    assert.equal(writes, 0);
+  }
 });
 
 test("publication never removes a preexisting stable default or an unrelated latest", async t => {

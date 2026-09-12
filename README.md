@@ -10,7 +10,7 @@ npm install @drawmotive/textgraph@alpha
 
 Requires Node.js 22+ or a modern browser.
 
-Alpha releases require `@alpha` or an exact version such as `@0.1.0-alpha.1`. Once a stable release is available, `npm install @drawmotive/textgraph` installs the stable version.
+This is an alpha release. Use `@alpha` or an exact version such as `@0.1.0-alpha.1`. The first release is also the current default on npm; once a stable release is available, the default will point to that stable version.
 
 ## Quickstart
 
