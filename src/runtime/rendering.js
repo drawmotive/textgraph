@@ -50,8 +50,8 @@ export function decodeRender(json, encoding) {
   }
 }
 
-/** Configure failures are operational because no diagram has been submitted yet. */
-export function decodeConfiguration(json) {
+/** Resource setup and disposal failures are operational, separate from diagram diagnostics. */
+export function decodeConfiguration(json, operation = 'configuration') {
   let value;
   let diagnostics;
   try {
@@ -60,7 +60,7 @@ export function decodeConfiguration(json) {
     diagnostics = decodeDiagnostics(value.diagnostics, stages);
     if (value.success === diagnostics.some(item => item.severity === 'error')) throw new Error('Inconsistent success');
   } catch (cause) {
-    throw new DrawMotiveError('INVALID_RESPONSE', 'The configuration response violates protocol 1', { cause });
+    throw new DrawMotiveError('INVALID_RESPONSE', `The ${operation} response violates protocol 1`, { cause });
   }
-  if (!value.success) throw new DrawMotiveError('RUNTIME_FAILED', 'Rendering resources could not be configured', { details: { diagnostics } });
+  if (!value.success) throw new DrawMotiveError('RUNTIME_FAILED', `Rendering resource ${operation} failed`, { details: { diagnostics } });
 }
