@@ -1,0 +1,136 @@
+{
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "packageName": {
+      "const": "@drawmotive/textgraph"
+    },
+    "packageVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "abiVersion": {
+      "const": "1.0.0"
+    },
+    "protocolVersion": {
+      "const": 1
+    },
+    "targetFramework": {
+      "const": "net10.0"
+    },
+    "privateSource": {
+      "type": "object",
+      "properties": {
+        "commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "project": {
+          "const": "DrawMotive.TextGraph.Bridge"
+        }
+      },
+      "required": [
+        "commit",
+        "project"
+      ],
+      "additionalProperties": true
+    },
+    "entryAssembly": {
+      "type": "string"
+    },
+    "runtimeWasm": {
+      "type": "string"
+    },
+    "runtimeConfig": {
+      "type": "string"
+    },
+    "runtimeModule": {
+      "type": "string"
+    },
+    "bridge": {
+      "type": "object",
+      "properties": {
+        "assembly": {
+          "const": "DrawMotive.TextGraph.Bridge.dll"
+        },
+        "type": {
+          "const": "DrawMotive.TextGraph.Bridge.Program"
+        },
+        "info": {
+          "const": "GetRuntimeInfo"
+        },
+        "validate": {
+          "const": "Validate"
+        }
+      },
+      "required": [
+        "assembly",
+        "type",
+        "info",
+        "validate"
+      ],
+      "additionalProperties": true
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "contains": {
+        "const": "textgraph-validate-v1"
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^wasm/[A-Za-z0-9_-][A-Za-z0-9._-]*$"
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "path",
+          "mediaType",
+          "bytes",
+          "sha256"
+        ],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "packageName",
+    "packageVersion",
+    "abiVersion",
+    "protocolVersion",
+    "targetFramework",
+    "privateSource",
+    "entryAssembly",
+    "runtimeWasm",
+    "runtimeConfig",
+    "runtimeModule",
+    "bridge",
+    "capabilities",
+    "assets"
+  ],
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

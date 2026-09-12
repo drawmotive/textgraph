@@ -1,5 +1,7 @@
 # Logs
 .local/
+test-results/
+playwright-report/
 
 logs
 *.log

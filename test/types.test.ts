@@ -32,3 +32,17 @@ void createNodeLoader;
 void browser;
 void node;
 void worker;
+
+async function stableApi() {
+  const runtime = await initializeTextGraph();
+  const result = await runtime.validate('A -> B', { signal: new AbortController().signal });
+  const valid: boolean = result.valid;
+  const capabilities: readonly string[] = runtime.info.capabilities;
+  // @ts-expect-error Source must be a string.
+  await runtime.validate(42);
+  // @ts-expect-error Diagnostics are readonly.
+  result.diagnostics.push({});
+  void valid; void capabilities;
+  await runtime.dispose();
+}
+void stableApi;

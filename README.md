@@ -1,20 +1,37 @@
-# `@drawmotive/textgraph`
+# @drawmotive/textgraph
 
-TextGraph DSL 以及无 UI 的解析、布局、渲染和 DrawMotive 文件处理工具。
+TextGraph 的无 UI JavaScript / TypeScript 工具包。当前提供真实 WASM 解析与语义验证，支持 Node.js、浏览器和 module Web Worker。
 
-该仓库目前处于基础结构阶段，尚未包含可用的 WASM 运行时，因此禁止发布。接入稳定公共 API、Release WASM 和独立构建验证后才会开放发布。
+```javascript
+import { initializeTextGraph } from '@drawmotive/textgraph';
+const runtime = await initializeTextGraph();
+try {
+  const result = await runtime.validate('A -> B');
+  console.log(result.valid, result.diagnostics);
+} finally {
+  await runtime.dispose();
+}
+```
 
-私有总仓生成的本地 Debug WASM 位于 `.local/`，仅用于联调且不会进入 Git 或 npm 包。正式 Release WASM 将由受验证的发布流程写入 `generated/wasm/`。
+[API、ABI、加载与兼容契约](docs/api-v1.md) · [Node 示例](examples/node.mjs) · [浏览器示例](examples/browser.html) · [Worker 示例](examples/worker.js)
 
-## 开发命令
+Node ≥22。包内包含 Release WASM，使用者无需私有 C# 或 GitHub Releases。浏览器需部署完整 generated/wasm 目录；通过 resolveAsset 配置资源位置。Worker 由宿主创建，Node worker_threads 使用 /node 入口。
+
+validate 仅判断解析与语义引用有效性。布局、渲染、文件读写和公开 AST 属后续里程碑。包仍为 private 开发候选，公开发布按独立发布清单执行。
+
+## 独立验证
 
 ```console
 npm ci
 npm test
 npm run build
-npm pack --dry-run
+npx playwright install --with-deps chromium firefox webkit
+npm run test:browser
+npm pack
 ```
+
+测试使用已提交 Release WASM；重新生成 WASM 需要私有总仓。Debug 产物位于忽略的 .local/。
 
 ## 许可证
 
-代码和随包发布的产物使用 MIT 许可证。
+公共 JS/TypeScript 使用 MIT。私有 C# 源码不随包公开；WASM 及第三方依赖再分发许可按发布审计和相应声明处理。

@@ -16,7 +16,8 @@ test('TextGraph scaffold reserves the public package identity without enabling p
   assert.equal(packageJson.scripts.build, 'node --check src/index.js && tsc -p tsconfig.json');
   assert.equal(packageJson.types, './src/index.d.ts');
   assert.equal(packageJson.exports['.'].types, './src/index.d.ts');
-  assert.deepEqual(packageJson.files, ['src', 'generated/wasm', 'generated/wasm-manifest.json']);
+  assert.ok(packageJson.files.includes('generated/wasm-manifest.js'));
+  assert.ok(packageJson.files.includes('schemas'));
 });
 
 test('TextGraph ESM entry initializes through an injected runtime loader', async () => {

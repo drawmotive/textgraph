@@ -72,8 +72,11 @@ export function createManagedInstance(resources) {
       state = 'disposing';
       disposePromise = (async () => {
         await Promise.allSettled([...active]);
-        for (const resource of resources) await resource?.dispose?.();
-        state = 'disposed';
+        try {
+          const results = await Promise.allSettled(resources.map(resource => Promise.resolve().then(() => resource?.dispose?.())));
+          const failure = results.find(result => result.status === 'rejected');
+          if (failure) throw failure.reason;
+        } finally { state = 'disposed'; }
       })();
       return disposePromise;
     },

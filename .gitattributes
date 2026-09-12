@@ -1,0 +1,2 @@
+* text=auto eol=lf
+generated/wasm/** -text
