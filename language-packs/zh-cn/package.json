@@ -1,0 +1,16 @@
+{
+  "name": "@drawmotive/textgraph-fonts-zh-cn",
+  "version": "0.0.0-development",
+  "description": "Simplified Chinese fonts for TextGraph",
+  "private": true,
+  "type": "module",
+  "types": "./index.d.ts",
+  "exports": { ".": { "types": "./index.d.ts", "default": "./index.js" } },
+  "files": ["index.js", "index.d.ts", "fonts", "OFL.txt"],
+  "license": "OFL-1.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/drawmotive/textgraph.git",
+    "directory": "language-packs/zh-cn"
+  }
+}
