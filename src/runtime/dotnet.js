@@ -1,7 +1,9 @@
 import { createRuntimeAssetPlan } from './shared.js';
 import { DrawMotiveError } from './errors.js';
-import { validateManifest, validateBootConfig, validationCapability } from './manifest.js';
+import { validateManifest, validateBootConfig, validationCapability, renderingCapability, isRuntimeAsset } from './manifest.js';
 import { throwIfAborted } from './lifecycle.js';
+import { readVerifiedAsset } from './integrity.js';
+import { createRenderingExecutor } from './render-resources.js';
 
 /** Starts one isolated .NET module graph; platform loaders own all data I/O. */
 export async function startTextGraphRuntime(options, manifest, readAsset) {
@@ -10,7 +12,7 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
   if (!globalThis.crypto?.subtle || typeof globalThis.crypto.randomUUID !== 'function') {
     throw new DrawMotiveError('UNSUPPORTED_ENVIRONMENT', 'TextGraph requires Web Crypto in HTTPS or localhost');
   }
-  const plan = createRuntimeAssetPlan({ manifest, moduleUrl: import.meta.url, resolveAsset: options.resolveAsset });
+  const plan = createRuntimeAssetPlan({ manifest: { assets: manifest.assets.filter(isRuntimeAsset) }, moduleUrl: import.meta.url, resolveAsset: options.resolveAsset });
   const byName = new Map(plan.map(item => [item.asset.path.slice(5), item]));
   const instanceKey = crypto.randomUUID();
   const moduleUrl = item => {
@@ -27,13 +29,7 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
     for (const item of plan) {
       throwIfAborted(options.signal);
       if (/[.](mjs|js)$/.test(item.asset.path)) continue;
-      const response = await readAsset(item, options);
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), byte => byte.toString(16).padStart(2, '0')).join('');
-      if (bytes.byteLength !== item.asset.bytes || hash !== item.asset.sha256) {
-        throw new DrawMotiveError('ASSET_INTEGRITY_MISMATCH', `Asset integrity failed: ${item.asset.path}`, { details: { asset: item.asset.path } });
-      }
-      data.set(item.asset.path, bytes);
+      data.set(item.asset.path, await readVerifiedAsset(item, options, readAsset));
     }
     throwIfAborted(options.signal);
     // Detect unsupported WASM features before the runtime takes ownership of failure handling.
@@ -71,9 +67,13 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
       throw new DrawMotiveError('ABI_MISMATCH', 'Bridge and manifest disagree');
     }
     if (!Array.isArray(info.capabilities) || !info.capabilities.includes(validationCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement validation');
+    const renders = manifest.capabilities.includes(renderingCapability);
+    if (renders && !info.capabilities.includes(renderingCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement rendering');
+    if (renders && typeof bridge[manifest.bridge.execute] !== 'function') throw new DrawMotiveError('ABI_MISMATCH', 'Rendering bridge export is missing');
     return {
       abiVersion: info.abiVersion, capabilities: info.capabilities,
       validate: source => bridge[manifest.bridge.validate](source),
+      ...(renders ? { execute: createRenderingExecutor({ manifest, options, readAsset, execute: request => bridge[manifest.bridge.execute](request) }) } : {}),
       // .NET exit() terminates the entire Node host. Release wrapper references only; Worker termination reclaims the VM.
       dispose() { bridge = undefined; },
     };
