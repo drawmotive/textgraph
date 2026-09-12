@@ -4,6 +4,7 @@ import { validateManifest, validateBootConfig, validationCapability, renderingCa
 import { throwIfAborted } from './lifecycle.js';
 import { readVerifiedAsset } from './integrity.js';
 import { createRenderingExecutor } from './render-resources.js';
+import { decodeConfiguration } from './rendering.js';
 
 /** Starts one isolated .NET module graph; platform loaders own all data I/O. */
 export async function startTextGraphRuntime(options, manifest, readAsset) {
@@ -70,16 +71,30 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
     const renders = manifest.capabilities.includes(renderingCapability);
     if (renders && !info.capabilities.includes(renderingCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement rendering');
     if (renders && typeof bridge[manifest.bridge.execute] !== 'function') throw new DrawMotiveError('ABI_MISMATCH', 'Rendering bridge export is missing');
-    return {
-      abiVersion: info.abiVersion, capabilities: info.capabilities,
-      validate: source => bridge[manifest.bridge.validate](source),
-      ...(renders ? { execute: createRenderingExecutor({ manifest, options, readAsset, execute: request => bridge[manifest.bridge.execute](request) }) } : {}),
-      // .NET exit() terminates the entire Node host. Release wrapper references only; Worker termination reclaims the VM.
-      dispose() { bridge = undefined; },
-    };
+    return createBridgeRuntime({ manifest, options, readAsset, bridge, info });
   } catch (cause) {
     bridge = undefined;
     if (cause instanceof DrawMotiveError || cause?.name === 'AbortError') throw cause;
     throw new DrawMotiveError('INITIALIZATION_FAILED', 'Could not initialize TextGraph WASM', { cause });
   }
+}
+
+/** Owns managed bridge resources; the instance queue drains calls before invoking disposal. */
+export function createBridgeRuntime({ manifest, options, readAsset, bridge, info }) {
+  const renders = manifest.capabilities.includes(renderingCapability);
+  return {
+    abiVersion: info.abiVersion, capabilities: info.capabilities,
+    validate: source => bridge[manifest.bridge.validate](source),
+    ...(renders ? { execute: createRenderingExecutor({ manifest, options, readAsset, execute: request => bridge[manifest.bridge.execute](request) }) } : {}),
+    async dispose() {
+      if (!bridge) return;
+      try {
+        // Release native font caches and their timers without .NET exit(), which terminates Node.
+        if (renders) decodeConfiguration(await bridge[manifest.bridge.execute](JSON.stringify({ protocolVersion: 1, operation: 'dispose' })), 'disposal');
+      } catch (cause) {
+        if (cause instanceof DrawMotiveError) throw cause;
+        throw new DrawMotiveError('RUNTIME_FAILED', 'Native resource disposal failed', { cause });
+      } finally { bridge = undefined; }
+    },
+  };
 }
