@@ -7,7 +7,7 @@ import test from "node:test";
 import { pathToFileURL } from "node:url";
 import { releaseChannel, assertRegistryState, assertPublishedState } from "../scripts/release-policy.mjs";
 import { prepareVersion, verifyPackage, verifyArtifact, verifyPackList } from "../scripts/release.mjs";
-import { publishRelease, waitForPublication } from "../scripts/publish-release.mjs";
+import { publishRelease, waitForPublication, readPublicRegistry } from "../scripts/publish-release.mjs";
 
 const packageRoot = path.resolve(import.meta.dirname, "..");
 const readJson = async file => JSON.parse(await readFile(file, "utf8"));
@@ -157,6 +157,63 @@ test("dry run never performs a registry write", async t => {
   } });
   assert.equal(calls, 1);
   assert.equal(result.status, "dry-run");
+});
+
+test("registry reads request install metadata when the full package document is unavailable", async () => {
+  const originalFetch = globalThis.fetch;
+  const packument = { "dist-tags": { alpha: "0.1.0-alpha.1" }, versions: { "0.1.0-alpha.1": {} } };
+  globalThis.fetch = async (url, options) => {
+    if (url.endsWith("/dist-tags")) return Response.json({ alpha: "0.1.0-alpha.1" });
+    assert.equal(url, "https://registry.npmjs.org/@drawmotive%2ftextgraph");
+    return options.headers.Accept === "application/vnd.npm.install-v1+json"
+      ? Response.json(packument) : Response.json({ error: "Not found" }, { status: 404 });
+  };
+  try { assert.deepEqual(await readPublicRegistry(), packument); }
+  finally { globalThis.fetch = originalFetch; }
+});
+
+test("registry checks use live dist-tags instead of a cached default in install metadata", async () => {
+  const originalFetch = globalThis.fetch;
+  const version = "0.1.0-alpha.1";
+  globalThis.fetch = async url => url.endsWith("/dist-tags")
+    ? Response.json({ alpha: version })
+    : Response.json({ "dist-tags": { alpha: version, latest: version }, versions: { [version]: {} } });
+  try { assert.deepEqual((await readPublicRegistry())["dist-tags"], { alpha: version }); }
+  finally { globalThis.fetch = originalFetch; }
+});
+
+test("first alpha publication removes npm-created latest only after checking published bytes", async t => {
+  const { directory, release } = await artifact(t);
+  let registry = null;
+  const calls = [];
+  const run = async (_command, args) => {
+    calls.push(args);
+    if (args[0] === "publish") {
+      registry = { "dist-tags": { alpha: release.version, latest: release.version }, versions: { [release.version]: { dist: { integrity: release.integrity } } } };
+    } else {
+      assert.deepEqual(args, ["dist-tag", "rm", "@drawmotive/textgraph", "latest", "--registry", "https://registry.npmjs.org/"]);
+      delete registry["dist-tags"].latest;
+    }
+  };
+  const result = await publishRelease({ directory, expected: release, readRegistry: async () => registry, run });
+  assert.equal(result.status, "published");
+  assert.equal(calls.length, 2);
+  assert.deepEqual(registry["dist-tags"], { alpha: "0.1.0-alpha.1" });
+});
+
+test("publication never removes a preexisting stable default or an unrelated latest", async t => {
+  const { directory, release } = await artifact(t);
+  for (const [before, newLatest, integrity] of [
+    [{ "dist-tags": { latest: "0.0.1" }, versions: { "0.0.1": {} } }, release.version, release.integrity],
+    [null, "0.1.0-alpha.2", release.integrity],
+    [null, release.version, "sha512-different"],
+  ]) {
+    let registry = before;
+    await assert.rejects(publishRelease({ directory, expected: release, readRegistry: async () => registry, run: async (_cmd, args) => {
+      assert.equal(args[0], "publish", "Unsafe state must never trigger tag removal");
+      registry = { "dist-tags": { alpha: release.version, latest: newLatest }, versions: { ...before?.versions, [release.version]: { dist: { integrity } } } };
+    } }), /latest|integrity/i);
+  }
 });
 
 test("postflight waits only for propagation and never retries an unsafe registry state", async t => {

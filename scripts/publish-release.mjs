@@ -8,17 +8,36 @@ import { packageRoot, verifyArtifact, verifyPackage } from "./release.mjs";
 /** Registry absence is valid for a first release; other failures must stop publishing. */
 export async function readPublicRegistry() {
   const response = await fetch("https://registry.npmjs.org/@drawmotive%2ftextgraph", {
-    headers: { "Cache-Control": "no-cache" }, signal: AbortSignal.timeout(30000),
+    // New packages can be installable before the full JSON document is served.
+    headers: { Accept: "application/vnd.npm.install-v1+json", "Cache-Control": "no-cache" }, signal: AbortSignal.timeout(30000),
   });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`npm registry returned HTTP ${response.status}`);
-  return response.json();
+  const metadata = await response.json();
+  // Install metadata can cache an old latest after deletion. Tag authority is
+  // the dedicated JSON endpoint used by npm dist-tag itself.
+  const tags = await fetch("https://registry.npmjs.org/-/package/@drawmotive%2ftextgraph/dist-tags", {
+    headers: { Accept: "application/json", "Cache-Control": "no-cache" }, signal: AbortSignal.timeout(30000),
+  });
+  if (!tags.ok) throw new Error(`npm dist-tags returned HTTP ${tags.status}`);
+  return { ...metadata, "dist-tags": await tags.json() };
 }
 
 /** Registry reads may lag a successful write; unsafe visible state is never retried. */
-export async function waitForPublication(release, before, readRegistry, delay = setTimeout) {
+export async function waitForPublication(release, before, readRegistry, delay = setTimeout, repairFirstLatest) {
   for (let attempt = 0; attempt < 6; attempt++) {
-    const after = await readRegistry();
+    let after = await readRegistry();
+    // npm may add latest on initial publication even with --tag alpha. Remove
+    // only our verified first version, never an existing stable or other release.
+    if (repairFirstLatest && before === null && release.tag === "alpha"
+      && after?.["dist-tags"]?.latest === release.version
+      && after?.["dist-tags"]?.alpha === release.version
+      && after?.versions?.[release.version]?.dist?.integrity === release.integrity
+      && Object.keys(after.versions).length === 1) {
+      await repairFirstLatest();
+      repairFirstLatest = undefined;
+      after = await readRegistry();
+    }
     assertRegistryState(release.version, after);
     if (after && release.tag === "alpha" && before?.["dist-tags"]?.latest !== after["dist-tags"]?.latest) {
       throw new Error("Alpha publication changed latest; inspect registry state before continuing.");
@@ -46,7 +65,8 @@ export async function publishRelease({ directory, expected, dryRun = false, read
   const args = ["publish", path.join(directory, release.filename), "--ignore-scripts", "--access", "public", "--tag", release.tag, "--registry", "https://registry.npmjs.org/"];
   if (dryRun) args.push("--dry-run");
   await run("npm", args, packageRoot, { interactive: !dryRun });
-  if (!dryRun) await waitForPublication(release, before, readRegistry);
+  if (!dryRun) await waitForPublication(release, before, readRegistry, setTimeout, () =>
+    run("npm", ["dist-tag", "rm", release.name, "latest", "--registry", "https://registry.npmjs.org/"], packageRoot, { interactive: true }));
   return { ...release, status: dryRun ? "dry-run" : "published" };
 }
 
