@@ -5,10 +5,12 @@ Render TextGraph diagrams as PNG images and validate diagram source.
 ## Installation
 
 ```bash
-npm install @drawmotive/textgraph
+npm install @drawmotive/textgraph@alpha
 ```
 
 Requires Node.js 22+ or a modern browser.
+
+Alpha releases require `@alpha` or an exact version such as `@0.1.0-alpha.1`. Once a stable release is available, `npm install @drawmotive/textgraph` installs the stable version.
 
 ## Quickstart
 
@@ -64,6 +66,8 @@ await textgraph.dispose();
 ```
 
 ## Additional languages
+
+Additional language packages are not yet published.
 
 ```bash
 npm install @drawmotive/textgraph-fonts-zh-cn

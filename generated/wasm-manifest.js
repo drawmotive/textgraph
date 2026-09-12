@@ -1,7 +1,7 @@
 export default {
   "schemaVersion": 1,
   "packageName": "@drawmotive/textgraph",
-  "packageVersion": "0.0.0-development",
+  "packageVersion": "0.1.0-alpha.1",
   "abiVersion": "1.0.0",
   "protocolVersion": 1,
   "runtimeModule": "wasm/dotnet.js",
@@ -27,7 +27,7 @@ export default {
   },
   "targetFramework": "net10.0",
   "privateSource": {
-    "commit": "791e722fa3579cac50e7eb80e67b541f362e9f70",
+    "commit": "d720d8c8b0f64b545d8cdc7a3689441f44937715",
     "project": "DrawMotive.TextGraph.Bridge"
   },
   "entryAssembly": "wasm/DrawMotive.TextGraph.Bridge.wasm",
@@ -50,7 +50,7 @@ export default {
       "path": "wasm/DrawMotive.TextGraph.Bridge.wasm",
       "mediaType": "application/wasm",
       "bytes": 73493,
-      "sha256": "a2a52b620b2cdfabab461412fde8cf1a09b918e3770852abaecfbd9ad6c09076"
+      "sha256": "35ce359d6db26f93a232f7e9ff2e43ddffd8b9d9751d9806db64c1ba3e3e0892"
     },
     {
       "path": "wasm/FuzzyBubbles-LICENSE.txt",
@@ -68,19 +68,19 @@ export default {
       "path": "wasm/Graphics.Core.wasm",
       "mediaType": "application/wasm",
       "bytes": 3103513,
-      "sha256": "77c3b5d19c34efbdb15f4b50b65e8e8aa87e7a5848d5c0ba539b54d56e5dd695"
+      "sha256": "4176325ff5abe21fb3effe86e422ae42cd38f1551a55c0de64e2666ff1ad5510"
     },
     {
       "path": "wasm/Grpc.Core.Api.wasm",
       "mediaType": "application/wasm",
       "bytes": 7957,
-      "sha256": "2c2d49e0c64c18448ed5553614bece1deb96aa6158dc8d773dc667a1fa14f94f"
+      "sha256": "47881216cdede4345da6ec74ef2c782c2897f4034ffdd335f6a8227a72d16dc5"
     },
     {
       "path": "wasm/HarfBuzzSharp.wasm",
       "mediaType": "application/wasm",
       "bytes": 29973,
-      "sha256": "42e448a7225de5aba3955f06be2b9beb7b9242a156c14b3ef2e05e86f9a8d288"
+      "sha256": "0c99c348662984f20db503df291e21f8a2eee33c49cf001e3f6fbe279d33d15e"
     },
     {
       "path": "wasm/MagicOnion.Abstractions.wasm",
@@ -110,7 +110,7 @@ export default {
       "path": "wasm/Math.Core.wasm",
       "mediaType": "application/wasm",
       "bytes": 3241241,
-      "sha256": "36aec0ecb8d29e2a773e1858abac7ddbd4faeb1a2a77368a8ac474620de1d6a4"
+      "sha256": "2ad85a031550473fc431a7ffbecd864ad03f6798492042cabd54e37341d7cc1e"
     },
     {
       "path": "wasm/MemoryPack.Core.wasm",
@@ -206,7 +206,7 @@ export default {
       "path": "wasm/Polly.Core.wasm",
       "mediaType": "application/wasm",
       "bytes": 62741,
-      "sha256": "05f48528099710f386d650c51bf1cb84f9411f9debfad9cb8401099db813e82b"
+      "sha256": "18e12e4a2c18a5ca9adadf44f8439b3337aa581513767c961f28f06798194a32"
     },
     {
       "path": "wasm/Polly.wasm",
@@ -230,7 +230,7 @@ export default {
       "path": "wasm/RBush.wasm",
       "mediaType": "application/wasm",
       "bytes": 24341,
-      "sha256": "ef1f438093dbdc16178af14e5db255ef9d82f544de3dbe86a0cd9882075ba971"
+      "sha256": "c584106d2fdf35ab067d4ebd5833b8c4634c1200bc6425deb96e69eb6010612e"
     },
     {
       "path": "wasm/SkiaSharp.HarfBuzz.wasm",
@@ -242,7 +242,7 @@ export default {
       "path": "wasm/SkiaSharp.wasm",
       "mediaType": "application/wasm",
       "bytes": 88853,
-      "sha256": "53fe758d947be7b6c6da6f210a6e4f1208dd0bbf1eeaeefda66ba00a51eb5fa3"
+      "sha256": "db0868276ca21dc69f1803605d492502b23900bb390757faefa5d8d49f0026ba"
     },
     {
       "path": "wasm/Stateless.wasm",
@@ -524,7 +524,7 @@ export default {
       "path": "wasm/dotnet.boot.js",
       "mediaType": "text/javascript",
       "bytes": 17141,
-      "sha256": "7387939828b808042940b6414cfd8d05c992302eeadeda33604d4dc432bd7ba2"
+      "sha256": "a2db00e03105fdd51bd876df82263096a284852ed6caa3e5f5ad6bb233e7f20d"
     },
     {
       "path": "wasm/dotnet.js",

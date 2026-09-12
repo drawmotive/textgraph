@@ -1,8 +1,7 @@
 {
   "name": "@drawmotive/textgraph",
-  "version": "0.0.0-development",
+  "version": "0.1.0-alpha.1",
   "description": "TextGraph DSL and headless DrawMotive file toolkit",
-  "private": true,
   "type": "module",
   "types": "./src/index.d.ts",
   "exports": {
@@ -39,7 +38,11 @@
     "build": "node --check src/index.js && tsc -p tsconfig.json",
     "test": "node --test test/*.test.mjs",
     "prepack": "npm test && npm run build",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "release:prepare": "node scripts/release.mjs prepare",
+    "release:verify": "node scripts/release.mjs verify",
+    "release:pack": "npm test && npm run build && node scripts/release.mjs pack",
+    "release:publish": "node scripts/publish-release.mjs"
   },
   "repository": {
     "type": "git",
@@ -54,5 +57,10 @@
     "ajv": "8.20.0",
     "pngjs": "7.0.0",
     "typescript": "^7.0.2"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "alpha"
   }
 }

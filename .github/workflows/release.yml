@@ -1,0 +1,99 @@
+name: Publish TextGraph
+on:
+  push:
+    tags: ["textgraph-v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag (textgraph-vX.Y.Z or textgraph-vX.Y.Z-alpha.N)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: textgraph-npm-publication
+  cancel-in-progress: false
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.release.outputs.ref }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate release tag and resolve immutable commit
+        id: release
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync } from "node:fs";
+          import { execFileSync } from "node:child_process";
+          import { releaseChannel } from "./scripts/release-policy.mjs";
+          const tag = process.env.RELEASE_TAG;
+          const release = releaseChannel(tag.replace(/^textgraph-v/, ""));
+          if (tag !== release.gitTag) throw new Error("Invalid release tag");
+          const ref = execFileSync("git", ["rev-parse", `refs/tags/${tag}^{commit}`], { encoding: "utf8" }).trim();
+          if (process.env.GITHUB_REF !== `refs/tags/${tag}` || process.env.GITHUB_SHA !== ref) {
+            throw new Error("Run this workflow on the release tag itself so OIDC and provenance identify the published commit.");
+          }
+          appendFileSync(process.env.GITHUB_OUTPUT, `ref=${ref}\ntag=${tag}\n`);
+          JS
+  test:
+    needs: resolve
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.resolve.outputs.ref }}
+  pack:
+    needs: [resolve, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify tag and pack tested checkout
+        env:
+          RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+        run: node scripts/release.mjs pack "$RELEASE_TAG"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: textgraph-npm-release
+          path: |
+            .release/*.tgz
+            .release/release.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+  publish:
+    needs: [resolve, pack]
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --global npm@11.11.1
+      - uses: actions/download-artifact@v4
+        with:
+          name: textgraph-npm-release
+          path: .release
+      - name: Publish verified tarball using npm trusted publishing
+        env:
+          RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+        run: node scripts/publish-release.mjs

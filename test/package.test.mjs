@@ -5,11 +5,11 @@ import test from 'node:test';
 
 const packageRoot = path.resolve(import.meta.dirname, '..');
 
-test('TextGraph scaffold reserves the public package identity without enabling publication', async () => {
+test('TextGraph package exposes its public identity and typed entry points', async () => {
   const packageJson = JSON.parse(await readFile(path.join(packageRoot, 'package.json'), 'utf8'));
 
   assert.equal(packageJson.name, '@drawmotive/textgraph');
-  assert.equal(packageJson.private, true);
+  assert.notEqual(packageJson.private, true);
   assert.equal(packageJson.type, 'module');
   assert.equal(packageJson.engines.node, '>=22');
   assert.equal(packageJson.scripts.test, 'node --test test/*.test.mjs');

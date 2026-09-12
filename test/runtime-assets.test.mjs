@@ -12,7 +12,8 @@ test('TextGraph ships a complete package-owned Release WASM manifest', async () 
 
   assert.equal(manifest.schemaVersion, 1);
   assert.equal(manifest.packageName, '@drawmotive/textgraph');
-  assert.equal(manifest.packageVersion, '0.0.0-development');
+  const packageJson = JSON.parse(await readFile(path.join(packageRoot, 'package.json'), 'utf8'));
+  assert.equal(manifest.packageVersion, packageJson.version);
   assert.equal(manifest.abiVersion, '1.0.0');
   assert.equal(manifest.targetFramework, 'net10.0');
   assert.match(manifest.privateSource.commit, /^[0-9a-f]{40}$/);
