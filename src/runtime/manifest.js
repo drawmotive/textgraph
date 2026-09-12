@@ -1,11 +1,17 @@
 import { DrawMotiveError } from './errors.js';
 
 export const validationCapability = 'textgraph-validate-v1';
+export const renderingCapability = 'textgraph-render-v1';
+
+/** Only native runtime formats belong to startup; fonts, themes and licenses are separate assets. */
+export function isRuntimeAsset(asset) {
+  return /[.](wasm|js|mjs|json|dat)$/.test(asset.path);
+}
 
 /** Boot metadata cannot expand the preflighted asset authority after native startup begins. */
 export function validateBootConfig(config, manifest) {
   if (config?.mainAssemblyName !== manifest.bridge.assembly) throw new DrawMotiveError('ABI_MISMATCH', 'Unexpected boot entry assembly');
-  const paths = new Set(manifest.assets.map(asset => asset.path.slice(5)));
+  const paths = new Set(manifest.assets.filter(isRuntimeAsset).map(asset => asset.path.slice(5)));
   if (!config.resources || typeof config.resources !== 'object') throw new DrawMotiveError('INVALID_MANIFEST', 'Missing boot resources');
   const visit = value => {
     if (!value || typeof value !== 'object') return;
@@ -36,5 +42,19 @@ export function validateManifest(manifest) {
   if (!paths.has('wasm/dotnet.boot.js') || manifest.bridge?.assembly !== 'DrawMotive.TextGraph.Bridge.dll'
       || manifest.bridge?.type !== 'DrawMotive.TextGraph.Bridge.Program' || manifest.bridge?.info !== 'GetRuntimeInfo'
       || manifest.bridge?.validate !== 'Validate') invalid();
+  if (manifest.bridge.execute !== undefined && manifest.bridge.execute !== 'Execute') invalid();
+  if (manifest.capabilities.includes(renderingCapability) && (!manifest.rendering || manifest.bridge.execute !== 'Execute')) invalid();
+  if (manifest.rendering !== undefined) {
+    const rendering = manifest.rendering;
+    if (!rendering || !paths.has(rendering.theme) || !rendering.theme.endsWith('.css')
+        || !Array.isArray(rendering.fonts) || rendering.fonts.length === 0) invalid();
+    const families = new Set();
+    const fontPaths = new Set();
+    for (const font of rendering.fonts) {
+      if (!font || typeof font.family !== 'string' || !font.family.trim() || font.family !== font.family.trim()
+          || families.has(font.family) || fontPaths.has(font.asset) || !paths.has(font.asset) || !/[.](ttf|otf)$/.test(font.asset)) invalid();
+      families.add(font.family); fontPaths.add(font.asset);
+    }
+  }
   return manifest;
 }

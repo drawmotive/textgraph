@@ -1,6 +1,6 @@
-# TextGraph validation API, protocol 1
+# TextGraph API, protocol 1
 
-This contract covers local parsing and semantic reference resolution. Validity does not certify layout feasibility, renderability or DrawMotive file compatibility. Empty source is valid. Public AST, layout, rendering and file APIs are separate milestones.
+This contract covers validation and PNG rendering. Validation checks parsing and semantic reference resolution; it does not certify layout feasibility or renderability. Empty source is valid. Public AST, editable layout and file APIs remain separate milestones.
 
 ```javascript
 import { initializeTextGraph } from '@drawmotive/textgraph';
@@ -18,9 +18,35 @@ Initialization resolves after manifest and real bridge agree on ABI, protocol an
 
 `validate(source, { signal }?)` returns immutable detached `{ valid, diagnostics }`. Parse errors stop semantic resolution. Diagnostics contain `code`, `severity` (`error` or `warning`), `stage` (`parse` or `semantic`), `message`, and optional `location: { line, column }`. Lines and UTF-16 columns are zero-based, including CRLF and supplementary Unicode characters. Unknown locations are omitted; end spans are not fabricated. Initial codes are `TG_PARSE_ERROR`, `TG_PARSE_WARNING`, `TG_SEMANTIC_ERROR`, `TG_SEMANTIC_WARNING`. Message wording may evolve.
 
+## PNG rendering
+
+`renderPng(source, options?)` returns `{ success: true, png, width, height, diagnostics }` or `{ success: false, diagnostics }`. Diagram failures resolve with diagnostics and contain no image data. Successful results and diagnostics are frozen; byte output is a detached, caller-owned `Uint8Array`. Output uses a white background.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `encoding` | `"bytes"` | `"bytes"` returns `Uint8Array`; `"base64"` returns a string without a data-URL prefix. |
+| `scale` | `2` | Positive finite render scale. |
+| `padding` | `10` | Non-negative finite padding in diagram units. |
+| `maxWidth` | Omitted | Positive safe integer maximum output width in pixels; preserves proportions and only reduces output size. |
+| `signal` | Omitted | Cancels queued work or discards completed work after cancellation. |
+
+Literal encodings infer their corresponding PNG type in TypeScript; union encodings return `Uint8Array | string`. Render diagnostics may use `parse`, `semantic`, `layout`, `render`, or `font` stages. `validate()` retains its original parse/semantic contract.
+
+Scale and padding must remain finite when represented as 32-bit floats; scale must also remain greater than zero. Invalid arguments reject with `INVALID_ARGUMENT`.
+
+After applying `maxWidth`, output is limited to 16,384 pixels per side and 16,777,216 pixels in total. Larger images return the `TG_RENDER_SIZE_LIMIT` diagnostic. PNG dimensions and signature are checked against the response metadata; malformed responses reject with `INVALID_RESPONSE`.
+
+## Fonts and language packs
+
+Default rendering includes Noto Sans and Fuzzy Bubbles. Configure additional fonts with `initializeTextGraph({ languagePacks: [...] })`. A `TextGraphLanguagePack` has a non-empty `fonts` array of `{ family, source }` and optional ordered `fallbackFamilies`. Font sources are `URL` objects or non-empty `Uint8Array` values. In Node, use `pathToFileURL()` for filesystem paths; relative asset modules can use `new URL("./font.ttf", import.meta.url)` across platforms.
+
+The initializer copies byte arrays, URLs and descriptor arrays before asynchronous work, so later caller mutations cannot change rendering resources. Families must be unique across all packs and bundled defaults. Fallback families must name configured fonts. Descriptor validation performs no font I/O. Font contents are loaded and configured on first render; validate-only use does not read fonts or themes. Font-loading or configuration failures reject with `DrawMotiveError`; a later render can retry.
+
+Bundled resource URLs use `resolveAsset`. Language-pack sources use their supplied URL directly and the platform data loader, including custom `fetch` or the network adapter for network URLs. `@drawmotive/textgraph-fonts-zh-cn` exports a `zhCN` descriptor for Simplified Chinese. The optional package is installed separately.
+
 ## Lifecycle
 
-Validation calls serialize per instance. Independent instances have independent runtime module graphs and queues. Cancellation is checked before execution and after the synchronous parser returns. Cancelling queued work prevents execution; it cannot preempt synchronous C# parsing on the same thread. A Promise does not move computation off the main thread.
+Validation, render preparation and rendering calls serialize through one queue per instance. Independent instances have independent runtime module graphs and queues. Cancellation is checked before and after native work. Cancelling queued work prevents execution; it cannot preempt native parsing, layout or rendering already running on the same thread. A Promise does not move computation off the main thread.
 
 `dispose()` is idempotent, rejects new work immediately and drains accepted work before releasing wrapper references. The wrapper stays disposed even if cleanup fails. .NET has no portable host-safe unload: its Node exit API terminates the process. Disposal does not promise reclamation of the entire VM/module cache. Reuse an instance; terminate its host-owned Worker for hard cancellation and full environment reclamation.
 
@@ -38,9 +64,11 @@ Root condition precedence is worker/browser/node/default. Explicit entries avoid
 
 Defaults resolve relative to the installed module. `resolveAsset(asset, defaultUrl)` may return an absolute URL or URL object for each asset. Deploy the complete `generated/wasm` directory: bundlers must preserve/copy these files and configure the resolver for their deployed location. It covers both JS and data. Instance query parameters isolate mutable .NET ESM state; servers should serve identical module bytes regardless of that query.
 
-`fetch` or `adapters.network.fetch` receives data URLs and initialization signal. JS uses dynamic import, which injected fetch cannot intercept. Offline installations must cache the module graph as well as WASM/data at importable URLs, using a Service Worker or local server. No GitHub Releases download is required.
+`fetch` or `adapters.network.fetch` receives data URLs and the applicable initialization or render signal. JS uses dynamic import, which injected fetch cannot intercept. Offline installations must cache the module graph as well as WASM/data at importable URLs, using a Service Worker or local server. No GitHub Releases download is required.
 
 Serve WASM as `application/wasm`, JS as `text/javascript`, and provide applicable CORS headers for cross-origin assets. Same-origin CSP: `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'self'`. No eval, new Function or DOM script injection is used. Cross-origin isolation and SharedArrayBuffer are not required by this single-threaded runtime.
+
+Serve font files as `font/ttf` and themes as `text/css`. To display base64 PNGs, add `img-src 'self' data:` to CSP; include `blob:` too when displaying Blob URLs.
 
 ## Errors
 
@@ -48,8 +76,10 @@ DSL failures resolve with diagnostics. Operational errors reject with `DrawMotiv
 
 ## ABI and versioning
 
-ABI 1.0.0 retains GetAbiVersion/GetPackageKind/CountParseDiagnostics and adds GetRuntimeInfo() and Validate(source) on DrawMotive.TextGraph.Bridge.Program. Info returns JSON `{ abiVersion, packageKind, protocolVersion: 1, capabilities }`; Validate returns `{ protocolVersion: 1, valid, diagnostics }`. Wrappers require `textgraph-validate-v1`. This is a managed export/JSON protocol, not a raw WASM pointer ABI.
+ABI 1.0.0 retains GetAbiVersion/GetPackageKind/CountParseDiagnostics and adds GetRuntimeInfo(), Validate(source) and Execute(requestJson) on DrawMotive.TextGraph.Bridge.Program. Info returns JSON `{ abiVersion, packageKind, protocolVersion: 1, capabilities }`; Validate returns `{ protocolVersion: 1, valid, diagnostics }`. Wrappers require `textgraph-validate-v1`; PNG rendering additionally requires `textgraph-render-v1` and the manifest `bridge.execute` export. Legacy validation exports remain supported. This is a managed export/JSON protocol, not a raw WASM pointer ABI.
 
-`generated/wasm-manifest.json` is authoritative; its ESM projection avoids JSON-module browser assumptions. Shipped schemas describe the manifest and validation response. Manifest schema, ABI, protocol and npm versions are separate. Additive exports use capabilities; incompatible wire changes require a new supported version. npm versions and bundled assets are released together. DSL/file-format versions are not frozen by this milestone.
+`generated/wasm-manifest.json` is authoritative; its ESM projection avoids JSON-module browser assumptions. Shipped schemas describe the manifest, validation response and rendering response. Manifest schema, ABI, protocol and npm versions are separate. Additive exports use capabilities; incompatible wire changes require a new supported version. npm versions and bundled assets are released together. DSL/file-format versions are not frozen by this milestone.
 
-Assets have relative path, media type, byte count and SHA-256. Packaging checks reject missing/extra assets, debug files, hash/projection/version drift. Data assets are also hash-checked before native startup. These checks establish distribution consistency, not authenticated runtime signatures. `privateSource.commit` identifies committed private C# and bridge inputs. Toolchain changes may change bytes; cross-toolchain byte-for-byte reproducibility is not promised.
+Assets have relative path, media type, byte count and SHA-256. Packaging checks reject missing/extra assets, debug files, hash/projection/version drift. Runtime data assets are hash-checked before native startup. Bundled fonts and themes are loaded and hash-checked lazily before the first render; license files require no runtime I/O. These checks establish distribution consistency, not authenticated runtime signatures. `privateSource.commit` identifies committed private C# and bridge inputs. Toolchain changes may change bytes; cross-toolchain byte-for-byte reproducibility is not promised.
+
+The rendering wire uses one `Execute(requestJson)` export. Configuration is performed once before the first render with `{ protocolVersion: 1, operation: "configure", theme, fonts: [{ family, data }], fallbackFamilies }`, where `data` is base64 font data. Its response is `{ protocolVersion: 1, success, diagnostics }`. A render request is `{ protocolVersion: 1, operation: "render", source, export: { format: "png", scale, padding, maxWidth? } }`. Native success returns base64 `png`, `width`, `height`, and diagnostics; failures contain only `success: false` and diagnostics beside the protocol version. The JavaScript wrapper converts image data to the requested encoding.
