@@ -7,6 +7,16 @@
         "version": "10.0.8"
       }
     ],
+    "wasmHostProperties": {
+      "perHostConfig": [
+        {
+          "name": "browser",
+          "host": "browser"
+        }
+      ],
+      "runtimeArgs": [],
+      "mainAssembly": "DrawMotive.TextGraph.Bridge.dll"
+    },
     "configProperties": {
       "Microsoft.Extensions.DependencyInjection.VerifyOpenGenericServiceTrimmability": true,
       "System.ComponentModel.DefaultValueAttribute.IsSupported": false,
@@ -37,11 +47,6 @@
       "System.Text.Encoding.EnableUnsafeUTF7Encoding": false,
       "System.Text.Json.JsonSerializer.IsReflectionEnabledByDefault": false,
       "System.Threading.Thread.EnableAutoreleasePool": false
-    },
-    "wasmHostProperties": {
-      "runtimeArgs": [],
-      "perHostConfig": [],
-      "mainAssembly": "DrawMotive.TextGraph.Bridge.dll"
     }
   }
 }

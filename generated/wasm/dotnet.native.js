@@ -4734,6 +4734,10 @@ function createWasm() {
       return bytes.length-1;
     };
 
+  var _strftime_l = (s, maxsize, format, tm, loc) => {
+      return _strftime(s, maxsize, format, tm); // no locale support yet
+    };
+
 
 
   var getCFunc = (ident) => {
@@ -5212,18 +5216,25 @@ var wasmImports = {
   /** @export */
   schedule_background_exec: _schedule_background_exec,
   /** @export */
-  strftime: _strftime
+  strftime: _strftime,
+  /** @export */
+  strftime_l: _strftime_l
 };
 var wasmExports = createWasm();
 var ___wasm_call_ctors = () => (___wasm_call_ctors = wasmExports['__wasm_call_ctors'])();
+var _memset = Module['_memset'] = (a0, a1, a2) => (_memset = Module['_memset'] = wasmExports['memset'])(a0, a1, a2);
+var _malloc = Module['_malloc'] = (a0) => (_malloc = Module['_malloc'] = wasmExports['malloc'])(a0);
+var _free = Module['_free'] = (a0) => (_free = Module['_free'] = wasmExports['free'])(a0);
+var _sinf = Module['_sinf'] = (a0) => (_sinf = Module['_sinf'] = wasmExports['sinf'])(a0);
+var _cosf = Module['_cosf'] = (a0) => (_cosf = Module['_cosf'] = wasmExports['cosf'])(a0);
+var _tanf = Module['_tanf'] = (a0) => (_tanf = Module['_tanf'] = wasmExports['tanf'])(a0);
+var _atanf = Module['_atanf'] = (a0) => (_atanf = Module['_atanf'] = wasmExports['atanf'])(a0);
 var _mono_wasm_register_root = Module['_mono_wasm_register_root'] = (a0, a1, a2) => (_mono_wasm_register_root = Module['_mono_wasm_register_root'] = wasmExports['mono_wasm_register_root'])(a0, a1, a2);
 var _mono_wasm_deregister_root = Module['_mono_wasm_deregister_root'] = (a0) => (_mono_wasm_deregister_root = Module['_mono_wasm_deregister_root'] = wasmExports['mono_wasm_deregister_root'])(a0);
 var _mono_wasm_add_assembly = Module['_mono_wasm_add_assembly'] = (a0, a1, a2) => (_mono_wasm_add_assembly = Module['_mono_wasm_add_assembly'] = wasmExports['mono_wasm_add_assembly'])(a0, a1, a2);
 var _mono_wasm_add_satellite_assembly = Module['_mono_wasm_add_satellite_assembly'] = (a0, a1, a2, a3) => (_mono_wasm_add_satellite_assembly = Module['_mono_wasm_add_satellite_assembly'] = wasmExports['mono_wasm_add_satellite_assembly'])(a0, a1, a2, a3);
-var _malloc = Module['_malloc'] = (a0) => (_malloc = Module['_malloc'] = wasmExports['malloc'])(a0);
 var _mono_wasm_setenv = Module['_mono_wasm_setenv'] = (a0, a1) => (_mono_wasm_setenv = Module['_mono_wasm_setenv'] = wasmExports['mono_wasm_setenv'])(a0, a1);
 var _mono_wasm_getenv = Module['_mono_wasm_getenv'] = (a0) => (_mono_wasm_getenv = Module['_mono_wasm_getenv'] = wasmExports['mono_wasm_getenv'])(a0);
-var _free = Module['_free'] = (a0) => (_free = Module['_free'] = wasmExports['free'])(a0);
 var _mono_wasm_load_runtime = Module['_mono_wasm_load_runtime'] = (a0, a1, a2, a3) => (_mono_wasm_load_runtime = Module['_mono_wasm_load_runtime'] = wasmExports['mono_wasm_load_runtime'])(a0, a1, a2, a3);
 var _mono_wasm_invoke_jsexport = Module['_mono_wasm_invoke_jsexport'] = (a0, a1) => (_mono_wasm_invoke_jsexport = Module['_mono_wasm_invoke_jsexport'] = wasmExports['mono_wasm_invoke_jsexport'])(a0, a1);
 var _mono_wasm_string_from_utf16_ref = Module['_mono_wasm_string_from_utf16_ref'] = (a0, a1, a2) => (_mono_wasm_string_from_utf16_ref = Module['_mono_wasm_string_from_utf16_ref'] = wasmExports['mono_wasm_string_from_utf16_ref'])(a0, a1, a2);
@@ -5263,7 +5274,6 @@ var _mono_jiterp_overflow_check_i4 = Module['_mono_jiterp_overflow_check_i4'] = 
 var _mono_jiterp_overflow_check_u4 = Module['_mono_jiterp_overflow_check_u4'] = (a0, a1, a2) => (_mono_jiterp_overflow_check_u4 = Module['_mono_jiterp_overflow_check_u4'] = wasmExports['mono_jiterp_overflow_check_u4'])(a0, a1, a2);
 var _mono_jiterp_ld_delegate_method_ptr = Module['_mono_jiterp_ld_delegate_method_ptr'] = (a0, a1) => (_mono_jiterp_ld_delegate_method_ptr = Module['_mono_jiterp_ld_delegate_method_ptr'] = wasmExports['mono_jiterp_ld_delegate_method_ptr'])(a0, a1);
 var _mono_jiterp_interp_entry = Module['_mono_jiterp_interp_entry'] = (a0, a1) => (_mono_jiterp_interp_entry = Module['_mono_jiterp_interp_entry'] = wasmExports['mono_jiterp_interp_entry'])(a0, a1);
-var _memset = Module['_memset'] = (a0, a1, a2) => (_memset = Module['_memset'] = wasmExports['memset'])(a0, a1, a2);
 var _fmodf = Module['_fmodf'] = (a0, a1) => (_fmodf = Module['_fmodf'] = wasmExports['fmodf'])(a0, a1);
 var _fmod = Module['_fmod'] = (a0, a1) => (_fmod = Module['_fmod'] = wasmExports['fmod'])(a0, a1);
 var _asin = Module['_asin'] = (a0) => (_asin = Module['_asin'] = wasmExports['asin'])(a0);
@@ -5290,18 +5300,14 @@ var _asinf = Module['_asinf'] = (a0) => (_asinf = Module['_asinf'] = wasmExports
 var _asinhf = Module['_asinhf'] = (a0) => (_asinhf = Module['_asinhf'] = wasmExports['asinhf'])(a0);
 var _acosf = Module['_acosf'] = (a0) => (_acosf = Module['_acosf'] = wasmExports['acosf'])(a0);
 var _acoshf = Module['_acoshf'] = (a0) => (_acoshf = Module['_acoshf'] = wasmExports['acoshf'])(a0);
-var _atanf = Module['_atanf'] = (a0) => (_atanf = Module['_atanf'] = wasmExports['atanf'])(a0);
 var _atanhf = Module['_atanhf'] = (a0) => (_atanhf = Module['_atanhf'] = wasmExports['atanhf'])(a0);
-var _cosf = Module['_cosf'] = (a0) => (_cosf = Module['_cosf'] = wasmExports['cosf'])(a0);
 var _cbrtf = Module['_cbrtf'] = (a0) => (_cbrtf = Module['_cbrtf'] = wasmExports['cbrtf'])(a0);
 var _coshf = Module['_coshf'] = (a0) => (_coshf = Module['_coshf'] = wasmExports['coshf'])(a0);
 var _expf = Module['_expf'] = (a0) => (_expf = Module['_expf'] = wasmExports['expf'])(a0);
 var _logf = Module['_logf'] = (a0) => (_logf = Module['_logf'] = wasmExports['logf'])(a0);
 var _log2f = Module['_log2f'] = (a0) => (_log2f = Module['_log2f'] = wasmExports['log2f'])(a0);
 var _log10f = Module['_log10f'] = (a0) => (_log10f = Module['_log10f'] = wasmExports['log10f'])(a0);
-var _sinf = Module['_sinf'] = (a0) => (_sinf = Module['_sinf'] = wasmExports['sinf'])(a0);
 var _sinhf = Module['_sinhf'] = (a0) => (_sinhf = Module['_sinhf'] = wasmExports['sinhf'])(a0);
-var _tanf = Module['_tanf'] = (a0) => (_tanf = Module['_tanf'] = wasmExports['tanf'])(a0);
 var _tanhf = Module['_tanhf'] = (a0) => (_tanhf = Module['_tanhf'] = wasmExports['tanhf'])(a0);
 var _atan2f = Module['_atan2f'] = (a0, a1) => (_atan2f = Module['_atan2f'] = wasmExports['atan2f'])(a0, a1);
 var _powf = Module['_powf'] = (a0, a1) => (_powf = Module['_powf'] = wasmExports['powf'])(a0, a1);
