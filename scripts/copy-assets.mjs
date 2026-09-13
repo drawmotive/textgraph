@@ -35,7 +35,9 @@ export async function copyRuntimeAssets(destination) {
   return output;
 }
 
-if (process.argv[1] && await realpath(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// Canonicalize both paths: Windows short temp paths and directory aliases can
+// give argv and the ESM loader different spellings for the same executable.
+if (process.argv[1] && await realpath(process.argv[1]) === await realpath(fileURLToPath(import.meta.url))) {
   try {
     const [destination, ...extra] = process.argv.slice(2);
     if (extra.length) throw new Error('Usage: textgraph-copy-assets <destination>');

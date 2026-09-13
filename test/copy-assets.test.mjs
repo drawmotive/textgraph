@@ -36,6 +36,17 @@ test('CLI copies every runtime asset from the installed package, independently o
   assert.equal(await readFile(path.join(destination, 'unrelated.txt'), 'utf8'), 'preserve me');
 });
 
+test('CLI recognizes its entry point through an aliased package directory', async t => {
+  const directory = await temporary(t);
+  const alias = path.join(directory, 'package-alias');
+  await symlink(root, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  const destination = path.join(directory, 'public', 'wasm');
+  const result = await run(process.execPath, ['--preserve-symlinks-main', path.join(alias, 'scripts/copy-assets.mjs'), destination]);
+  assert.match(result.stdout, /TextGraph runtime copied to/);
+  assert.deepEqual(await readFile(path.join(destination, 'dotnet.native.wasm')),
+    await readFile(path.join(root, 'generated/wasm/dotnet.native.wasm')));
+});
+
 test('CLI requires exactly one destination and rejects copying over or inside its own runtime', async t => {
   const directory = await temporary(t);
   const executable = path.join(root, 'scripts/copy-assets.mjs');
