@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-09-13
 
+- Include parser and inline-group fixes from the verified native source commit.
 - Add the optional `/react` entry with DSL-to-image components and shared runtime ownership.
 - Add `textgraph-copy-assets` for browser and Worker deployments.
 - Add runnable browser, React/Vite, Worker, and Node samples tested against an installed npm tarball.

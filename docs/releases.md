@@ -7,9 +7,9 @@ Releases are selected deliberately and published by `.github/workflows/release.y
 | Version | npm dist-tag | Installation |
 | --- | --- | --- |
 | `0.1.0-alpha.1` | `alpha` | `npm install @drawmotive/textgraph@alpha` |
-| `0.1.0` | `latest` | `npm install @drawmotive/textgraph` |
+| `0.2.0` | `latest` | `npm install @drawmotive/textgraph` |
 
-An exact prerelease version also works: `npm install @drawmotive/textgraph@0.1.0-alpha.1`. npm assigns `latest` on a first publication even when another tag is specified. This default is accepted: `0.1.0-alpha.1` currently owns both `alpha` and `latest`. Subsequent alpha releases update `alpha` and preserve the existing default. A stable release updates `latest`.
+An exact prerelease version also works: `npm install @drawmotive/textgraph@0.1.0-alpha.1`. npm assigns `latest` on a first publication even when another tag is specified. This default is accepted: `0.1.0-alpha.1` initially owned both `alpha` and `latest`. Subsequent alpha releases update `alpha` and preserve the existing default. A stable release updates `latest`.
 
 No stable release is required before publishing another alpha. The script verifies the existing default and immutable artifact integrity without attempting to delete tags. To graduate an alpha, prepare and publish a new stable version.
 
@@ -35,15 +35,15 @@ Trusted publishing requires npm 11.5.1+ and Node.js 22.14.0+. Publication from a
 Native builds belong to the private DrawMotive repository. Commit native source, resource, and bridge changes first, then run there:
 
 ```bash
-npm run release:textgraph -- 0.1.0-alpha.1
+npm run release:textgraph -- 0.2.0
 ```
 
-This updates the package and lock versions, builds Release assets from the recorded private source commit, generates matching JSON/ESM manifests, updates the root workspace lock, and verifies asset hashes. It does not commit, push, tag, or publish. The `just release-textgraph 0.1.0-alpha.1` alias runs the same command.
+This updates the package and lock versions, builds Release assets from the recorded private source commit, generates matching JSON/ESM manifests, updates the root workspace lock, and verifies asset hashes. It does not commit, push, tag, or publish. The `just release-textgraph 0.2.0` alias runs the same command.
 
 For a JavaScript-only release reusing already verified native bytes, run in this package:
 
 ```bash
-npm run release:prepare -- 0.1.0-alpha.2
+npm run release:prepare -- VERSION_MATCHING_RELEASE_TARGET
 npm run release:verify
 ```
 
@@ -82,9 +82,8 @@ If npm requires a one-time code, run with `NPM_CONFIG_OTP` set in the local term
 After preparation, tests, and review, create the tag on the verified package commit:
 
 ```bash
-git tag -a textgraph-v0.1.0-alpha.2 -m "Release 0.1.0-alpha.2"
-git push origin main
-git push origin textgraph-v0.1.0-alpha.2
+git tag -a textgraph-v0.2.0 -m "Release 0.2.0"
+git push origin textgraph-v0.2.0
 ```
 
 The release workflow resolves the tag to a commit, runs the existing three-platform Node.js and three-browser tests, packs the tested checkout, and passes the artifact to the `npm` environment for publication. Stable releases use the same procedure with a version such as `0.1.0`; the script selects `latest` automatically. Never pass a custom dist-tag to bypass the release policy.
@@ -93,14 +92,14 @@ The release workflow resolves the tag to a commit, runs the existing three-platf
 
 ```bash
 npm view @drawmotive/textgraph dist-tags --json
-npm view @drawmotive/textgraph@0.1.0-alpha.1 dist.integrity
-npm install @drawmotive/textgraph@0.1.0-alpha.1
+npm view @drawmotive/textgraph@0.2.0 dist.integrity
+npm install @drawmotive/textgraph@0.2.0
 ```
 
 If a workflow fails before publishing, fix the configuration and rerun the same tag. For a manual dispatch, select the release tag as the workflow ref and supply the same tag as input; dispatching from `main` is rejected so OIDC and provenance identify the correct commit. For example:
 
 ```bash
-gh workflow run release.yml --ref textgraph-v0.1.0-alpha.1 -f tag=textgraph-v0.1.0-alpha.1
+gh workflow run release.yml --ref textgraph-v0.2.0 -f tag=textgraph-v0.2.0
 ```
 
 If publication succeeded but a later check failed, the script accepts an identical registry artifact with the correct channel and refuses different bytes at the same version. Keep the original workflow artifact for diagnosing integrity differences.

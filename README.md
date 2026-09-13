@@ -8,12 +8,12 @@ Render TextGraph diagrams as PNG images and validate diagram source.
 ## Installation
 
 ```bash
-npm install @drawmotive/textgraph@alpha
+npm install @drawmotive/textgraph@0.2.0
 ```
 
 Requires Node.js 22+ or a modern browser.
 
-This is an alpha release. Use `@alpha` or an exact version such as `@0.1.0-alpha.1`. The first release is also the current default on npm; once a stable release is available, the default will point to that stable version.
+Version `0.2.0` is the first stable release. Install the exact version above or use `@latest` for the current stable release.
 
 ## Quickstart
 
@@ -55,7 +55,7 @@ For a bundled application, copy the runtime into its public directory before dev
 npx textgraph-copy-assets public/textgraph/wasm
 ```
 
-The copy command and React entry below are unreleased additions; they are not in `0.1.0-alpha.1`. Use the [repository samples](https://github.com/drawmotive/textgraph/tree/main/samples) to install and run the current checkout as a tarball.
+The copy command and React entry below are available starting with `0.2.0`. The [repository samples](https://github.com/drawmotive/textgraph/tree/main/samples) install and run the SDK as a tarball.
 
 ```typescript
 import { initializeTextGraph } from "@drawmotive/textgraph/browser";

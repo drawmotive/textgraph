@@ -44,6 +44,22 @@ test('real Node runtime renders isolated PNGs with matching byte and base64 outp
   } finally { await runtime.dispose(); }
 });
 
+test('released native runtime renders inline groups and recovers after unmatched braces', { timeout: 30000 }, async () => {
+  const runtime = await initializeTextGraph();
+  try {
+    for (const source of ['A -> {}', 'A -> {{x}}', 'A -> { B -> C }']) {
+      const result = await runtime.renderPng(source);
+      assert.equal(result.success, true, JSON.stringify(result.diagnostics));
+      assert.ok(result.png.length > 0);
+      assert.ok(result.width > 0 && result.height > 0);
+    }
+    const invalid = await runtime.renderPng('A -> {}}');
+    assert.equal(invalid.success, false);
+    assert.ok(invalid.diagnostics.some(item => item.code === 'TG_PARSE_ERROR'));
+    assert.equal((await runtime.renderPng('A -> {}')).success, true);
+  } finally { await runtime.dispose(); }
+});
+
 test('optional Chinese pack resolves missing glyphs without changing the default instance', async () => {
   const source = 'A: 开始\nB: 完成\nA -> B';
   const base = await initializeTextGraph();
