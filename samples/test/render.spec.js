@@ -39,6 +39,19 @@ for (const [index, sample] of ['browser', 'react-vite', 'worker'].entries()) {
     const after = await pixels(image);
     expect(after.ink).toBeGreaterThan(100);
     expect(after.png).not.toBe(before.png);
+    await page.getByLabel('Diagram source').fill('A ->');
+    if (sample === 'react-vite') {
+      await expect(page.getByRole('alert')).toBeVisible();
+    } else {
+      await page.getByRole('button', { name: 'Render diagram' }).click();
+      await expect(page.getByRole('button', { name: 'Render diagram' })).toBeEnabled();
+      await expect(page.getByRole('status')).not.toHaveText(/Loading|Rendering|Rendered/);
+    }
+    await expect(image).toBeHidden();
+    await page.getByLabel('Diagram source').fill('A -> B');
+    if (sample !== 'react-vite') await page.getByRole('button', { name: 'Render diagram' }).click();
+    await expect(image).toBeVisible();
+    expect((await pixels(image)).ink).toBeGreaterThan(100);
     expect(assets.some(asset => asset.url.endsWith('/dotnet.native.wasm') && asset.status === 200)).toBe(true);
     expect(assets.some(asset => asset.url.endsWith('.ttf') && asset.status === 200)).toBe(true);
     expect(assets.filter(asset => asset.status >= 400)).toEqual([]);

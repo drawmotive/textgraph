@@ -28,6 +28,13 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm pack --dry-run
+      - run: node samples/prepare.mjs node
+      - run: npm run test:samples:node
+      - name: Check React 18 compatibility
+        if: runner.os == 'Linux'
+        run: |
+          npm install --no-save --package-lock=false react@18.2.0 react-dom@18.2.0
+          node --test --test-concurrency=1 test/react.test.mjs
   browser:
     runs-on: ubuntu-latest
     steps:
@@ -41,3 +48,9 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:browser
+      - run: npm run test:samples
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-test-failures
+          path: test-results/

@@ -5,10 +5,12 @@ const root = path.resolve(import.meta.dirname, '..');
 
 export default defineConfig({
   testDir: './test',
+  testMatch: '**/*.spec.js',
   workers: 1,
   fullyParallel: false,
   timeout: 60000,
   expect: { timeout: 30000 },
+  use: { trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   projects: ['chromium', 'firefox', 'webkit'].map(browserName => ({
     name: browserName, use: { browserName },
   })),

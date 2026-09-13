@@ -50,7 +50,10 @@
     "release:publish": "node scripts/publish-release.mjs",
     "samples:prepare": "node samples/prepare.mjs",
     "samples:build": "node samples/build.mjs",
-    "test:samples": "playwright test --config samples/playwright.config.js"
+    "test:samples": "npm run test:samples:node && npm run test:samples:browser",
+    "pretest:samples": "npm run samples:prepare && npm run samples:build",
+    "test:samples:node": "node --test --test-concurrency=1 samples/test/node.test.mjs",
+    "test:samples:browser": "playwright test --config samples/playwright.config.js"
   },
   "repository": {
     "type": "git",

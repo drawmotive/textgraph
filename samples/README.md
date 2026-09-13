@@ -37,17 +37,26 @@ React uses `@drawmotive/textgraph/react` from the same package, with React insta
 
 ## Build and verify
 
-Run from the repository root after preparation:
+Run from the repository root. The aggregate test command prepares every sample from the current SDK tarball and builds all browser applications before testing:
 
 ```bash
 npm ci
-node samples/build.mjs
-npx playwright install chromium
-npx playwright test --config samples/playwright.config.js --project chromium
-npm --prefix samples/node start
+npx playwright install --with-deps chromium firefox webkit
+npm run test:samples
 ```
 
-The browser checks run serially against production builds, load real package-owned WASM and fonts, decode visible PNG pixels, and verify that editing the DSL changes the rendered image. The configuration also supports Firefox and WebKit when those Playwright browsers are installed. The Node sample writes `samples/node/output/diagram.png`.
+All samples have automated coverage. The Node tests run with Node's native test runner, exercise default and custom DSL files, decode visible PNG pixels, and check that invalid DSL exits unsuccessfully without an image. Playwright runs browser, React and Worker samples serially in Chromium, Firefox and WebKit against production builds. It checks real WASM/font loading, visible PNG pixels, source updates, invalid DSL, and recovery after correction. Failed browser runs retain screenshots and traces.
+
+CI runs the Node sample on Linux, Windows and macOS, and all browser samples in the three Playwright engines on Linux. Samples install the actual npm tarball rather than importing repository source. No .NET build is needed.
+
+For a focused rerun after preparation and builds:
+
+```bash
+npm run test:samples:node
+npm run test:samples:browser -- --project=chromium
+```
+
+Run `npm run samples:prepare` and `npm run samples:build` again if the SDK or sample source changed before a focused browser rerun. To run the Node sample manually, `npm --prefix samples/node start` writes `samples/node/output/diagram.png`.
 
 To preview an individual production build:
 
