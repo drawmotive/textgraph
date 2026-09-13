@@ -236,3 +236,11 @@ test("tarball inspection excludes private source and requires font licenses", ()
   assert.throws(() => verifyPackList({ ...packed, files: [...packed.files, { path: "src/secret.cs" }] }, release), /Unpublishable/i);
   assert.throws(() => verifyPackList({ ...packed, files: packed.files.slice(0, -1) }, release), /license/i);
 });
+
+test("coordinated SDK checkout refuses direct off-policy preparation without mutating files", async () => {
+  const { packageRoot } = await import("../scripts/release.mjs");
+  const before = await readFile(path.join(packageRoot, "package.json"), "utf8");
+  await assert.rejects(prepareVersion(packageRoot, "99.0.0"), /release target/);
+  assert.equal(await readFile(path.join(packageRoot, "package.json"), "utf8"), before);
+
+});
