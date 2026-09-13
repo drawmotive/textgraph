@@ -42,7 +42,7 @@ Default rendering includes Noto Sans and Fuzzy Bubbles. Configure additional fon
 
 The initializer copies byte arrays, URLs and descriptor arrays before asynchronous work, so later caller mutations cannot change rendering resources. Families must be unique across all packs and bundled defaults. Fallback families must name configured fonts. Descriptor validation performs no font I/O. Font contents are loaded and configured on first render; validate-only use does not read fonts or themes. Font-loading or configuration failures reject with `DrawMotiveError`; a later render can retry.
 
-Bundled resource URLs use `resolveAsset`. Language-pack sources use their supplied URL directly and the platform data loader, including custom `fetch` or the network adapter for network URLs. `@drawmotive/textgraph-fonts-zh-cn` exports a `zhCN` descriptor for Simplified Chinese. The optional package is installed separately.
+Bundled resource URLs use `resolveAsset`. Language-pack sources use their supplied URL directly and the platform data loader, including custom `fetch` or the network adapter for network URLs. All optional fonts share `@drawmotive/textgraph-fonts`, installed separately. It currently exports a `zhCN` descriptor for Simplified Chinese; additional language descriptors will use the same package. The package is not yet published.
 
 ## Lifecycle
 

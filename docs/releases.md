@@ -13,7 +13,7 @@ An exact prerelease version also works: `npm install @drawmotive/textgraph@0.1.0
 
 No stable release is required before publishing another alpha. The script verifies the existing default and immutable artifact integrity without attempting to delete tags. To graduate an alpha, prepare and publish a new stable version.
 
-The scripts accept stable SemVer and `X.Y.Z-alpha.N`. Other channels require an explicit release-policy change. The Chinese font package has its own release lifecycle and is not published by this workflow.
+The scripts accept stable SemVer and `X.Y.Z-alpha.N`. Other channels require an explicit release-policy change. The shared optional `@drawmotive/textgraph-fonts` package has its own release lifecycle and is not published by this workflow.
 
 ## Account setup
 

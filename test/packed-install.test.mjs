@@ -42,13 +42,16 @@ test('npm tarball works outside the private workspace with no development depend
     await exec(process.execPath, [cli, 'public/textgraph/wasm'], { cwd: consumer });
     assert.deepEqual(await readFile(path.join(consumer, 'public/textgraph/wasm/dotnet.native.wasm')),
       await readFile(path.join(packageRoot, 'generated/wasm/dotnet.native.wasm')));
-    const { stdout: fontPackOutput } = await runNpm(['pack', '--ignore-scripts', '--json', '--workspaces=false', '--pack-destination', root], path.join(packageRoot, 'language-packs/zh-cn'));
+    const { stdout: fontPackOutput } = await runNpm(['pack', '--ignore-scripts', '--json', '--workspaces=false', '--pack-destination', root], path.join(packageRoot, 'language-packs'));
     const [fontPack] = JSON.parse(fontPackOutput);
-    assert.ok(fontPack.files.some(file => file.path === 'fonts/NotoSansSC-Regular.ttf'));
-    assert.ok(fontPack.files.some(file => file.path === 'OFL.txt'));
+    assert.equal(fontPack.name, '@drawmotive/textgraph-fonts');
+    assert.ok(fontPack.files.some(file => file.path === 'index.d.ts'));
+    assert.ok(fontPack.files.some(file => file.path === 'zh-cn/index.d.ts'));
+    assert.ok(fontPack.files.some(file => file.path === 'zh-cn/fonts/NotoSansSC-Regular.ttf'));
+    assert.ok(fontPack.files.some(file => file.path === 'zh-cn/OFL.txt'));
     assert.ok(fontPack.files.every(file => !file.path.endsWith('.wasm')));
     await runNpm(['install', '--ignore-scripts', '--no-audit', '--no-fund', path.join(root, fontPack.filename)], consumer);
-    const pngProgram = "import {initializeTextGraph} from '@drawmotive/textgraph'; import {zhCN} from '@drawmotive/textgraph-fonts-zh-cn'; const r=await initializeTextGraph({languagePacks:[zhCN]}); const p=await r.renderPng('A: 开始\\nB: 完成\\nA -> B'); console.log(JSON.stringify({success:p.success,signature:Array.from(p.png?.slice(0,8)??[]),diagnostics:p.diagnostics})); await r.dispose();";
+    const pngProgram = "import {initializeTextGraph} from '@drawmotive/textgraph'; import {zhCN} from '@drawmotive/textgraph-fonts'; const r=await initializeTextGraph({languagePacks:[zhCN]}); const p=await r.renderPng('A: 开始\\nB: 完成\\nA -> B'); console.log(JSON.stringify({success:p.success,signature:Array.from(p.png?.slice(0,8)??[]),diagnostics:p.diagnostics})); await r.dispose();";
     // Font caches must not keep a host process alive after wrapper disposal.
     const pngResult = await exec(process.execPath, ['--input-type=module', '-e', pngProgram], { cwd: consumer, timeout: 30000 });
     assert.deepEqual(JSON.parse(pngResult.stdout), {success:true,signature:[137,80,78,71,13,10,26,10],diagnostics:[]});

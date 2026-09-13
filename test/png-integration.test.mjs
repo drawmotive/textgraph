@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { initializeTextGraph } from '@drawmotive/textgraph/node';
-import { zhCN } from '../language-packs/zh-cn/index.js';
+import { zhCN } from '../language-packs/index.js';
 import { readFile } from 'node:fs/promises';
 
 test('real Node runtime renders isolated PNGs with matching byte and base64 output', async () => {

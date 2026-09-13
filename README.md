@@ -108,15 +108,15 @@ The [samples directory](https://github.com/drawmotive/textgraph/tree/main/sample
 
 ## Additional languages
 
-Additional language packages are not yet published.
+All optional fonts share the `@drawmotive/textgraph-fonts` package, which is not yet published. Select the language descriptors needed by the application; `zhCN` provides Simplified Chinese coverage.
 
 ```bash
-npm install @drawmotive/textgraph-fonts-zh-cn
+npm install @drawmotive/textgraph-fonts
 ```
 
 ```typescript
 import { initializeTextGraph } from "@drawmotive/textgraph";
-import { zhCN } from "@drawmotive/textgraph-fonts-zh-cn";
+import { zhCN } from "@drawmotive/textgraph-fonts";
 
 const textgraph = await initializeTextGraph({ languagePacks: [zhCN] });
 const result = await textgraph.renderPng("A: 开始\nB: 完成\nA -> B");

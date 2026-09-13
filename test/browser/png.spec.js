@@ -56,7 +56,7 @@ test('browser loads the optional Chinese pack and renders labels without missing
   await page.goto('http://127.0.0.1:4178/');
   const actual = await page.evaluate(async () => {
     const { initializeTextGraph } = await import('/src/platform/browser.js');
-    const { zhCN } = await import('/language-packs/zh-cn/index.js');
+    const { zhCN } = await import('/language-packs/index.js');
     const runtime = await initializeTextGraph({ languagePacks: [zhCN] });
     try {
       const result = await runtime.renderPng('A: 开始\nB: 完成\nA -> B');
