@@ -19,6 +19,8 @@ node samples/prepare.mjs
 
 This packs the checked-out SDK into `samples/.artifacts/textgraph.tgz`, then installs it and each sample's dependencies. It does not publish anything. To prepare only one sample, append its directory name, for example `node samples/prepare.mjs react-vite`. Run preparation again after changing the SDK; the same package version may have different local tarball contents.
 
+This is a development test artifact, produced with `npm pack --ignore-scripts` just like the package-contract CI check. It is not a release artifact or proof of release readiness. Normal `npm pack` and release commands retain the coordinated release checks, including target version and native source provenance. Do not change package/native versions to make samples appear release-ready; prepare actual releases through the repository's release workflow.
+
 Each sample has its own `package.json` and lockfile. Preparation refreshes the local tarball integrity in selected lockfiles. Copying a sample to another repository is supported: change `@drawmotive/textgraph` to a published version that includes the API demonstrated, then run `npm install`. The React entry point and asset-copy command were added after `0.1.0-alpha.1`.
 
 ## Browser deployment and WASM

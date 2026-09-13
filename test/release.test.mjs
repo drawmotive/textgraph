@@ -8,6 +8,7 @@ import { pathToFileURL } from "node:url";
 import { releaseChannel, assertRegistryState, assertPublishedState } from "../scripts/release-policy.mjs";
 import { prepareVersion, verifyPackage, verifyArtifact, verifyPackList } from "../scripts/release.mjs";
 import { publishRelease, waitForPublication, readPublicRegistry } from "../scripts/publish-release.mjs";
+import { command } from '../scripts/command.mjs';
 
 const packageRoot = path.resolve(import.meta.dirname, "..");
 const readJson = async file => JSON.parse(await readFile(file, "utf8"));
@@ -238,4 +239,24 @@ test("tarball inspection excludes private source and requires font licenses", ()
   assert.throws(() => verifyPackList({ ...packed, files: [...packed.files, { path: 'samples/node/render.mjs' }] }, release), /Unexpected packed path/i);
   assert.throws(() => verifyPackList({ ...packed, files: [...packed.files, { path: "src/secret.cs" }] }, release), /Unpublishable/i);
   assert.throws(() => verifyPackList({ ...packed, files: packed.files.slice(0, -1) }, release), /license/i);
+});
+
+test("coordinated SDK checkout refuses direct off-policy preparation without mutating files", async () => {
+  const { packageRoot } = await import("../scripts/release.mjs");
+  const before = await readFile(path.join(packageRoot, "package.json"), "utf8");
+  await assert.rejects(prepareVersion(packageRoot, "99.0.0"), /release target/);
+  assert.equal(await readFile(path.join(packageRoot, "package.json"), "utf8"), before);
+
+});
+
+test('prepack preserves the coordinated release gate when React and sample commands are present', async t => {
+  const root = await fixture(t);
+  await mkdir(path.join(root, '.release'));
+  await cp(path.join(packageRoot, '.release/check.cjs'), path.join(root, '.release/check.cjs'));
+  const target = await readJson(path.join(packageRoot, '.release/target.json'));
+  await writeFile(path.join(root, '.release/target.json'), JSON.stringify({
+    ...target, publishable: false, excludedReason: 'Not approved for this coordinated release',
+  }));
+  await assert.rejects(command('npm', ['run', 'prepack', '--workspaces=false'], root),
+    /Release check: .*not publishable.*Not approved for this coordinated release/);
 });

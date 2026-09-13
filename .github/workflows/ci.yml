@@ -27,7 +27,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - run: npm pack --dry-run
+      - run: npm pack --dry-run --ignore-scripts
       - run: node samples/prepare.mjs node
       - run: npm run test:samples:node
       - name: Check React 18 compatibility

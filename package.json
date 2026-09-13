@@ -42,7 +42,7 @@
   "scripts": {
     "build": "node --check src/index.js && tsc -p tsconfig.json",
     "test": "node --test --test-concurrency=1 test/*.test.mjs",
-    "prepack": "npm test && npm run build",
+    "prepack": "node .release/check.cjs --ready && npm test && npm run build",
     "test:browser": "playwright test",
     "release:prepare": "node scripts/release.mjs prepare",
     "release:verify": "node scripts/release.mjs verify",
@@ -53,7 +53,8 @@
     "test:samples": "npm run test:samples:node && npm run test:samples:browser",
     "pretest:samples": "npm run samples:prepare && npm run samples:build",
     "test:samples:node": "node --test --test-concurrency=1 samples/test/node.test.mjs",
-    "test:samples:browser": "playwright test --config samples/playwright.config.js"
+    "test:samples:browser": "playwright test --config samples/playwright.config.js",
+    "release:check": "node .release/check.cjs --ready"
   },
   "repository": {
     "type": "git",

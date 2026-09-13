@@ -23,7 +23,9 @@ function npm(args, cwd, capture = false) {
   });
 }
 
-// Consumers install the public tarball: no source aliases, private bridge build, or registry SDK fallback.
+// Local samples exercise npm's published file list before release readiness. This
+// development tarball is never a release receipt: normal prepack/release commands
+// still enforce the coordinated target and native provenance without overrides.
 await mkdir(artifacts, { recursive: true });
 const output = await npm(['pack', '--ignore-scripts', '--json', '--workspaces=false', '--pack-destination', artifacts], root, true);
 const [packed] = JSON.parse(output);
