@@ -33,7 +33,11 @@ export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = d
         const result = await runtime.renderPng(source, { scale, padding, maxWidth, encoding: 'base64', signal: controller.signal });
         if (!controller.signal.aborted) setState({ request, result });
       } catch (error) {
-        if (!controller.signal.aborted) setState({ request, error });
+        if (!controller.signal.aborted) {
+          // Host loaders may reject arbitrary values, including null. Keep the
+          // failure branch explicit so reporting an error cannot break React render.
+          setState({ request, error: error instanceof Error ? error : new Error(String(error ?? 'Could not render diagram')) });
+        }
       }
     })();
     return () => { controller.abort(); release(); };

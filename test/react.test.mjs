@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import test, { after, afterEach, beforeEach } from 'node:test';
 import { JSDOM } from 'jsdom';
-import { act, createElement as h, StrictMode } from 'react';
+import * as React from 'react';
+import { act as legacyAct } from 'react-dom/test-utils';
 import { createRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { TextGraph, TextGraphProvider } from '@drawmotive/textgraph/react';
 
 const dom = new JSDOM('<!doctype html><body></body>');
+const { createElement: h, StrictMode } = React;
+const act = React.act ?? legacyAct;
 globalThis.window = dom.window;
 globalThis.document = dom.window.document;
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -148,4 +151,11 @@ test('initialization failures are shown and a later source change retries', asyn
   await render(view(options, 'B'));
   assert.equal(attempts, 2);
   assert.ok(container.querySelector('img'));
+});
+
+test('non-Error initialization failures remain visible instead of breaking React render', async () => {
+  for (const failure of ['Missing assets', null, undefined]) {
+    await render(view({ loadRuntime: async () => { throw failure; } }, 'A'));
+    assert.match(container.querySelector('[role=alert]').textContent, /Missing assets|Could not render diagram/);
+  }
 });
