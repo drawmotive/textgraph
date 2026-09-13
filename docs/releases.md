@@ -86,7 +86,7 @@ git tag -a textgraph-v0.2.0 -m "Release 0.2.0"
 git push origin textgraph-v0.2.0
 ```
 
-The release workflow resolves the tag to a commit, runs the existing three-platform Node.js and three-browser tests, packs the tested checkout, and passes the artifact to the `npm` environment for publication. Stable releases use the same procedure with a version such as `0.1.0`; the script selects `latest` automatically. Never pass a custom dist-tag to bypass the release policy.
+The release workflow resolves the tag to a commit, runs Node.js and three-browser tests on Ubuntu, packs the tested checkout, and passes the artifact to the `npm` environment for publication. All CI and release jobs use `ubuntu-latest`; the browser suite covers Chromium, Firefox, and WebKit. Stable releases select `latest` automatically. Never pass a custom dist-tag to bypass the release policy.
 
 ## Verify publication and recover
 
