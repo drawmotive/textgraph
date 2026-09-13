@@ -12,7 +12,7 @@ test('TextGraph package exposes its public identity and typed entry points', asy
   assert.notEqual(packageJson.private, true);
   assert.equal(packageJson.type, 'module');
   assert.equal(packageJson.engines.node, '>=22');
-  assert.equal(packageJson.scripts.test, 'node --test test/*.test.mjs');
+  assert.equal(packageJson.scripts.test, 'node --test --test-concurrency=1 test/*.test.mjs');
   assert.equal(packageJson.scripts.build, 'node --check src/index.js && tsc -p tsconfig.json');
   assert.equal(packageJson.types, './src/index.d.ts');
   assert.equal(packageJson.exports['.'].types, './src/index.d.ts');

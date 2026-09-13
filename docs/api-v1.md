@@ -57,6 +57,7 @@ Existing `loadRuntime`, `readonly` and `mutate` hooks remain for development com
 - Node 22 or later: root or `/node`; runtime modules use installed-package `file:` URLs, data uses `node:fs/promises`. HTTP data can use injected fetch, but Node does not import remote HTTP JavaScript. Node `worker_threads` uses `/node`.
 - Browser: `/browser` or browser conditional export. Modern Chromium, Firefox and WebKit with WebAssembly, ESM, fetch, BigInt and Web Crypto are tested. HTTPS or localhost is required for Web Crypto. Exact engine versions are pinned by the Playwright lockfile; historical minimum browser versions are not claimed.
 - Browser module Web Worker: `/worker` inside a host-created Worker; no DOM, window, automatic RPC or Worker pool.
+- React 18.2+ or 19: `/react` provides `TextGraph` and `TextGraphProvider` over the browser runtime. See [React integration](react.md). This entry is an unreleased addition after `0.1.0-alpha.1`.
 
 Root condition precedence is worker/browser/node/default. Explicit entries avoid bundler ambiguity. Browser/Worker source graphs exclude Node imports.
 

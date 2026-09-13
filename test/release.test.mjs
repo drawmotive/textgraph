@@ -233,6 +233,9 @@ test("tarball inspection excludes private source and requires font licenses", ()
   const release = { ...releaseChannel("0.1.0-alpha.1"), name: "@drawmotive/textgraph" };
   const packed = { ...release, filename: "drawmotive-textgraph-0.1.0-alpha.1.tgz", files: ["package.json", "LICENSE", "README.md", "generated/wasm-manifest.json", "generated/wasm-manifest.js", "generated/wasm/NotoSans-LICENSE.txt", "generated/wasm/FuzzyBubbles-LICENSE.txt"].map(path => ({ path })) };
   assert.doesNotThrow(() => verifyPackList(packed, release));
+  assert.doesNotThrow(() => verifyPackList({ ...packed, files: [...packed.files, { path: 'scripts/copy-assets.mjs' }] }, release));
+  assert.throws(() => verifyPackList({ ...packed, files: [...packed.files, { path: 'scripts/release.mjs' }] }, release), /Unpublishable/i);
+  assert.throws(() => verifyPackList({ ...packed, files: [...packed.files, { path: 'samples/node/render.mjs' }] }, release), /Unexpected packed path/i);
   assert.throws(() => verifyPackList({ ...packed, files: [...packed.files, { path: "src/secret.cs" }] }, release), /Unpublishable/i);
   assert.throws(() => verifyPackList({ ...packed, files: packed.files.slice(0, -1) }, release), /license/i);
 });

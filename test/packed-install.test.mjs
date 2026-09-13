@@ -23,6 +23,9 @@ test('npm tarball works outside the private workspace with no development depend
       'generated/wasm/FuzzyBubbles-Regular.ttf', 'generated/wasm/NotoSans-Regular.ttf',
     ]);
     assert.ok(packed.files.every(file => !file.path.startsWith('language-packs/')));
+    assert.ok(packed.files.every(file => !file.path.startsWith('samples/')));
+    assert.ok(packed.files.some(file => file.path === 'src/react/index.js'));
+    assert.ok(packed.files.some(file => file.path === 'scripts/copy-assets.mjs'));
     assert.ok(packed.files.some(file => file.path === 'generated/wasm/NotoSans-LICENSE.txt'));
     assert.ok(packed.files.some(file => file.path === 'generated/wasm/FuzzyBubbles-LICENSE.txt'));
     assert.ok(packed.files.every(file => !/[.](pdb|map|cs)$/.test(file.path) && !file.path.startsWith('.local/')));
@@ -35,6 +38,10 @@ test('npm tarball works outside the private workspace with no development depend
     assert.deepEqual(JSON.parse(result.stdout), { valid: true, diagnostics: [] });
     const lock = JSON.parse(await readFile(path.join(consumer, 'package-lock.json'), 'utf8'));
     assert.deepEqual(Object.keys(lock.packages).sort(), ['', 'node_modules/@drawmotive/textgraph']);
+    const cli = path.join(consumer, 'node_modules/@drawmotive/textgraph/scripts/copy-assets.mjs');
+    await exec(process.execPath, [cli, 'public/textgraph/wasm'], { cwd: consumer });
+    assert.deepEqual(await readFile(path.join(consumer, 'public/textgraph/wasm/dotnet.native.wasm')),
+      await readFile(path.join(packageRoot, 'generated/wasm/dotnet.native.wasm')));
     const { stdout: fontPackOutput } = await runNpm(['pack', '--ignore-scripts', '--json', '--workspaces=false', '--pack-destination', root], path.join(packageRoot, 'language-packs/zh-cn'));
     const [fontPack] = JSON.parse(fontPackOutput);
     assert.ok(fontPack.files.some(file => file.path === 'fonts/NotoSansSC-Regular.ttf'));

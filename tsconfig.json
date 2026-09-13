@@ -1,11 +1,18 @@
 {
   "compilerOptions": {
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "module": "Node16",
     "moduleResolution": "Node16",
     "noEmit": true,
     "strict": true,
-    "target": "ES2022"
+    "target": "ES2022",
+    "jsx": "react-jsx"
   },
-  "include": ["test/types.test.ts"]
+  "include": [
+    "test/types.test.ts",
+    "test/react-types.test.tsx"
+  ]
 }

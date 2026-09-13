@@ -72,6 +72,8 @@ export function verifyPackList(packed, release) {
     assert.ok(files.includes(required), `Required packed file missing: ${required}`);
   }
   for (const file of files) {
+    // The asset copier is the only consumer script shipped in the package.
+    if (file === 'scripts/copy-assets.mjs') continue;
     assert.ok(!/(?:^|\/)(?:\.git|\.env|\.npmrc|node_modules|scripts|test|language-packs)(?:\/|$)|\.(?:cs|pdb|map|ps1)$/.test(file), `Unpublishable file: ${file}`);
     assert.ok(/^(?:package.json|LICENSE|README.md|CHANGELOG.md|NOTICE|(?:src|generated|schemas|docs|examples)\/)/.test(file), `Unexpected packed path: ${file}`);
   }
