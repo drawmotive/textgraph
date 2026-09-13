@@ -23,8 +23,9 @@ test('CLI copies every runtime asset from the installed package, independently o
   await mkdir(destination, { recursive: true });
   await writeFile(path.join(destination, 'unrelated.txt'), 'preserve me');
   await writeFile(path.join(destination, 'dotnet.js'), 'previous runtime');
-  const executable = path.join(directory, 'textgraph-copy-assets');
-  await symlink(path.join(root, 'scripts/copy-assets.mjs'), executable);
+  const installedScript = path.join(root, 'scripts/copy-assets.mjs');
+  const executable = process.platform === 'win32' ? installedScript : path.join(directory, 'textgraph-copy-assets');
+  if (process.platform !== 'win32') await symlink(installedScript, executable);
   await run(process.execPath, [executable, 'public/textgraph/wasm'], { cwd: directory });
   const manifest = JSON.parse(await readFile(path.join(root, 'generated/wasm-manifest.json'), 'utf8'));
   for (const asset of manifest.assets) {
@@ -45,6 +46,6 @@ test('CLI requires exactly one destination and rejects copying over or inside it
     await assert.rejects(copyRuntimeAssets(destination), /Choose a destination/);
   }
   const linked = path.join(directory, 'linked');
-  await symlink(path.join(root, 'generated/wasm'), linked, 'dir');
+  await symlink(path.join(root, 'generated/wasm'), linked, process.platform === 'win32' ? 'junction' : 'dir');
   await assert.rejects(copyRuntimeAssets(path.join(linked, 'nested')), /Choose a destination/);
 });

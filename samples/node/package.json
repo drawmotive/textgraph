@@ -1,0 +1,14 @@
+{
+  "name": "textgraph-sample-node",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@drawmotive/textgraph": "file:../.artifacts/textgraph.tgz"
+  }
+}

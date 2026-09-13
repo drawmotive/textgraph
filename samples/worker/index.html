@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TextGraph Worker sample</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main>
+    <h1>TextGraph in a Web Worker</h1>
+    <p>The diagram renders in a Worker so the page stays responsive.</p>
+    <label for="source">Diagram source</label>
+    <textarea id="source" rows="7">A: Start
+B: Finish
+A -> B</textarea>
+    <button id="render" disabled>Render diagram</button>
+    <p id="status" role="status">Loading renderer…</p>
+    <img id="diagram" alt="Rendered diagram" hidden />
+  </main>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
