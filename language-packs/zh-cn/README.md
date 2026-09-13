@@ -2,6 +2,9 @@
 
 Render Simplified Chinese labels with TextGraph.
 
+> **[Report all TextGraph issues on GitHub →](https://github.com/drawmotive/textgraph/issues)**
+> Use this shared tracker for font problems, bugs, and feature requests.
+
 ## Installation
 
 ```bash

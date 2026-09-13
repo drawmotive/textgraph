@@ -1,5 +1,8 @@
 # Runnable TextGraph samples
 
+> **[Report all TextGraph issues on GitHub →](https://github.com/drawmotive/textgraph/issues)**
+> Include problems with these samples in the shared tracker.
+
 These applications live with the SDK and consume its actual npm tarball. They do not import SDK source files or require the private .NET repository. Node.js 22.12+ is required for the Vite samples; the Node sample requires Node.js 22+.
 
 | Sample | Purpose | Run after preparation |

@@ -2,6 +2,9 @@
 
 Render TextGraph diagrams as PNG images and validate diagram source.
 
+> **[Report all TextGraph issues on GitHub →](https://github.com/drawmotive/textgraph/issues)**
+> Bugs, feature requests, documentation, playground, SDK, fonts, Markdown, and VS Code issues all belong in this shared tracker.
+
 ## Installation
 
 ```bash

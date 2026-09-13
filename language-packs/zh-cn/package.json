@@ -8,6 +8,10 @@
   "exports": { ".": { "types": "./index.d.ts", "default": "./index.js" } },
   "files": ["index.js", "index.d.ts", "fonts", "OFL.txt"],
   "license": "OFL-1.1",
+  "homepage": "https://textgraph.dev",
+  "bugs": {
+    "url": "https://github.com/drawmotive/textgraph/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/drawmotive/textgraph.git",
