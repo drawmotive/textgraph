@@ -114,7 +114,7 @@ export type TextGraphPngEncoding = 'bytes' | 'base64';
 export interface TextGraphRenderPngOptions<Encoding extends TextGraphPngEncoding = TextGraphPngEncoding> {
   /** Defaults to bytes. Base64 contains no data-URL prefix. */
   encoding?: Encoding;
-  /** Positive render scale. Defaults to 2. */
+  /** Positive raster density relative to logical diagram size. Defaults to 1. */
   scale?: number;
   /** Non-negative padding in diagram units. Defaults to 10. */
   padding?: number;
@@ -125,7 +125,9 @@ export interface TextGraphRenderPngOptions<Encoding extends TextGraphPngEncoding
 }
 
 export type TextGraphRenderPngResult<Png extends Uint8Array | string = Uint8Array | string> =
-  | { readonly success: true; readonly png: Png; readonly width: number; readonly height: number; readonly diagnostics: readonly TextGraphRenderDiagnostic[] }
+  | { readonly success: true; readonly png: Png; readonly width: number; readonly height: number;
+      /** Logical display dimensions before density scaling; omitted by older runtimes. */
+      readonly displayWidth?: number; readonly displayHeight?: number; readonly diagnostics: readonly TextGraphRenderDiagnostic[] }
   | { readonly success: false; readonly diagnostics: readonly TextGraphRenderDiagnostic[] };
 
 export interface TextGraphRuntimeInfo extends TextGraphRuntimeManifest {

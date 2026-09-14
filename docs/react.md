@@ -18,8 +18,7 @@ export function Diagram({ source }: { source: string }) {
   return (
     <TextGraphProvider options={options}>
       <TextGraph source={source} alt="Process flow"
-        renderOptions={{ scale: 2, maxWidth: 1200 }}
-        style={{ maxWidth: '100%', height: 'auto' }} />
+        renderOptions={{ maxWidth: 1200 }} />
     </TextGraphProvider>
   );
 }
@@ -37,11 +36,15 @@ Use your deployed base path instead of `/` for subdirectory hosting. The [React/
 | --- | --- |
 | `source` | Required DSL string; changes trigger rendering. |
 | `alt` | Image description; defaults to `TextGraph diagram`. |
-| `renderOptions` | `scale`, `padding`, and `maxWidth`, with SDK defaults. |
+| `renderOptions` | Defaults to `scale: 2` for sharper web images; `padding` and `maxWidth` use SDK defaults. |
 | `loading` | React content shown with `role="status"`; defaults to `Rendering diagram…`. |
 | Other image attributes | Passed to the successful `<img>`, including `className`, `style`, `width`, and `height`. |
 
 The component owns `src`, encoding, and cancellation. While new input renders, old images are replaced by loading content. A stale result cannot replace newer input. DSL diagnostics and operational failures appear as escaped text with `role="alert"`; corrected input renders again. Changing only `alt` or image styles does not rerun layout.
+
+Images use the render result's logical `displayWidth` and `displayHeight`, so increasing `scale` adds pixels without enlarging the diagram. `maxWidth` limits raster pixels rather than CSS width. Styles default to `maxWidth: '100%'` and `height: 'auto'`; supplied styles merge over these defaults, and explicit image dimensions override the logical dimensions.
+
+Older runtimes omit display dimensions. The component then divides raster dimensions by the requested scale; this preserves logical size unless `maxWidth` has lowered the effective density. Deploy matching updated runtime assets for accurate sizing in that case. PNG DPI metadata does not control CSS size.
 
 An ordinary React render uses the browser main thread. Native layout already running cannot be preempted by cancellation; for heavy interactive workloads use the [Worker sample](https://github.com/drawmotive/textgraph/tree/main/samples/worker) to move SDK execution off the UI thread. The React component does not automatically create a Worker.
 

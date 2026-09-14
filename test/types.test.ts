@@ -58,9 +58,11 @@ async function renderingApi(encoding: TextGraphPngEncoding, options: TextGraphRe
   if (bytes.success) {
     const image: Uint8Array = bytes.png;
     const width: number = bytes.width;
+    const displayWidth: number | undefined = bytes.displayWidth;
+    const displayHeight: number | undefined = bytes.displayHeight;
     // @ts-expect-error Byte results are not base64 strings.
     const base64: string = bytes.png;
-    void image; void width; void base64;
+    void image; void width; void displayWidth; void displayHeight; void base64;
   } else {
     // @ts-expect-error Failure results do not contain PNG data.
     void bytes.png;

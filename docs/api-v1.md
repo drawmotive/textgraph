@@ -20,12 +20,12 @@ Initialization resolves after manifest and real bridge agree on ABI, protocol an
 
 ## PNG rendering
 
-`renderPng(source, options?)` returns `{ success: true, png, width, height, diagnostics }` or `{ success: false, diagnostics }`. Diagram failures resolve with diagnostics and contain no image data. Successful results and diagnostics are frozen; byte output is a detached, caller-owned `Uint8Array`. Output uses a white background.
+`renderPng(source, options?)` returns `{ success: true, png, width, height, displayWidth?, displayHeight?, diagnostics }` or `{ success: false, diagnostics }`. `width` and `height` are raster pixels. The optional display dimensions are positive numbers representing logical size: raster dimensions divided by the effective scale after any `maxWidth` reduction. Older runtimes omit both fields. Diagram failures resolve with diagnostics and contain no image data. Successful results and diagnostics are frozen; byte output is a detached, caller-owned `Uint8Array`. Output uses a white background.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `encoding` | `"bytes"` | `"bytes"` returns `Uint8Array`; `"base64"` returns a string without a data-URL prefix. |
-| `scale` | `2` | Positive finite render scale. |
+| `scale` | `1` | Positive finite raster density relative to logical diagram size. |
 | `padding` | `10` | Non-negative finite padding in diagram units. |
 | `maxWidth` | Omitted | Positive safe integer maximum output width in pixels; preserves proportions and only reduces output size. |
 | `signal` | Omitted | Cancels queued work or discards completed work after cancellation. |
@@ -33,6 +33,8 @@ Initialization resolves after manifest and real bridge agree on ABI, protocol an
 Literal encodings infer their corresponding PNG type in TypeScript; union encodings return `Uint8Array | string`. Render diagnostics may use `parse`, `semantic`, `layout`, `render`, or `font` stages. `validate()` retains its original parse/semantic contract.
 
 Scale and padding must remain finite when represented as 32-bit floats; scale must also remain greater than zero. Invalid arguments reject with `INVALID_ARGUMENT`.
+
+For web display, use scale `2` and the returned display dimensions as image dimensions, with `max-width: 100%; height: auto`. Increasing density then improves sharpness without enlarging the diagram. DPI metadata does not change CSS sizing. When an older runtime omits display dimensions, dividing raster dimensions by the requested scale works only when `maxWidth` did not reduce the effective density.
 
 After applying `maxWidth`, output is limited to 16,384 pixels per side and 16,777,216 pixels in total. Larger images return the `TG_RENDER_SIZE_LIMIT` diagnostic. PNG dimensions and signature are checked against the response metadata; malformed responses reject with `INVALID_RESPONSE`.
 
@@ -83,6 +85,6 @@ ABI 1.0.0 retains GetAbiVersion/GetPackageKind/CountParseDiagnostics and adds Ge
 
 Assets have relative path, media type, byte count and SHA-256. Packaging checks reject missing/extra assets, debug files, hash/projection/version drift. Runtime data assets are hash-checked before native startup. Bundled fonts and themes are loaded and hash-checked lazily before the first render; license files require no runtime I/O. These checks establish distribution consistency, not authenticated runtime signatures. `privateSource.commit` identifies committed private C# and bridge inputs. Toolchain changes may change bytes; cross-toolchain byte-for-byte reproducibility is not promised.
 
-The rendering wire uses one `Execute(requestJson)` export. Configuration is performed once before the first render with `{ protocolVersion: 1, operation: "configure", theme, fonts: [{ family, data }], fallbackFamilies }`, where `data` is base64 font data. Its response is `{ protocolVersion: 1, success, diagnostics }`. A render request is `{ protocolVersion: 1, operation: "render", source, export: { format: "png", scale, padding, maxWidth? } }`. Native success returns base64 `png`, `width`, `height`, and diagnostics; failures contain only `success: false` and diagnostics beside the protocol version. The JavaScript wrapper converts image data to the requested encoding.
+The rendering wire uses one `Execute(requestJson)` export. Configuration is performed once before the first render with `{ protocolVersion: 1, operation: "configure", theme, fonts: [{ family, data }], fallbackFamilies }`, where `data` is base64 font data. Its response is `{ protocolVersion: 1, success, diagnostics }`. A render request is `{ protocolVersion: 1, operation: "render", source, export: { format: "png", scale, padding, maxWidth? } }`. Native success returns base64 `png`, `width`, `height`, and diagnostics, plus an additive optional `displayWidth`/`displayHeight` pair; failures contain only `success: false` and diagnostics beside the protocol version. The JavaScript wrapper validates the display dimensions when present and converts image data to the requested encoding.
 
 For rendering-capable bridges, disposal sends `{ protocolVersion: 1, operation: "dispose" }` and validates the same success/diagnostics envelope as configuration. This request releases native resources without loading fonts or shutting down the host runtime. Legacy validation-only bridges release wrapper references directly.

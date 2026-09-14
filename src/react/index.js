@@ -15,10 +15,10 @@ export function TextGraphProvider({ options = defaultOptions, children }) {
 
 /** Renders DSL as an image; only the latest committed input may publish a result. */
 export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = defaultOptions,
-  loading = 'Rendering diagram…', ...imageProps }) {
+  loading = 'Rendering diagram…', style, ...imageProps }) {
   const shared = useContext(RuntimeContext);
   const resource = useMemo(() => shared ?? createRuntimeResource(defaultOptions), [shared]);
-  const { scale, padding, maxWidth } = renderOptions;
+  const { scale = 2, padding, maxWidth } = renderOptions;
   const request = useMemo(() => ({ source, scale, padding, maxWidth, resource }),
     [source, scale, padding, maxWidth, resource]);
   const [state, setState] = useState(null);
@@ -51,6 +51,9 @@ export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = d
     return createElement('span', { role: 'alert' }, message || 'Could not render diagram');
   }
   const result = state.result;
-  return createElement('img', { width: result.width, height: result.height, ...imageProps,
+  // Density improves sharpness without enlarging the diagram. Native dimensions
+  // also preserve logical size when maxWidth lowers the actual render density.
+  return createElement('img', { width: result.displayWidth ?? result.width / scale, height: result.displayHeight ?? result.height / scale, ...imageProps,
+    style: { maxWidth: '100%', height: 'auto', ...style },
     src: `data:image/png;base64,${result.png}`, alt });
 }

@@ -30,14 +30,14 @@ function deferred() {
   const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
   return { promise, resolve, reject };
 }
-function png(width = 10) {
+function png(width = 10, height = 10, displayDimensions = {}) {
   const bytes = Buffer.alloc(33);
   Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(bytes);
   bytes.writeUInt32BE(13, 8);
   bytes.write('IHDR', 12);
   bytes.writeUInt32BE(width, 16);
-  bytes.writeUInt32BE(10, 20);
-  return JSON.stringify({ protocolVersion: 1, success: true, png: bytes.toString('base64'), width, height: 10, diagnostics: [] });
+  bytes.writeUInt32BE(height, 20);
+  return JSON.stringify({ protocolVersion: 1, success: true, png: bytes.toString('base64'), width, height, ...displayDimensions, diagnostics: [] });
 }
 function fixture(execute = async () => png()) {
   const stats = { loads: 0, disposed: 0, calls: [] };
@@ -86,7 +86,7 @@ test('new DSL hides old output and cancels stale work before it can publish', as
   assert.equal(oldSignal.aborted, true);
   assert.equal(container.querySelector('img'), null);
   await act(async () => old.resolve(png(5)));
-  assert.equal(container.querySelector('img').width, 20);
+  assert.equal(container.querySelector('img').width, 10);
   assert.equal(container.querySelector('img').alt, 'Latest');
   assert.equal(container.querySelector('img').className, 'diagram');
 });
@@ -98,8 +98,44 @@ test('render settings update the image while equivalent options and alt changes 
   assert.equal(f.stats.calls.length, 1);
   assert.equal(container.querySelector('img').alt, 'Updated label');
   await render(view(f.options, 'A', { renderOptions: { scale: 4 } }));
-  assert.equal(container.querySelector('img').width, 4);
+  assert.equal(container.querySelector('img').width, 1);
   assert.equal(f.stats.loads, 1);
+});
+
+test('web defaults render at double density and display responsively at logical size', async () => {
+  const f = fixture(request => png(100 * request.export.scale, 40 * request.export.scale));
+  await render(view(f.options, 'A'));
+  const image = container.querySelector('img');
+  assert.equal(f.stats.calls[0].export.scale, 2);
+  assert.equal(image.width, 100);
+  assert.equal(image.height, 40);
+  assert.equal(image.style.maxWidth, '100%');
+  assert.equal(image.style.height, 'auto');
+  await render(view(f.options, 'A', { renderOptions: { scale: 3 } }));
+  assert.equal(container.querySelector('img').width, 100);
+  assert.equal(container.querySelector('img').height, 40);
+});
+
+test('web sizing uses native display dimensions when maxWidth reduces raster density', async () => {
+  const f = fixture(() => png(100, 40, { displayWidth: 250, displayHeight: 100 }));
+  await render(view(f.options, 'A', { renderOptions: { scale: 2, maxWidth: 100 } }));
+  const image = container.querySelector('img');
+  assert.equal(image.width, 250);
+  assert.equal(image.height, 100);
+  assert.equal(f.stats.calls.length, 1);
+});
+
+test('explicit image dimensions and styles override web defaults without dropping responsive styles', async () => {
+  const f = fixture();
+  await render(view(f.options, 'A', { width: 300, height: 200, style: { maxWidth: '80%', borderRadius: '4px' } }));
+  const image = container.querySelector('img');
+  assert.equal(image.width, 300);
+  assert.equal(image.height, 200);
+  assert.equal(image.style.maxWidth, '80%');
+  assert.equal(image.style.height, 'auto');
+  assert.equal(image.style.borderRadius, '4px');
+  await render(view(f.options, 'A', { style: { height: '150px' } }));
+  assert.equal(container.querySelector('img').style.height, '150px');
 });
 
 test('DSL diagnostics and operational errors replace images, and corrected input recovers', async () => {
@@ -139,7 +175,7 @@ test('changing provider options retires the old runtime and updates the image', 
   await render(view(second.options, 'A'));
   assert.equal(first.stats.disposed, 1);
   assert.equal(second.stats.loads, 1);
-  assert.equal(container.querySelector('img').width, 20);
+  assert.equal(container.querySelector('img').width, 10);
 });
 
 test('initialization failures are shown and a later source change retries', async () => {

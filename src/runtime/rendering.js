@@ -7,7 +7,7 @@ const stages = ['parse', 'semantic', 'layout', 'render', 'font'];
 export function normalizeRenderOptions(source, options) {
   const invalid = message => { throw new DrawMotiveError('INVALID_ARGUMENT', message); };
   if (typeof source !== 'string' || !options || typeof options !== 'object' || Array.isArray(options)) invalid('Rendering requires a source string and options object');
-  const { encoding = 'bytes', scale = 2, padding = 10, maxWidth, signal } = options;
+  const { encoding = 'bytes', scale = 1, padding = 10, maxWidth, signal } = options;
   if (!['bytes', 'base64'].includes(encoding)) invalid('encoding must be bytes or base64');
   // The native geometry contract uses float32; reject values lost at that boundary.
   if (!Number.isFinite(scale) || !Number.isFinite(Math.fround(scale)) || Math.fround(scale) <= 0) invalid('scale must be positive and representable as a finite float32');
@@ -34,17 +34,25 @@ export function decodeRender(json, encoding) {
     const diagnostics = decodeDiagnostics(value.diagnostics, stages);
     if (value.success === diagnostics.some(item => item.severity === 'error')) throw new Error('Inconsistent success');
     if (!value.success) {
-      if (['png', 'width', 'height'].some(key => Object.hasOwn(value, key))) throw new Error('Failure contains image data');
+      if (['png', 'width', 'height', 'displayWidth', 'displayHeight'].some(key => Object.hasOwn(value, key))) throw new Error('Failure contains image data');
       return Object.freeze({ success: false, diagnostics });
     }
     if (![value.width, value.height].every(n => Number.isSafeInteger(n) && n > 0 && n <= 0x7fffffff)) throw new Error('Invalid dimensions');
+    // Only the native exporter knows the effective density after maxWidth clamps
+    // the raster. Older runtimes may omit this additive pair entirely.
+    const displayDimensions = {};
+    if (Object.hasOwn(value, 'displayWidth') || Object.hasOwn(value, 'displayHeight')) {
+      if (![value.displayWidth, value.displayHeight].every(n => Number.isFinite(n) && n > 0)) throw new Error('Invalid display dimensions');
+      displayDimensions.displayWidth = value.displayWidth;
+      displayDimensions.displayHeight = value.displayHeight;
+    }
     const bytes = decodeBase64(value.png);
     const signature = [137, 80, 78, 71, 13, 10, 26, 10];
     if (bytes.length < 33 || !signature.every((byte, index) => bytes[index] === byte)) throw new Error('Invalid PNG signature');
     const header = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     if (header.getUint32(8) !== 13 || header.getUint32(12) !== 0x49484452
         || header.getUint32(16) !== value.width || header.getUint32(20) !== value.height) throw new Error('PNG dimensions disagree');
-    return Object.freeze({ success: true, png: encoding === 'base64' ? value.png : bytes, width: value.width, height: value.height, diagnostics });
+    return Object.freeze({ success: true, png: encoding === 'base64' ? value.png : bytes, width: value.width, height: value.height, ...displayDimensions, diagnostics });
   } catch (cause) {
     throw new DrawMotiveError('INVALID_RESPONSE', 'The rendering response violates protocol 1', { cause });
   }

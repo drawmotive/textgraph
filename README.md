@@ -36,7 +36,7 @@ try {
 }
 ```
 
-PNG output defaults to bytes, scale `2`, padding `10`, and a white background. Reuse an instance for multiple diagrams, then call `dispose()`.
+PNG output defaults to bytes, scale `1`, padding `10`, and a white background. Reuse an instance for multiple diagrams, then call `dispose()`.
 
 ## Higher resolution
 
@@ -65,6 +65,7 @@ const textgraph = await initializeTextGraph({
 });
 const result = await textgraph.renderPng("A -> B", {
   encoding: "base64",
+  scale: 2,
   maxWidth: 1200,
 });
 
@@ -72,11 +73,17 @@ if (result.success) {
   const image = document.createElement("img");
   image.src = `data:image/png;base64,${result.png}`;
   image.alt = "A connects to B";
+  image.width = result.displayWidth ?? result.width / 2;
+  image.height = result.displayHeight ?? result.height / 2;
+  image.style.maxWidth = "100%";
+  image.style.height = "auto";
   document.body.append(image);
 }
 
 await textgraph.dispose();
 ```
+
+Scale `2` supplies more pixels for sharper web images; `displayWidth` and `displayHeight` keep the diagram at its logical size, including when `maxWidth` lowers the raster density. PNG DPI metadata does not control its CSS size. Older runtimes omit display dimensions; dividing pixel dimensions by the requested scale is a fallback that cannot recover logical size after `maxWidth` clamps the output.
 
 The npm package includes WASM, .NET runtime modules, fonts, and themes. Bundlers do not automatically deploy these dynamically loaded files. Re-copy assets after SDK updates and use an asset URL matching your deployment base path. Node loads assets from the installed package without this copy step.
 
@@ -100,7 +107,7 @@ export function App() {
 }
 ```
 
-Changing `source` updates the image. The provider shares one lazy runtime across diagrams and disposes it on unmount. See [React integration](docs/react.md) for loading, errors, rendering options, and server rendering.
+The component defaults to scale `2`, displays at logical size, and shrinks to fit its container. Changing `source` updates the image. The provider shares one lazy runtime across diagrams and disposes it on unmount. See [React integration](docs/react.md) for loading, errors, rendering options, and server rendering.
 
 ## Runnable samples
 

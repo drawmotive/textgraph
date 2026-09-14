@@ -23,7 +23,10 @@ test('render protocol schema separates successes and failures and enforces PNG m
   const success = { protocolVersion: 1, success: true, png: 'iVBORw0KGgo=', width: 1, height: 1, diagnostics: [] };
   const error = { code: 'TG_LAYOUT_ERROR', severity: 'error', stage: 'layout', message: 'Cannot arrange nodes' };
   assert.equal(validate(success), true, JSON.stringify(validate.errors));
+  assert.equal(validate({ ...success, displayWidth: 1.5, displayHeight: 1.5 }), true, JSON.stringify(validate.errors));
   assert.equal(validate({ protocolVersion: 1, success: false, diagnostics: [error] }), true, JSON.stringify(validate.errors));
   for (const value of [{ ...success, width: 0 }, { ...success, height: 1.5 }, { ...success, png: 'invalid' },
-    { ...success, diagnostics: [error] }, { ...success, success: false }, { protocolVersion: 1, success: false, diagnostics: [] }]) assert.equal(validate(value), false);
+    { ...success, diagnostics: [error] }, { ...success, success: false }, { protocolVersion: 1, success: false, diagnostics: [] },
+    { ...success, displayWidth: 0, displayHeight: 1 }, { ...success, displayWidth: 1 }, { ...success, displayHeight: 1 },
+    { protocolVersion: 1, success: false, diagnostics: [error], displayWidth: 1, displayHeight: 1 }]) assert.equal(validate(value), false);
 });

@@ -22,8 +22,42 @@ test('renderPng defaults to detached PNG bytes and documented export defaults', 
   assert.ok(Object.isFrozen(first.diagnostics));
   first.png[0] = 0;
   assert.equal((await instance.renderPng('A')).png[0], 137);
-  assert.deepEqual(requests[0], { protocolVersion: 1, operation: 'render', source: 'A -> B', export: { format: 'png', scale: 2, padding: 10 } });
+  assert.deepEqual(requests[0], { protocolVersion: 1, operation: 'render', source: 'A -> B', export: { format: 'png', scale: 1, padding: 10 } });
   assert.ok(instance.info.capabilities.includes('textgraph-render-v1'));
+  await instance.dispose();
+});
+
+test('renderPng preserves native display dimensions independently of raster size', async () => {
+  const instance = await create(() => JSON.stringify({ ...success, displayWidth: 2.5, displayHeight: 2.5 }));
+  const result = await instance.renderPng('A', { scale: 2, maxWidth: 1 });
+  assert.equal(result.width, 1);
+  assert.equal(result.height, 1);
+  assert.equal(result.displayWidth, 2.5);
+  assert.equal(result.displayHeight, 2.5);
+  await instance.dispose();
+});
+
+test('legacy render responses remain valid without display dimensions', async () => {
+  const instance = await create();
+  const result = await instance.renderPng('A');
+  assert.equal(Object.hasOwn(result, 'displayWidth'), false);
+  assert.equal(Object.hasOwn(result, 'displayHeight'), false);
+  await instance.dispose();
+});
+
+test('render response rejects incomplete or invalid display dimensions', async () => {
+  for (const dimensions of [
+    { displayWidth: 2 }, { displayHeight: 2 },
+    { displayWidth: 0, displayHeight: 2 }, { displayWidth: 2, displayHeight: -1 },
+    { displayWidth: null, displayHeight: 2 }, { displayWidth: 2, displayHeight: '2' },
+  ]) {
+    const instance = await create(() => JSON.stringify({ ...success, ...dimensions }));
+    await assert.rejects(instance.renderPng('A'), { code: 'INVALID_RESPONSE' });
+    await instance.dispose();
+  }
+  const instance = await create(() => JSON.stringify({ protocolVersion: 1, success: false, displayWidth: 2, displayHeight: 2,
+    diagnostics: [{ code: 'TG_ERROR', severity: 'error', stage: 'render', message: 'Cannot render' }] }));
+  await assert.rejects(instance.renderPng('A'), { code: 'INVALID_RESPONSE' });
   await instance.dispose();
 });
 

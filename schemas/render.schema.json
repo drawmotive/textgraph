@@ -76,6 +76,14 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 2147483647
+    },
+    "displayWidth": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "displayHeight": {
+      "type": "number",
+      "exclusiveMinimum": 0
     }
   },
   "required": [
@@ -145,6 +153,22 @@
               "properties": {
                 "height": {}
               }
+            },
+            {
+              "required": [
+                "displayWidth"
+              ],
+              "properties": {
+                "displayWidth": {}
+              }
+            },
+            {
+              "required": [
+                "displayHeight"
+              ],
+              "properties": {
+                "displayHeight": {}
+              }
             }
           ]
         },
@@ -163,5 +187,13 @@
         }
       }
     }
-  ]
+  ],
+  "dependentRequired": {
+    "displayWidth": [
+      "displayHeight"
+    ],
+    "displayHeight": [
+      "displayWidth"
+    ]
+  }
 }

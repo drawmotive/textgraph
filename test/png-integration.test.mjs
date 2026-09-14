@@ -25,11 +25,13 @@ test('real Node runtime renders isolated PNGs with matching byte and base64 outp
     assert.deepEqual(Buffer.from(encoded.png, 'base64'), Buffer.from(first.png));
     const enlarged = await runtime.renderPng('A -> B', { scale: 4 });
     assert.equal(enlarged.success, true);
-    assert.ok(Math.abs(enlarged.width - first.width * 2) <= 1);
-    assert.ok(Math.abs(enlarged.height - first.height * 2) <= 1);
+    assert.ok(Math.abs(enlarged.width - first.width * 4) <= 3);
+    assert.ok(Math.abs(enlarged.height - first.height * 4) <= 3);
+    const logical = await runtime.renderPng('A -> B', { scale: 1 });
+    assert.deepEqual(Buffer.from(logical.png), Buffer.from(first.png));
     const padded = await runtime.renderPng('A -> B', { padding: 20 });
-    assert.equal(padded.width, first.width + 40);
-    assert.equal(padded.height, first.height + 40);
+    assert.equal(padded.width, first.width + 20);
+    assert.equal(padded.height, first.height + 20);
     const limited = await runtime.renderPng('A -> B', { maxWidth: 100 });
     assert.equal(limited.width, 100);
     for (const source of ['', 'A ->', '(sequence) { A -> B }']) {
