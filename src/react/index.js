@@ -54,6 +54,6 @@ export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = d
   // Density improves sharpness without enlarging the diagram. Native dimensions
   // also preserve logical size when maxWidth lowers the actual render density.
   return createElement('img', { width: result.displayWidth ?? result.width / scale, height: result.displayHeight ?? result.height / scale, ...imageProps,
-    style: { maxWidth: '100%', height: 'auto', ...style },
+    style: { maxWidth: '100%', ...(imageProps.height == null ? { height: 'auto' } : {}), ...style },
     src: `data:image/png;base64,${result.png}`, alt });
 }

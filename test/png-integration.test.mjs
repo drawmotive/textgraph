@@ -4,6 +4,21 @@ import { initializeTextGraph } from '@drawmotive/textgraph/node';
 import { zhCN } from '../language-packs/index.js';
 import { readFile } from 'node:fs/promises';
 
+test('bundled native runtime retains display size when maxWidth reduces raster density', async () => {
+  const runtime = await initializeTextGraph();
+  try {
+    const full = await runtime.renderPng('A -> B', { scale: 2 });
+    const limited = await runtime.renderPng('A -> B', { scale: 2, maxWidth: 100 });
+    assert.equal(full.success, true);
+    assert.equal(limited.success, true);
+    assert.equal(full.displayWidth, full.width / 2);
+    assert.equal(full.displayHeight, full.height / 2);
+    assert.equal(limited.width, 100);
+    assert.ok(Math.abs(limited.displayWidth - full.displayWidth) < 0.001);
+    assert.ok(Math.abs(limited.displayWidth / limited.displayHeight - limited.width / limited.height) < 0.000001);
+  } finally { await runtime.dispose(); }
+});
+
 test('real Node runtime renders isolated PNGs with matching byte and base64 output', async () => {
   const runtime = await initializeTextGraph();
   try {

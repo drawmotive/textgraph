@@ -132,7 +132,7 @@ test('explicit image dimensions and styles override web defaults without droppin
   assert.equal(image.width, 300);
   assert.equal(image.height, 200);
   assert.equal(image.style.maxWidth, '80%');
-  assert.equal(image.style.height, 'auto');
+  assert.equal(image.style.height, '');
   assert.equal(image.style.borderRadius, '4px');
   await render(view(f.options, 'A', { style: { height: '150px' } }));
   assert.equal(container.querySelector('img').style.height, '150px');
