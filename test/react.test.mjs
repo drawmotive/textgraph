@@ -86,7 +86,7 @@ test('new DSL hides old output and cancels stale work before it can publish', as
   assert.equal(oldSignal.aborted, true);
   assert.equal(container.querySelector('img'), null);
   await act(async () => old.resolve(png(5)));
-  assert.equal(container.querySelector('img').width, 10);
+  assert.equal(container.querySelector('img').width, 20);
   assert.equal(container.querySelector('img').alt, 'Latest');
   assert.equal(container.querySelector('img').className, 'diagram');
 });
@@ -102,11 +102,11 @@ test('render settings update the image while equivalent options and alt changes 
   assert.equal(f.stats.loads, 1);
 });
 
-test('web defaults render at double density and display responsively at logical size', async () => {
+test('web defaults render at scale one and display responsively at logical size', async () => {
   const f = fixture(request => png(100 * request.export.scale, 40 * request.export.scale));
   await render(view(f.options, 'A'));
   const image = container.querySelector('img');
-  assert.equal(f.stats.calls[0].export.scale, 2);
+  assert.equal(f.stats.calls[0].export.scale, 1);
   assert.equal(image.width, 100);
   assert.equal(image.height, 40);
   assert.equal(image.style.maxWidth, '100%');
@@ -175,7 +175,7 @@ test('changing provider options retires the old runtime and updates the image', 
   await render(view(second.options, 'A'));
   assert.equal(first.stats.disposed, 1);
   assert.equal(second.stats.loads, 1);
-  assert.equal(container.querySelector('img').width, 10);
+  assert.equal(container.querySelector('img').width, 20);
 });
 
 test('initialization failures are shown and a later source change retries', async () => {

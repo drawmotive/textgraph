@@ -107,7 +107,7 @@ export function App() {
 }
 ```
 
-The component defaults to scale `2`, displays at logical size, and shrinks to fit its container. Changing `source` updates the image. The provider shares one lazy runtime across diagrams and disposes it on unmount. See [React integration](docs/react.md) for loading, errors, rendering options, and server rendering.
+The component defaults to scale `1`, displays at logical size, and shrinks to fit its container. Set `scale: 2` explicitly for higher raster density. Changing `source` updates the image. The provider shares one lazy runtime across diagrams and disposes it on unmount. See [React integration](docs/react.md) for loading, errors, rendering options, and server rendering.
 
 ## Runnable samples
 

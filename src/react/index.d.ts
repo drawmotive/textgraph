@@ -11,7 +11,7 @@ export interface TextGraphProviderProps {
 export interface TextGraphProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'srcSet' | 'children' | 'loading'> {
   source: string;
   alt?: string;
-  /** Defaults to scale 2 for sharp images; the image displays at logical size. */
+  /** Defaults to scale 1; the image displays at logical size. */
   renderOptions?: Omit<TextGraphRenderPngOptions, 'encoding' | 'signal'>;
   loading?: ReactNode;
 }

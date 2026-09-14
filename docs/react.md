@@ -36,7 +36,7 @@ Use your deployed base path instead of `/` for subdirectory hosting. The [React/
 | --- | --- |
 | `source` | Required DSL string; changes trigger rendering. |
 | `alt` | Image description; defaults to `TextGraph diagram`. |
-| `renderOptions` | Defaults to `scale: 2` for sharper web images; `padding` and `maxWidth` use SDK defaults. |
+| `renderOptions` | Defaults to `scale: 1`; `padding` and `maxWidth` use SDK defaults. Set `scale: 2` explicitly for higher raster density. |
 | `loading` | React content shown with `role="status"`; defaults to `Rendering diagram…`. |
 | Other image attributes | Passed to the successful `<img>`, including `className`, `style`, `width`, and `height`. |
 

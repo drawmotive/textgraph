@@ -18,7 +18,7 @@ export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = d
   loading = 'Rendering diagram…', style, ...imageProps }) {
   const shared = useContext(RuntimeContext);
   const resource = useMemo(() => shared ?? createRuntimeResource(defaultOptions), [shared]);
-  const { scale = 2, padding, maxWidth } = renderOptions;
+  const { scale = 1, padding, maxWidth } = renderOptions;
   const request = useMemo(() => ({ source, scale, padding, maxWidth, resource }),
     [source, scale, padding, maxWidth, resource]);
   const [state, setState] = useState(null);
