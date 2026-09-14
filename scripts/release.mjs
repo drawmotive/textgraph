@@ -53,6 +53,7 @@ export async function verifyPackage(root = packageRoot, gitTag) {
   assert.equal(lock.version, pkg.version, "Lockfile version mismatch");
   assert.equal(lock.packages[""].version, pkg.version, "Lockfile root version mismatch");
   const manifest = await readJson(path.join(root, "generated/wasm-manifest.json"));
+  assert.notEqual(manifest.privateSource?.development, true, "Development native assets cannot enter a release");
   assert.equal(manifest.packageVersion, pkg.version, "Manifest version mismatch");
   assert.equal(manifest.packageName, pkg.name, "Manifest package mismatch");
   const projection = await readFile(path.join(root, "generated/wasm-manifest.js"), "utf8");

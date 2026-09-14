@@ -102,6 +102,17 @@ test("asset verification catches a changed runtime before publication", async t 
   await assert.rejects(verifyPackage(root), /hash mismatch/i);
 });
 
+test('release verification rejects local native provenance even when assets and versions match', async t => {
+  const root = await fixture(t);
+  await cp(path.join(packageRoot, 'generated/wasm'), path.join(root, 'generated/wasm'), { recursive: true });
+  const manifest = await readJson(path.join(root, 'generated/wasm-manifest.json'));
+  manifest.privateSource.development = true;
+  manifest.privateSource.fingerprint = 'development-inputs';
+  await writeFile(path.join(root, 'generated/wasm-manifest.json'), JSON.stringify(manifest));
+  await writeFile(path.join(root, 'generated/wasm-manifest.js'), `export default ${JSON.stringify(manifest, null, 2)};\n`);
+  await assert.rejects(verifyPackage(root), /development.*release|release.*development/i);
+});
+
 async function artifact(t) {
   const directory = await mkdtemp(path.join(tmpdir(), "textgraph-release-artifact-"));
   t.after(() => rm(directory, { recursive: true, force: true }));

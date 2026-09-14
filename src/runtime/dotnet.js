@@ -83,7 +83,9 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
 export function createBridgeRuntime({ manifest, options, readAsset, bridge, info }) {
   const renders = manifest.capabilities.includes(renderingCapability);
   return {
-    abiVersion: info.abiVersion, capabilities: info.capabilities,
+    // A bridge may support operations intentionally omitted by the selected
+    // manifest; advertise only the intersection that this loader exposes.
+    abiVersion: info.abiVersion, capabilities: info.capabilities.filter(capability => manifest.capabilities.includes(capability)),
     validate: source => bridge[manifest.bridge.validate](source),
     ...(renders ? { execute: createRenderingExecutor({ manifest, options, readAsset, execute: request => bridge[manifest.bridge.execute](request) }) } : {}),
     async dispose() {

@@ -63,6 +63,10 @@ Existing `loadRuntime`, `readonly` and `mutate` hooks remain for development com
 
 Root condition precedence is worker/browser/node/default. Explicit entries avoid bundler ambiguity. Browser/Worker source graphs exclude Node imports.
 
+The repository development command can set `DRAWMOTIVE_TEXTGRAPH_RUNTIME` to an absolute generated directory for Node and inherited Node Workers. The default Node loader then reads that directory's `wasm-manifest.json` and resolves native modules, fonts, and themes there; existing manifest validation and asset integrity checks still apply. Missing or invalid local artifacts reject initialization or rendering without falling back to packaged assets. A supplied `resolveAsset` receives the selected local URL as its default; an explicit `loadRuntime` remains authoritative. Browser and browser Worker loaders ignore this environment variable.
+
+Keep this selection scoped to the development command. With it absent, package loading is unchanged; `info.packageVersion` identifies the JavaScript wrapper and capabilities reflect the intersection of the selected manifest and native bridge. Native manifests marked `privateSource.development: true` are rejected by release verification.
+
 ## Assets, CSP and offline operation
 
 Defaults resolve relative to the installed module. `resolveAsset(asset, defaultUrl)` may return an absolute URL or URL object for each asset. Deploy the complete `generated/wasm` directory: bundlers must preserve/copy these files and configure the resolver for their deployed location. It covers both JS and data. Instance query parameters isolate mutable .NET ESM state; servers should serve identical module bytes regardless of that query.
