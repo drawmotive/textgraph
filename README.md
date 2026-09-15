@@ -8,12 +8,12 @@ Render TextGraph diagrams as PNG images and validate diagram source.
 ## Installation
 
 ```bash
-npm install @drawmotive/textgraph@0.2.0
+npm install @drawmotive/textgraph@0.2.1
 ```
 
 Requires Node.js 22+ or a modern browser.
 
-Version `0.2.0` is the first stable release. Install the exact version above or use `@latest` for the current stable release.
+Version `0.2.1` defaults React PNG rendering to scale `1`, matching the base SDK. Version `0.2.0` was the first stable release. The exact installation command above becomes available after `0.2.1` is published; `@latest` selects the current published stable release.
 
 ## Quickstart
 

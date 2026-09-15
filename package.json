@@ -1,6 +1,6 @@
 {
   "name": "@drawmotive/textgraph",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "TextGraph DSL and headless DrawMotive file toolkit",
   "type": "module",
   "types": "./src/index.d.ts",
