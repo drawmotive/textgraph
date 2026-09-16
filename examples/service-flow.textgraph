@@ -1,0 +1,6 @@
+(horizontal)
+browser -> api -> database
+
+browser: Browser
+api(fill primary): API Gateway
+database: Database

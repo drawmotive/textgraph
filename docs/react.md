@@ -1,6 +1,6 @@
 # React integration
 
-The `/react` entry is an unreleased addition after `0.1.0-alpha.1`. React is an optional peer dependency (`^18.2.0 || ^19.0.0`); applications without React use the ordinary SDK entries.
+The `/react` entry provides a diagram component and shared runtime provider. React is an optional peer dependency (`^18.2.0 || ^19.0.0`); applications without React use the ordinary SDK entries.
 
 ## Browser assets
 

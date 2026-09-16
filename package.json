@@ -1,7 +1,19 @@
 {
   "name": "@drawmotive/textgraph",
   "version": "0.2.1",
-  "description": "TextGraph DSL and headless DrawMotive file toolkit",
+  "description": "Render TextGraph flowcharts and directed graphs as PNG images in Node.js, browsers, React, and Web Workers.",
+  "keywords": [
+    "textgraph",
+    "diagram",
+    "flowchart",
+    "directed-graph",
+    "text-to-diagram",
+    "automatic-layout",
+    "png",
+    "react",
+    "webassembly",
+    "wasm"
+  ],
   "type": "module",
   "types": "./src/index.d.ts",
   "exports": {
