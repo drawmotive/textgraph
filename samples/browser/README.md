@@ -1,5 +1,7 @@
 # Browser sample
 
+[Open the live browser example](https://textgraph.dev/examples/textgraph/) to edit source and see the rendered PNG immediately, without cloning this repository.
+
 Plain HTML and JavaScript render editable TextGraph source to a PNG. Vite serves and bundles the app. Requires Node.js 22.12+.
 
 From the repository root:

@@ -229,3 +229,7 @@ publish anything. Samples are not included in the npm package.
 [Changelog](https://github.com/drawmotive/textgraph/blob/main/CHANGELOG.md) ·
 [Report an issue](https://github.com/drawmotive/textgraph/issues) ·
 [MIT license](https://github.com/drawmotive/textgraph/blob/main/LICENSE)
+
+### Try it in a browser
+
+[Open the runnable HTML/JavaScript example](https://textgraph.dev/examples/textgraph/) to edit source, see its PNG and copy the integration code without installing anything. For visual editing, see [the DrawMotive editor](https://textgraph.dev/editor/).
