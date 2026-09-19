@@ -73,6 +73,8 @@ Defaults resolve relative to the installed module. `resolveAsset(asset, defaultU
 
 `fetch` or `adapters.network.fetch` receives data URLs and the applicable initialization or render signal. Independent startup data assets download concurrently; all must pass integrity checks before native startup. JS uses dynamic import, which injected fetch cannot intercept. Offline installations must cache the module graph as well as WASM/data at importable URLs, using a Service Worker or local server. No GitHub Releases download is required.
 
+Browser, Worker and Node entry points share this concurrent startup loader. Markdown integrations using the Node entry point inherit it when upgraded to the fixed SDK; their default asset reads are local files. Publishing an SDK version does not update pinned dependencies or previously bundled extensions: consumers must update their dependency and lockfile, then rebuild and redeploy or repackage. The separate `@drawmotive/editor` package uses Blazor's own concurrent loader.
+
 Serve WASM as `application/wasm`, JS as `text/javascript`, and provide applicable CORS headers for cross-origin assets. Same-origin CSP: `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'self'`. No eval, new Function or DOM script injection is used. Cross-origin isolation and SharedArrayBuffer are not required by this single-threaded runtime.
 
 Serve font files as `font/ttf` and themes as `text/css`. To display base64 PNGs, add `img-src 'self' data:` to CSP; include `blob:` too when displaying Blob URLs.
