@@ -71,7 +71,7 @@ Keep this selection scoped to the development command. With it absent, package l
 
 Defaults resolve relative to the installed module. `resolveAsset(asset, defaultUrl)` may return an absolute URL or URL object for each asset. Deploy the complete `generated/wasm` directory: bundlers must preserve/copy these files and configure the resolver for their deployed location. It covers both JS and data. Instance query parameters isolate mutable .NET ESM state; servers should serve identical module bytes regardless of that query.
 
-`fetch` or `adapters.network.fetch` receives data URLs and the applicable initialization or render signal. JS uses dynamic import, which injected fetch cannot intercept. Offline installations must cache the module graph as well as WASM/data at importable URLs, using a Service Worker or local server. No GitHub Releases download is required.
+`fetch` or `adapters.network.fetch` receives data URLs and the applicable initialization or render signal. Independent startup data assets download concurrently; all must pass integrity checks before native startup. JS uses dynamic import, which injected fetch cannot intercept. Offline installations must cache the module graph as well as WASM/data at importable URLs, using a Service Worker or local server. No GitHub Releases download is required.
 
 Serve WASM as `application/wasm`, JS as `text/javascript`, and provide applicable CORS headers for cross-origin assets. Same-origin CSP: `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'self'`. No eval, new Function or DOM script injection is used. Cross-origin isolation and SharedArrayBuffer are not required by this single-threaded runtime.
 

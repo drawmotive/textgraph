@@ -17,12 +17,24 @@ test('real browser runtime validates under CSP with injected data loading', asyn
   expect(actual.state).toBe('disposed');
 });
 
-test('real module Worker validates without window or document', async ({ page }) => {
+test('real module Worker downloads WASM in parallel and validates without DOM globals', async ({ page, context }) => {
+  const gate = Promise.withResolvers();
+  const requested = new Set();
+  await context.route('**/generated/wasm/*.wasm', async route => {
+    requested.add(route.request().url());
+    await gate.promise;
+    await route.continue();
+  });
   await page.goto('http://127.0.0.1:4178/');
-  const actual = await page.evaluate(() => new Promise((resolve, reject) => {
+  const initializing = page.evaluate(() => new Promise((resolve, reject) => {
     const worker = new Worker('/test/browser/worker.js', { type: 'module' });
     worker.onmessage = event => { worker.terminate(); resolve(event.data); };
     worker.onerror = event => { worker.terminate(); reject(new Error(event.message)); };
   }));
+  try {
+    // No WASM response can complete yet: a serial loader stalls at one request.
+    await expect.poll(() => requested.size).toBeGreaterThan(1);
+  } finally { gate.resolve(); }
+  const actual = await initializing;
   expect(actual).toEqual({ result: { valid: true, diagnostics: [] }, state: 'disposed' });
 });

@@ -25,17 +25,16 @@ export function createTextGraphRuntimeLoader(options) {
   return {
     plan,
     async loadAssets() {
-      const loaded = new Map();
-      for (const item of plan) {
+      // Fetch independent assets together; retain manifest order in the result.
+      return new Map(await Promise.all(plan.map(async item => {
         const response = await fetchResource(item.url);
         if (!response.ok) {
           throw new DrawMotiveError('RESOURCE_NOT_FOUND', `Failed to load ${item.asset.path}: HTTP ${response.status}`, {
             details: { asset: item.asset.path, status: response.status, url: item.url.href },
           });
         }
-        loaded.set(item.asset.path, { ...item.asset, url: item.url, bytes: new Uint8Array(await response.arrayBuffer()) });
-      }
-      return loaded;
+        return [item.asset.path, { ...item.asset, url: item.url, bytes: new Uint8Array(await response.arrayBuffer()) }];
+      })));
     },
   };
 }

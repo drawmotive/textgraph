@@ -26,12 +26,12 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
   try {
     // .NET treats download failures as fatal and may terminate a Node host. Own
     // loading/cancellation here, before entering its non-cancellable startup.
-    const data = new Map();
-    for (const item of plan) {
+    // Data assets are independent: start them together, but verify every response
+    // before importing modules or giving .NET ownership of the bytes.
+    const data = new Map(await Promise.all(plan.filter(item => !/[.](mjs|js)$/.test(item.asset.path)).map(async item => {
       throwIfAborted(options.signal);
-      if (/[.](mjs|js)$/.test(item.asset.path)) continue;
-      data.set(item.asset.path, await readVerifiedAsset(item, options, readAsset));
-    }
+      return [item.asset.path, await readVerifiedAsset(item, options, readAsset)];
+    })));
     throwIfAborted(options.signal);
     // Detect unsupported WASM features before the runtime takes ownership of failure handling.
     await WebAssembly.compile(data.get(manifest.runtimeWasm));
