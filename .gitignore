@@ -148,6 +148,9 @@ vite.config.ts.timestamp-*
 !.release/
 !.release/target.json
 !.release/check.cjs
+language-packs/.release/*
+!language-packs/.release/target.json
+!language-packs/.release/check.cjs
 
 # Local development uses a node_modules directory link.
 node_modules
