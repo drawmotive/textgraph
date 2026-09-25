@@ -1,8 +1,4 @@
-/** Adds Simplified Chinese fallback coverage to a TextGraph instance. */
-export const zhCN = Object.freeze({
-  fonts: Object.freeze([Object.freeze({
-    family: 'NotoSansSC-Regular',
-    source: new URL('./fonts/NotoSansSC-Regular.ttf', import.meta.url),
-  })]),
-  fallbackFamilies: Object.freeze(['NotoSansSC-Regular']),
-});
+import { descriptor } from '../descriptor.js';
+
+/** Chinese coverage with Simplified Chinese regional glyphs; preserves the existing export. */
+export const zhCN = descriptor('noto-sans-sc');

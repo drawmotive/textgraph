@@ -1,13 +1,25 @@
 {
   "name": "@drawmotive/textgraph-fonts",
-  "version": "0.0.0-development",
+  "version": "0.2.1",
   "description": "Optional fonts and language packs for TextGraph",
-  "private": true,
   "type": "module",
   "types": "./index.d.ts",
-  "exports": { ".": { "types": "./index.d.ts", "default": "./index.js" } },
-  "files": ["index.js", "index.d.ts", "zh-cn"],
-  "license": "OFL-1.1",
+  "exports": {
+    ".": { "types": "./index.d.ts", "default": "./index.js" },
+    "./font-catalog.json": "./assets/font-catalog.json",
+    "./assets/*": "./assets/*",
+    "./package.json": "./package.json"
+  },
+  "files": ["index.js", "index.d.ts", "catalog.js", "descriptor.js", "zh-cn", "ja", "emoji", "assets", "scripts"],
+  "scripts": {
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
+    "build": "node scripts/verify-assets.mjs",
+    "prepack": "npm run build && npm test"
+  },
+  "bin": { "textgraph-copy-fonts": "./scripts/copy-fonts.mjs" },
+  "engines": { "node": ">=22" },
+  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/", "tag": "latest" },
+  "license": "(MIT AND OFL-1.1)",
   "homepage": "https://textgraph.dev",
   "bugs": {
     "url": "https://github.com/drawmotive/textgraph/issues"
