@@ -1,0 +1,111 @@
+name: Publish TextGraph Fonts
+on:
+  push:
+    tags: ["textgraph-fonts-v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag (textgraph-fonts-vX.Y.Z or textgraph-fonts-vX.Y.Z-alpha.N)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: textgraph-fonts-npm-publication
+  cancel-in-progress: false
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.release.outputs.ref }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate fonts release tag and resolve immutable commit
+        id: release
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync } from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          import { fontsReleaseChannel } from './scripts/fonts-release.mjs';
+          const tag = process.env.RELEASE_TAG;
+          const release = fontsReleaseChannel(tag.replace(/^textgraph-fonts-v/, ''));
+          if (tag !== release.gitTag) throw new Error('Invalid fonts release tag');
+          const ref = execFileSync('git', ['rev-parse', `refs/tags/${tag}^{commit}`], { encoding: 'utf8' }).trim();
+          if (process.env.GITHUB_REF !== `refs/tags/${tag}` || process.env.GITHUB_SHA !== ref) {
+            throw new Error('Run this workflow on the release tag itself so OIDC and provenance identify the published commit.');
+          }
+          appendFileSync(process.env.GITHUB_OUTPUT, `ref=${ref}\ntag=${tag}\n`);
+          JS
+  pack:
+    needs: resolve
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: language-packs/package-lock.json
+      - run: npm ci --prefix language-packs --workspaces=false
+      - run: npm run build --prefix language-packs --workspaces=false
+      - run: npm test --prefix language-packs --workspaces=false
+      - name: Verify release publication contracts
+        run: node --test --test-concurrency=1 test/release.test.mjs test/fonts-release.test.mjs
+      - name: Verify font and license hashes, then pack tested checkout
+        env:
+          RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+        run: node scripts/fonts-release.mjs pack "$RELEASE_TAG"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: textgraph-fonts-npm-release
+          path: |
+            language-packs/.release/*.tgz
+            language-packs/.release/release.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+  publish:
+    needs: [resolve, pack]
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --global npm@11.11.1
+      - uses: actions/download-artifact@v4
+        with:
+          name: textgraph-fonts-npm-release
+          path: language-packs/.release
+      - name: Configure optional first-publication token
+        if: env.NODE_AUTH_TOKEN != ''
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync, writeFileSync } from 'node:fs';
+          import path from 'node:path';
+          const file = path.join(process.env.RUNNER_TEMP, 'textgraph-fonts.npmrc');
+          writeFileSync(file, '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}\n', { mode: 0o600 });
+          appendFileSync(process.env.GITHUB_ENV, `NPM_CONFIG_USERCONFIG=${file}\n`);
+          JS
+      - name: Publish verified tarball using bootstrap token or npm trusted publishing
+        env:
+          RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+        run: node scripts/publish-fonts-release.mjs

@@ -14,7 +14,7 @@ An exact prerelease version also works: `npm install @drawmotive/textgraph@0.1.0
 
 No stable release is required before publishing another alpha. The script verifies the existing default and immutable artifact integrity without attempting to delete tags. To graduate an alpha, prepare and publish a new stable version.
 
-The scripts accept stable SemVer and `X.Y.Z-alpha.N`. Other channels require an explicit release-policy change. The shared optional `@drawmotive/textgraph-fonts` package has its own release lifecycle and is not published by this workflow.
+The scripts accept stable SemVer and `X.Y.Z-alpha.N`. Other channels require an explicit release-policy change. The shared optional `@drawmotive/textgraph-fonts` package uses the separate fonts workflow described below.
 
 ## Account setup
 
@@ -106,3 +106,24 @@ gh workflow run release.yml --ref textgraph-v0.2.1 -f tag=textgraph-v0.2.1
 If publication succeeded but a later check failed, the script accepts an identical registry artifact with the correct channel and refuses different bytes at the same version. Keep the original workflow artifact for diagnosing integrity differences.
 
 The first alpha owning `latest` is expected and requires no repair. If a later publication unexpectedly changes an existing default, inspect registry state before retrying. Do not unpublish, overwrite versions, or delete tags as a routine recovery step.
+
+## Optional fonts package
+
+`.github/workflows/release-fonts.yml` publishes `@drawmotive/textgraph-fonts` from tags named `textgraph-fonts-v<VERSION>`. It verifies the coordinated release target, font hashes, Unicode coverage, pinned provenance, original license/notice hashes, offline installation, and publication policy before packing. The package has no native build or SDK dependency.
+
+Run these checks from the TextGraph repository after synchronizing the release target and package/lock versions in the parent repository:
+
+```bash
+npm ci --prefix language-packs --workspaces=false
+npm run build --prefix language-packs --workspaces=false
+npm test --prefix language-packs --workspaces=false
+node --test --test-concurrency=1 test/release.test.mjs test/fonts-release.test.mjs
+node scripts/fonts-release.mjs pack
+node scripts/publish-fonts-release.mjs --dry-run
+```
+
+The exact archive and receipt remain in `language-packs/.release/`; CI retains them as the `textgraph-fonts-npm-release` artifact for 30 days and passes them unchanged to the publish job. Font alpha releases use `alpha`, preserve an existing `latest`, and accept npm assigning `latest` on first publication. A retry verifies the existing version's integrity instead of publishing it again.
+
+Allow `textgraph-fonts-v*` tags in the GitHub `npm` environment. For bootstrap, an authorized administrator can set its `NPM_TOKEN` secret to an npm token with permission to create/publish this scoped package. The workflow writes only a token variable reference into a temporary npm configuration; it does not print or retain the credential in the artifact. Once the package exists, configure its trusted publisher with repository `drawmotive/textgraph`, workflow `release-fonts.yml`, and environment `npm`, then remove the bootstrap secret. Without that secret the workflow uses npm trusted publishing with OIDC.
+
+After committing and reviewing the release, publish the matching `textgraph-fonts-v<VERSION>` tag. Manual retries must use the same existing tag for both the workflow ref and the `tag` input. Publish the fonts package before refreshing consumer lockfiles; consumers must resolve the actual public registry tarball and integrity.

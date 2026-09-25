@@ -6,8 +6,9 @@ import { assertRegistryState, assertPublishedState, assertLatestPreserved } from
 import { packageRoot, verifyArtifact, verifyPackage } from "./release.mjs";
 
 /** Registry absence is valid for a first release; other failures must stop publishing. */
-export async function readPublicRegistry() {
-  const response = await fetch("https://registry.npmjs.org/@drawmotive%2ftextgraph", {
+export async function readPublicRegistry(packageName = "@drawmotive/textgraph") {
+  const encodedName = packageName.replace("/", "%2f");
+  const response = await fetch(`https://registry.npmjs.org/${encodedName}`, {
     // New packages can be installable before the full JSON document is served.
     headers: { Accept: "application/vnd.npm.install-v1+json", "Cache-Control": "no-cache" }, signal: AbortSignal.timeout(30000),
   });
@@ -16,7 +17,7 @@ export async function readPublicRegistry() {
   const metadata = await response.json();
   // Install metadata can cache an old latest after deletion. Tag authority is
   // the dedicated JSON endpoint used by npm dist-tag itself.
-  const tags = await fetch("https://registry.npmjs.org/-/package/@drawmotive%2ftextgraph/dist-tags", {
+  const tags = await fetch(`https://registry.npmjs.org/-/package/${encodedName}/dist-tags`, {
     headers: { Accept: "application/json", "Cache-Control": "no-cache" }, signal: AbortSignal.timeout(30000),
   });
   if (!tags.ok) throw new Error(`npm dist-tags returned HTTP ${tags.status}`);
