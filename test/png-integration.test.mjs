@@ -79,7 +79,7 @@ test('released native runtime renders inline groups and recovers after unmatched
 
 test('optional Chinese pack resolves missing glyphs without changing the default instance', async () => {
   const source = 'A: 开始\nB: 完成\nA -> B';
-  const base = await initializeTextGraph();
+  const base = await initializeTextGraph({ languagePacks: [], fontAssets: { fallback: false } });
   const chinese = await initializeTextGraph({ languagePacks: [zhCN] });
   try {
     assert.equal(typeof base.renderPng, 'function');

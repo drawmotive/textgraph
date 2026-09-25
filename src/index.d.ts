@@ -93,14 +93,28 @@ export interface TextGraphInitializeOptions {
   adapters?: TextGraphAdapters;
   resolveAsset?(asset: RuntimeAsset, defaultUrl: URL): string | URL;
   fetch?: typeof globalThis.fetch;
-  /** Font data is copied during initialization and loaded only before the first render. */
+  /** Legacy descriptors load on first render; descriptors with coverage load on demand. */
   languagePacks?: readonly TextGraphLanguagePack[];
+  /** Optional deployed catalog; without a package, online rendering uses the staging catalog. */
+  fontAssets?: TextGraphFontAssets;
+}
+
+export interface TextGraphFontAssets {
+  /** Catalog URL; files resolve relative to this URL. A configured catalog is authoritative. */
+  readonly catalog?: URL;
+  /** Disable external fallback for offline hosts, or select another remote catalog. */
+  readonly fallback?: false | URL;
 }
 
 export interface TextGraphFont {
   readonly family: string;
   /** Use a URL (including file: in Node) or bytes; bytes are copied during initialization. */
   readonly source: URL | Uint8Array;
+  /** Sorted, disjoint inclusive Unicode ranges. Supply all metadata fields together for lazy loading. */
+  readonly coverage?: readonly (readonly [number, number])[];
+  readonly languages?: readonly string[];
+  readonly bytes?: number;
+  readonly sha256?: string;
 }
 
 export interface TextGraphLanguagePack {
@@ -112,6 +126,8 @@ export interface TextGraphLanguagePack {
 export type TextGraphPngEncoding = 'bytes' | 'base64';
 
 export interface TextGraphRenderPngOptions<Encoding extends TextGraphPngEncoding = TextGraphPngEncoding> {
+  /** Optional language hint for ambiguous Han text, e.g. ja or zh-CN. */
+  language?: string;
   /** Defaults to bytes. Base64 contains no data-URL prefix. */
   encoding?: Encoding;
   /** Positive raster density relative to logical diagram size. Defaults to 1. */

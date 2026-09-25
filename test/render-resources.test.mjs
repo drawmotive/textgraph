@@ -11,7 +11,7 @@ import { loadNodeRuntime } from '../src/runtime/node.js';
 const resources = new Map([['wasm/themes.css', new TextEncoder().encode('text { color: black; }')], ['wasm/NotoSans-Regular.ttf', new Uint8Array([1, 2, 3])], ['wasm/FuzzyBubbles-Regular.ttf', new Uint8Array([4, 5, 6])]]);
 const rendering = { theme: 'wasm/themes.css', fonts: [{ family: 'NotoSans-Regular', asset: 'wasm/NotoSans-Regular.ttf' }, { family: 'FuzzyBubbles-Regular', asset: 'wasm/FuzzyBubbles-Regular.ttf' }] };
 const assets = [...resources].map(([path, data]) => ({ path, mediaType: path.endsWith('.css') ? 'text/css' : 'font/ttf', bytes: data.length, sha256: createHash('sha256').update(data).digest('hex') }));
-const renderManifest = () => ({ ...structuredClone(manifest), rendering, bridge: { ...manifest.bridge, execute: 'Execute' }, capabilities: [...new Set([...manifest.capabilities, 'textgraph-render-v1'])], assets: [...manifest.assets.filter(asset => !resources.has(asset.path)), ...assets] });
+const renderManifest = () => ({ ...structuredClone(manifest), rendering, bridge: { ...manifest.bridge, execute: 'Execute' }, capabilities: [...new Set([...manifest.capabilities.filter(capability => capability !== 'textgraph-fonts-v1'), 'textgraph-render-v1'])], assets: [...manifest.assets.filter(asset => !resources.has(asset.path)), ...assets] });
 const configured = JSON.stringify({ protocolVersion: 1, success: true, diagnostics: [] });
 const request = JSON.stringify({ protocolVersion: 1, operation: 'render', source: 'A', export: { format: 'png', scale: 2, padding: 10 } });
 

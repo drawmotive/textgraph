@@ -11,6 +11,6 @@ test('Simplified Chinese pack supplies a usable font URL without importing a run
   assert.ok((await stat(font.source)).size > 0);
   const metadata = JSON.parse(await readFile(new URL('../language-packs/package.json', import.meta.url)));
   assert.equal(metadata.name, '@drawmotive/textgraph-fonts');
-  assert.equal(metadata.license, 'OFL-1.1');
+  assert.equal(metadata.license, '(MIT AND OFL-1.1)');
   assert.ok((await readFile(new URL('../language-packs/zh-cn/OFL.txt', import.meta.url), 'utf8')).includes('SIL OPEN FONT LICENSE'));
 });

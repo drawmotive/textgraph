@@ -2,7 +2,7 @@ import { validateTextGraphAdapters } from './adapters.js';
 import { createManagedInstance, throwIfAborted, validateAbi, waitForInitialResource } from './runtime/lifecycle.js';
 import { decodeValidation, validateSignal } from './runtime/validation.js';
 import { DrawMotiveError } from './runtime/errors.js';
-import { normalizeLanguagePacks } from './runtime/language-packs.js';
+import { normalizeFontAssets, normalizeLanguagePacks } from './runtime/language-packs.js';
 import { decodeRender, normalizeRenderOptions } from './runtime/rendering.js';
 import manifest from '../generated/wasm-manifest.js';
 
@@ -26,7 +26,7 @@ export async function initializeTextGraph(options = {}) {
   if (typeof options.loadRuntime !== 'function') {
     throw new TypeError('initializeTextGraph requires a loadRuntime function');
   }
-  const normalized = Object.freeze({ ...options, adapters: validateTextGraphAdapters(options.adapters), languagePacks: normalizeLanguagePacks(options.languagePacks) });
+  const normalized = Object.freeze({ ...options, adapters: validateTextGraphAdapters(options.adapters), languagePacks: normalizeLanguagePacks(options.languagePacks), fontAssets: normalizeFontAssets(options.fontAssets) });
   const runtime = await waitForInitialResource(() => options.loadRuntime(normalized), options.signal);
   await validateAbi(runtime, abiManifest.abiVersion);
   const instance = createManagedInstance([runtime]);

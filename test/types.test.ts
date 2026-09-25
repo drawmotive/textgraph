@@ -53,7 +53,8 @@ void stableApi;
 
 async function renderingApi(encoding: TextGraphPngEncoding, options: TextGraphRenderPngOptions) {
   const languagePack: TextGraphLanguagePack = { fonts: [{ family: 'Chinese', source: new URL('https://example.test/font.ttf') }], fallbackFamilies: ['Chinese'] };
-  const runtime = await initializeTextGraph({ languagePacks: [languagePack] });
+  const runtime = await initializeTextGraph({ languagePacks: [languagePack], fontAssets: { fallback: false } });
+  await runtime.renderPng('A: 日本語', { language: 'ja' });
   const bytes = await runtime.renderPng('A -> B');
   if (bytes.success) {
     const image: Uint8Array = bytes.png;

@@ -1,8 +1,8 @@
-/* Theme: VibrantFlow */
-.vibrant-flow {
-    /* Theme Colors: Black + White + 5 Colors */
-    --color-black: #1B1B1B;
-    --color-white: #F7F7F7;
+/* Default appearance: compose palette.light and styling.default on the same target. */
+.palette.light {
+    /* Theme Colors: Foreground + Background + 5 Colors */
+    --color-foreground: #1B1B1B;
+    --color-background: #FFFFFF;
     --color-primary-stroke: #007AFF;
     --color-primary-fill: #B3D7FF;
     --color-secondary-stroke: #5A6268;
@@ -14,24 +14,28 @@
     --color-warning-stroke: #FFCC00;
     --color-warning-fill: #FFF3BF;
 
+    /* Editor colors are consumed directly from the palette. */
+    --color-selection-stroke: rgba(0, 255, 0, 0.9);
+    --color-selection-fill: rgba(0, 255, 0, 0.5);
+    --color-selection-stroke-reverse: rgba(255, 0, 0, 0.9);
+    --color-selection-fill-reverse: rgba(255, 0, 0, 0.5);
+    --color-bound-stroke: rgba(0, 255, 255, 0.8);
+    --color-grip-stroke: rgba(0, 0, 0, 0.8);
+    --color-grip-fill: rgba(0, 255, 255, 0.8);
+}
+
+.styling.default {
     /* Selection Styles */
-    --selection-stroke-color: rgba(0, 255, 0, 0.9);
-    --selection-fill-color: rgba(0, 255, 0, 0.5);
     --selection-blend-mode: SrcOver;
-    --selection-stroke-color-reverse: rgba(255, 0, 0, 0.9);
-    --selection-fill-color-reverse: rgba(255, 0, 0, 0.5);
     --selection-stroke-path-effect: solid;
     --selection-stroke-path-effect-reverse: dashed, 5, 2;
 
     /* Bound, Bounding Box, Styles */
-    --bound-stroke-color: rgba(0, 255, 255, 0.8);
     --bound-blend-mode: SrcOver;
     --bound-stroke-width: 1px;
     --bound-stroke-path-effect: solid;
 
     /* Grip Styles */
-    --grip-stroke-color: rgba(0, 0, 0, 0.8);
-    --grip-fill-color: rgba(0, 255, 255, 0.8);
     --grip-blend-mode: SrcOver;
     --grip-radius: 5px;
     --grip-stroke-width: 1px;
@@ -47,10 +51,19 @@
     --line-width-thin: 1px;
     --line-width-normal: 2px;
     --line-width-bold: 4px;
+    /* Display-only line-to-node gap along the connector path in drawing units, after stroke compensation.
+       Positive values add space; negative values bring ends closer. Stored geometry is unchanged.
+       Accepts finite signed px or unitless 0; omitted values default to 0. */
+    --line-node-gap: 0px;
     --stroke-cap: round;
     --stroke-join: round;
     --stroke-miter: 10;
     --blend-mode: SrcOver;
+
+    /* Opt in to current group geometry; older hosts retain their legacy group tokens.
+       The referenced values are declared by the shared embedded standard styling resource. */
+    --group-corner-radius: var(--standard-group-corner-radius);
+    --group-header-min-height: var(--standard-group-header-min-height);
 
     /* TextGraph Styles */
     --textgraph-node-min-width: 80px;

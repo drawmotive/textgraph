@@ -47,7 +47,7 @@ test('npm tarball works outside the private workspace with no development depend
     assert.equal(fontPack.name, '@drawmotive/textgraph-fonts');
     assert.ok(fontPack.files.some(file => file.path === 'index.d.ts'));
     assert.ok(fontPack.files.some(file => file.path === 'zh-cn/index.d.ts'));
-    assert.ok(fontPack.files.some(file => file.path === 'zh-cn/fonts/NotoSansSC-Regular.ttf'));
+    assert.ok(fontPack.files.some(file => file.path === 'assets/NotoSansSC-Regular.ttf'));
     assert.ok(fontPack.files.some(file => file.path === 'zh-cn/OFL.txt'));
     assert.ok(fontPack.files.every(file => !file.path.endsWith('.wasm')));
     await runNpm(['install', '--ignore-scripts', '--no-audit', '--no-fund', path.join(root, fontPack.filename)], consumer);
@@ -55,5 +55,23 @@ test('npm tarball works outside the private workspace with no development depend
     // Font caches must not keep a host process alive after wrapper disposal.
     const pngResult = await exec(process.execPath, ['--input-type=module', '-e', pngProgram], { cwd: consumer, timeout: 30000 });
     assert.deepEqual(JSON.parse(pngResult.stdout), {success:true,signature:[137,80,78,71,13,10,26,10],diagnostics:[]});
+    const offlineProgram = `
+      import {initializeTextGraph} from '@drawmotive/textgraph';
+      globalThis.fetch = () => { throw new Error('Offline package attempted network I/O'); };
+      for (const fontAssets of [null, []]) {
+        try { await initializeTextGraph({fontAssets}); throw new Error('Invalid configuration accepted'); }
+        catch (error) { if (error.code !== 'INVALID_ARGUMENT') throw error; }
+      }
+      const runtime = await initializeTextGraph({fontAssets:{fallback:false}});
+      try {
+        for (const source of ['A: 中文繁體', 'A: 日本語の図', 'A: 👩‍💻 🇯🇵 👍🏽 1️⃣']) {
+          const result = await runtime.renderPng(source);
+          if (!result.success || result.diagnostics.some(d => d.stage === 'font')) throw new Error(JSON.stringify(result.diagnostics));
+        }
+        console.log('offline multilingual auto-discovery passed');
+      } finally { await runtime.dispose(); }
+    `;
+    const offlineResult = await exec(process.execPath, ['--input-type=module', '-e', offlineProgram], { cwd: consumer, timeout: 60000 });
+    assert.match(offlineResult.stdout, /offline multilingual auto-discovery passed/);
   } finally { await rm(root, { recursive: true, force: true }); }
 });

@@ -40,11 +40,42 @@ After applying `maxWidth`, output is limited to 16,384 pixels per side and 16,77
 
 ## Fonts and language packs
 
+Runtimes advertising `textgraph-fonts-v1` prepare actual visible labels before measurement.
+Official Chinese, Japanese and emoji fonts load only when needed, then remain decoded
+until the instance is disposed. Node discovers an installed `@drawmotive/textgraph-fonts`
+package automatically; browser hosts copy its assets and supply their deployed catalog:
+
+```javascript
+const runtime = await initializeTextGraph({
+  fontAssets: { catalog: new URL("/textgraph/fonts/font-catalog.json", location.origin), fallback: false },
+});
+```
+
+`fontAssets.catalog` is authoritative: missing or corrupt files fail without silently
+switching versions. With no catalog or language packs, fonts are resolved on demand
+from `https://staging.drawmotive.com/static/font-catalog.json`. Set `fallback: false`
+to prohibit that external access, or supply another catalog URL as `fallback`.
+Installing a local package takes precedence over fallback even in offline mode.
+Use `languagePacks: []` with `fallback: false` to explicitly disable automatic font sources.
+
+Catalog fonts carry actual Unicode coverage, language hints, byte sizes and SHA-256.
+They are verified before native installation. Catalog URLs are cached per instance;
+HTTP font URLs include the content hash as a stable `v` parameter. HTTP caching remains
+browser/server-owned; there is no new IndexedDB or Service Worker. Offline operation
+requires the complete runtime and font package on a local filesystem or local server;
+an online page cannot fetch an uncached font after losing network access.
+
+`renderPng(source, { language: "ja" })` can disambiguate Han-only labels. Without a hint,
+kana selects Japanese for that label and Han-only labels use Chinese. Grapheme-aware
+emoji selection includes flags, ZWJ sequences, modifiers and keycaps. Font selection
+does not depend on which languages were rendered previously. Unsupported glyphs still
+produce font diagnostics; the font catalog defines coverage, not support for every language.
+
 Default rendering includes Noto Sans and Fuzzy Bubbles. Configure additional fonts with `initializeTextGraph({ languagePacks: [...] })`. A `TextGraphLanguagePack` has a non-empty `fonts` array of `{ family, source }` and optional ordered `fallbackFamilies`. Font sources are `URL` objects or non-empty `Uint8Array` values. In Node, use `pathToFileURL()` for filesystem paths; relative asset modules can use `new URL("./font.ttf", import.meta.url)` across platforms.
 
-The initializer copies byte arrays, URLs and descriptor arrays before asynchronous work, so later caller mutations cannot change rendering resources. Families must be unique across all packs and bundled defaults. Fallback families must name configured fonts. Descriptor validation performs no font I/O. Font contents are loaded and configured on first render; validate-only use does not read fonts or themes. Font-loading or configuration failures reject with `DrawMotiveError`; a later render can retry.
+The initializer copies byte arrays, URLs and descriptor arrays before asynchronous work, so later caller mutations cannot change rendering resources. Families must be unique across all packs and bundled defaults. Fallback families must name configured fonts. Descriptor validation performs no font I/O. Legacy descriptors without coverage load on first render; official descriptors carry coverage, languages, bytes and SHA-256 and load on demand. Validate-only use does not read fonts or themes. Font-loading or configuration failures reject with `DrawMotiveError`; a later render can retry.
 
-Bundled resource URLs use `resolveAsset`. Language-pack sources use their supplied URL directly and the platform data loader, including custom `fetch` or the network adapter for network URLs. All optional fonts share `@drawmotive/textgraph-fonts`, installed separately. It currently exports a `zhCN` descriptor for Simplified Chinese; additional language descriptors will use the same package. The package is not yet published.
+Bundled resource URLs use `resolveAsset`. Language-pack sources use their supplied URL directly and the platform data loader, including custom `fetch` or the network adapter for network URLs. All optional fonts share `@drawmotive/textgraph-fonts`, installed separately. It exports `zhCN`, `ja`, `emoji`, `languagePacks` and `fontCatalogUrl`.
 
 ## Lifecycle
 
@@ -84,6 +115,13 @@ Serve font files as `font/ttf` and themes as `text/css`. To display base64 PNGs,
 DSL failures resolve with diagnostics. Operational errors reject with `DrawMotiveError`: stable `code`, optional `cause`, frozen structured `details`. Codes include `INVALID_ARGUMENT`, `INVALID_MANIFEST`, `INVALID_ASSET_URL`, `RESOURCE_NOT_FOUND`, `ASSET_INTEGRITY_MISMATCH`, `ABI_MISMATCH`, `UNSUPPORTED_CAPABILITY`, `INITIALIZATION_FAILED`, `UNSUPPORTED_ENVIRONMENT`, `INVALID_RESPONSE`, `RUNTIME_FAILED`, `INSTANCE_DISPOSED`, `INVALID_ADAPTER`. Cancellation errors have name `AbortError`. Messages and underlying runtime causes are not stable.
 
 ## ABI and versioning
+
+The additive `textgraph-fonts-v1` capability adds commands to `Execute`:
+`prepare-fonts` takes `source` and optional `language` and returns visible grapheme
+`fontRuns` with `text`, `language` and `missing`; `install-fonts` atomically appends
+fonts with language metadata; `cancel-prepare` releases interrupted preparation.
+Render commands accept the same language hint. Existing configuration/disposal
+envelopes remain unchanged. The wrapper checks this capability before using a catalog.
 
 ABI 1.0.0 retains GetAbiVersion/GetPackageKind/CountParseDiagnostics and adds GetRuntimeInfo(), Validate(source) and Execute(requestJson) on DrawMotive.TextGraph.Bridge.Program. Info returns JSON `{ abiVersion, packageKind, protocolVersion: 1, capabilities }`; Validate returns `{ protocolVersion: 1, valid, diagnostics }`. Wrappers require `textgraph-validate-v1`; PNG rendering additionally requires `textgraph-render-v1` and the manifest `bridge.execute` export. Legacy validation exports remain supported. This is a managed export/JSON protocol, not a raw WASM pointer ABI.
 

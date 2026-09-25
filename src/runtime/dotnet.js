@@ -5,6 +5,7 @@ import { throwIfAborted } from './lifecycle.js';
 import { readVerifiedAsset } from './integrity.js';
 import { createRenderingExecutor } from './render-resources.js';
 import { decodeConfiguration } from './rendering.js';
+import { fontCapability } from './font-resources.js';
 
 /** Starts one isolated .NET module graph; platform loaders own all data I/O. */
 export async function startTextGraphRuntime(options, manifest, readAsset) {
@@ -70,6 +71,7 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
     if (!Array.isArray(info.capabilities) || !info.capabilities.includes(validationCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement validation');
     const renders = manifest.capabilities.includes(renderingCapability);
     if (renders && !info.capabilities.includes(renderingCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement rendering');
+    if (manifest.capabilities.includes(fontCapability) && !info.capabilities.includes(fontCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement lazy fonts');
     if (renders && typeof bridge[manifest.bridge.execute] !== 'function') throw new DrawMotiveError('ABI_MISMATCH', 'Rendering bridge export is missing');
     return createBridgeRuntime({ manifest, options, readAsset, bridge, info });
   } catch (cause) {

@@ -7,14 +7,15 @@ const stages = ['parse', 'semantic', 'layout', 'render', 'font'];
 export function normalizeRenderOptions(source, options) {
   const invalid = message => { throw new DrawMotiveError('INVALID_ARGUMENT', message); };
   if (typeof source !== 'string' || !options || typeof options !== 'object' || Array.isArray(options)) invalid('Rendering requires a source string and options object');
-  const { encoding = 'bytes', scale = 1, padding = 10, maxWidth, signal } = options;
+  const { encoding = 'bytes', scale = 1, padding = 10, maxWidth, signal, language } = options;
+  if (language !== undefined && (typeof language !== 'string' || !/^[a-z]{2,8}(?:-[A-Za-z0-9]+)*$/.test(language))) invalid('language must be a language tag');
   if (!['bytes', 'base64'].includes(encoding)) invalid('encoding must be bytes or base64');
   // The native geometry contract uses float32; reject values lost at that boundary.
   if (!Number.isFinite(scale) || !Number.isFinite(Math.fround(scale)) || Math.fround(scale) <= 0) invalid('scale must be positive and representable as a finite float32');
   if (!Number.isFinite(padding) || !Number.isFinite(Math.fround(padding)) || padding < 0) invalid('padding must be non-negative and representable as a finite float32');
   if (maxWidth !== undefined && (!Number.isSafeInteger(maxWidth) || maxWidth <= 0)) invalid('maxWidth must be a positive integer');
   validateSignal(signal);
-  return { encoding, signal, request: { protocolVersion: 1, operation: 'render', source, export: { format: 'png', scale, padding, ...(maxWidth === undefined ? {} : { maxWidth }) } } };
+  return { encoding, signal, request: { protocolVersion: 1, operation: 'render', source, ...(language === undefined ? {} : { language }), export: { format: 'png', scale, padding, ...(maxWidth === undefined ? {} : { maxWidth }) } } };
 }
 
 /** Accept canonical base64 only; platform atob implementations otherwise tolerate corruption. */

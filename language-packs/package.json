@@ -14,7 +14,8 @@
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "build": "node scripts/verify-assets.mjs",
-    "prepack": "npm run build && npm test"
+    "release:check": "node .release/check.cjs --ready",
+    "prepack": "npm run release:check && npm run build && npm test"
   },
   "bin": { "textgraph-copy-fonts": "./scripts/copy-fonts.mjs" },
   "engines": { "node": ">=22" },
