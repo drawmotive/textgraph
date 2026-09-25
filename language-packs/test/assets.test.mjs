@@ -102,8 +102,9 @@ test('npm tarball installs and copies fonts fully offline without another runtim
     await run(npm, ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', path.join(temp, packed.filename)], { cwd: temp });
     const program = `import {fontCatalog, languagePacks} from '@drawmotive/textgraph-fonts'; console.log(JSON.stringify({fonts:fontCatalog.fonts.length,packs:languagePacks.length}));`;
     assert.deepEqual(JSON.parse((await run(process.execPath, ['--input-type=module', '-e', program], { cwd: temp })).stdout), { fonts: 3, packs: 3 });
-    const cli = path.join(temp, 'node_modules/@drawmotive/textgraph-fonts/scripts/copy-fonts.mjs');
-    await run(process.execPath, [cli, path.join(temp, 'deployed')], { cwd: temp });
+    // Exercise npm's generated .bin entry, including the POSIX symlink that
+    // differs from the real module path seen by the ESM loader.
+    await run(npm, ['exec', '--offline', '--no', '--', 'textgraph-copy-fonts', path.join(temp, 'deployed')], { cwd: temp });
     assert.deepEqual(await verifyFontAssets(pathToFileURL(`${path.join(temp, 'deployed')}${path.sep}`)), fontCatalog);
   } finally { await rm(temp, { recursive: true, force: true }); }
 });

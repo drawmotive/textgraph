@@ -17,7 +17,9 @@ export async function copyFonts(destination) {
   return target;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// npm invokes POSIX bins through symlinks; the loader resolves the module to its
+// real path. Compare canonical paths so npm/npx executes the copy operation too.
+if (process.argv[1] && await realpath(process.argv[1]) === await realpath(fileURLToPath(import.meta.url))) {
   if (process.argv.length !== 3) throw new Error('Usage: textgraph-copy-fonts <destination>');
   console.log(`Copied TextGraph fonts to ${await copyFonts(process.argv[2])}`);
 }
