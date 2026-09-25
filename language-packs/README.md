@@ -3,7 +3,7 @@
 Optional local font assets for Chinese, Japanese, and color emoji. The package contains no WASM runtime and does not download fonts during installation. Importing its metadata does not read font binaries. Compatible TextGraph renderers load a font only when displayed text needs it.
 
 ```bash
-npm install @drawmotive/textgraph @drawmotive/textgraph-fonts
+npm install @drawmotive/textgraph@0.2.2-alpha.1 @drawmotive/textgraph-fonts@0.2.2-alpha.1
 ```
 
 ```javascript

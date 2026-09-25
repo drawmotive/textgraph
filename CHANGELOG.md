@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2-alpha.1 — 2026-09-25
+
+- Load Chinese, Japanese and emoji fonts only when their glyphs are needed, before native measurement.
+- Support the optional offline font package, deployed font catalogs and staging fallback with existing caching.
+- Include the current native layout and rendering fixes.
+
 ## 0.2.1 — 2026-09-15
 
 - Default React PNG rendering to scale 1, matching the base SDK and native renderer; explicit higher scales remain supported.

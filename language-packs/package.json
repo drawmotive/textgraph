@@ -1,25 +1,46 @@
 {
   "name": "@drawmotive/textgraph-fonts",
-  "version": "0.2.1",
+  "version": "0.2.2-alpha.1",
   "description": "Optional fonts and language packs for TextGraph",
   "type": "module",
   "types": "./index.d.ts",
   "exports": {
-    ".": { "types": "./index.d.ts", "default": "./index.js" },
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
     "./font-catalog.json": "./assets/font-catalog.json",
     "./assets/*": "./assets/*",
     "./package.json": "./package.json"
   },
-  "files": ["index.js", "index.d.ts", "catalog.js", "descriptor.js", "zh-cn", "ja", "emoji", "assets", "scripts"],
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "catalog.js",
+    "descriptor.js",
+    "zh-cn",
+    "ja",
+    "emoji",
+    "assets",
+    "scripts"
+  ],
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "build": "node scripts/verify-assets.mjs",
     "release:check": "node .release/check.cjs --ready",
     "prepack": "npm run release:check && npm run build && npm test"
   },
-  "bin": { "textgraph-copy-fonts": "./scripts/copy-fonts.mjs" },
-  "engines": { "node": ">=22" },
-  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/", "tag": "latest" },
+  "bin": {
+    "textgraph-copy-fonts": "./scripts/copy-fonts.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "alpha"
+  },
   "license": "(MIT AND OFL-1.1)",
   "homepage": "https://textgraph.dev",
   "bugs": {
