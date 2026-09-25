@@ -7,7 +7,7 @@ Releases are selected deliberately and published by `.github/workflows/release.y
 | Version | npm dist-tag | Install |
 | --- | --- | --- |
 | `0.2.1` (stable) | `latest` | `npm install @drawmotive/textgraph@0.2.1` |
-| `0.2.2-alpha.1` (preview) | `alpha` | `npm install @drawmotive/textgraph@0.2.2-alpha.1` |
+| `0.2.2-alpha.2` (preview) | `alpha` | `npm install @drawmotive/textgraph@0.2.2-alpha.2` |
 
 Alpha releases update `alpha` and preserve an existing `latest`. npm may assign `latest` on a package’s first publication even when `alpha` is specified.
 
@@ -33,10 +33,10 @@ Trusted publishing requires npm 11.5.1+ and Node.js 22.14.0+. Publication from a
 Native builds belong to the private DrawMotive repository. Commit native source, resource, and bridge changes first, then run there:
 
 ```bash
-npm run release:textgraph -- 0.2.2-alpha.1
+npm run release:textgraph -- 0.2.2-alpha.2
 ```
 
-This updates the package and lock versions, builds Release assets from the recorded private source commit, generates matching JSON/ESM manifests, updates the root workspace lock, and verifies asset hashes. It does not commit, push, tag, or publish. The `just release-textgraph 0.2.2-alpha.1` alias runs the same command.
+This updates the package and lock versions, builds Release assets from the recorded private source commit, generates matching JSON/ESM manifests, updates the root workspace lock, and verifies asset hashes. It does not commit, push, tag, or publish. The `just release-textgraph 0.2.2-alpha.2` alias runs the same command.
 
 For a JavaScript-only release reusing already verified native bytes, run in this package:
 
@@ -80,8 +80,8 @@ If npm requires a one-time code, run with `NPM_CONFIG_OTP` set in the local term
 After preparation, tests, and review, create the tag on the verified package commit:
 
 ```bash
-git tag -a textgraph-v0.2.2-alpha.1 -m "Release 0.2.2-alpha.1"
-git push origin textgraph-v0.2.2-alpha.1
+git tag -a textgraph-v0.2.2-alpha.2 -m "Release 0.2.2-alpha.2"
+git push origin textgraph-v0.2.2-alpha.2
 ```
 
 The release workflow resolves the tag to a commit, runs Node.js and three-browser tests on Ubuntu, packs the tested checkout, and passes the artifact to the `npm` environment for publication. All CI and release jobs use `ubuntu-latest`; the browser suite covers Chromium, Firefox, and WebKit. Alpha releases select `alpha`; stable releases select `latest`. Never pass a custom dist-tag to bypass the release policy.
@@ -90,14 +90,14 @@ The release workflow resolves the tag to a commit, runs Node.js and three-browse
 
 ```bash
 npm view @drawmotive/textgraph dist-tags --json
-npm view @drawmotive/textgraph@0.2.2-alpha.1 dist.integrity
-npm install @drawmotive/textgraph@0.2.2-alpha.1
+npm view @drawmotive/textgraph@0.2.2-alpha.2 dist.integrity
+npm install @drawmotive/textgraph@0.2.2-alpha.2
 ```
 
 If a workflow fails before publishing, fix the configuration and rerun the same tag. For a manual dispatch, select the release tag as the workflow ref and supply the same tag as input; dispatching from `main` is rejected so OIDC and provenance identify the correct commit. For example:
 
 ```bash
-gh workflow run release.yml --ref textgraph-v0.2.2-alpha.1 -f tag=textgraph-v0.2.2-alpha.1
+gh workflow run release.yml --ref textgraph-v0.2.2-alpha.2 -f tag=textgraph-v0.2.2-alpha.2
 ```
 
 If publication succeeded but a later check failed, the script accepts an identical registry artifact with the correct channel and refuses different bytes at the same version. Keep the original workflow artifact for diagnosing integrity differences.

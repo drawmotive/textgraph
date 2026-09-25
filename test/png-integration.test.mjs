@@ -93,6 +93,22 @@ test('optional Chinese pack resolves missing glyphs without changing the default
   } finally { await base.dispose(); await chinese.dispose(); }
 });
 
+test('bundled runtime renders backward flow mixed with relation edges in both axes', async () => {
+  const runtime = await initializeTextGraph();
+  try {
+    for (const direction of ['vertical', 'horizontal']) {
+      for (const disconnected of ['', '\naz1 -- az2']) {
+        const source = `(${direction})\ngateway -> auth\nmetrics <- worker\ngateway <-> worker${disconnected}`;
+        const result = await runtime.renderPng(source);
+        assert.equal(result.success, true, `${source}\n${JSON.stringify(result.diagnostics)}`);
+        assert.ok(result.png.length > 0);
+        assert.ok(result.width > 0 && result.height > 0);
+        assert.ok(!result.diagnostics.some(item => item.severity === 'error'));
+      }
+    }
+  } finally { await runtime.dispose(); }
+});
+
 test('corrupt font data fails before configuration and rendering can retry after repair', async () => {
   let corrupt = true;
   let fontReads = 0;

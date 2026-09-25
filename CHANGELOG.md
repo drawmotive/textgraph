@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2-alpha.2 — 2026-09-25
+
+- Normalize backward connections by their directed flow during layout while retaining public endpoint and arrow semantics.
+- Fix rendering when backward connections share a graph with bidirectional or undirected relations.
+- Add bundled-runtime regressions for mixed connections in both layout axes and disconnected graphs.
+
 ## 0.2.2-alpha.1 — 2026-09-25
 
 - Load Chinese, Japanese and emoji fonts only when their glyphs are needed, before native measurement.
