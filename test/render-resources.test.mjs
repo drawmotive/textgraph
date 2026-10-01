@@ -7,6 +7,7 @@ import { normalizeLanguagePacks } from '../src/runtime/language-packs.js';
 import { validateManifest, validateBootConfig } from '../src/runtime/manifest.js';
 import { config } from '../generated/wasm/dotnet.boot.js';
 import { loadNodeRuntime } from '../src/runtime/node.js';
+import { createBridgeRuntime } from '../src/runtime/dotnet.js';
 
 const resources = new Map([['wasm/themes.css', new TextEncoder().encode('text { color: black; }')], ['wasm/NotoSans-Regular.ttf', new Uint8Array([1, 2, 3])], ['wasm/FuzzyBubbles-Regular.ttf', new Uint8Array([4, 5, 6])]]);
 const rendering = { theme: 'wasm/themes.css', fonts: [{ family: 'NotoSans-Regular', asset: 'wasm/NotoSans-Regular.ttf' }, { family: 'FuzzyBubbles-Regular', asset: 'wasm/FuzzyBubbles-Regular.ttf' }] };
@@ -98,4 +99,23 @@ test('validate-only startup performs no font or theme reads even when rendering 
     assert.ok(['ABI_MISMATCH', 'UNSUPPORTED_CAPABILITY'].includes(error.code), error.stack);
   } finally { await runtime?.dispose(); }
   assert.deepEqual(reads, []);
+});
+
+test('SVG capability requires shared resources and exposes the prepared executor without PNG capability', async () => {
+  const declared = { ...renderManifest(), capabilities: ['textgraph-validate-v1', 'textgraph-render-svg-v1'] };
+  const { rendering: omitted, ...missingResources } = declared;
+  assert.throws(() => validateManifest(missingResources), { code: 'INVALID_MANIFEST' });
+  assert.throws(() => validateManifest({ ...declared, bridge: { ...declared.bridge, execute: undefined } }), { code: 'INVALID_MANIFEST' });
+  const operations = [];
+  const runtime = createBridgeRuntime({ manifest: declared, options: {}, readAsset: async item => new Response(resources.get(item.asset.path)),
+    info: { abiVersion: '1.0.0', capabilities: declared.capabilities },
+    bridge: { Validate: () => 'validated', Execute: request => { operations.push(JSON.parse(request)); return configured; } },
+  });
+  try {
+    const request = JSON.stringify({ protocolVersion: 1, operation: 'render', source: 'A', export: { format: 'svg', padding: 10 } });
+    assert.equal(await runtime.execute(request), configured);
+    assert.deepEqual(operations.map(item => item.operation), ['configure', 'render']);
+    assert.deepEqual(operations[1].export, { format: 'svg', padding: 10 });
+  } finally { await runtime.dispose(); }
+  assert.equal(operations.at(-1).operation, 'dispose');
 });

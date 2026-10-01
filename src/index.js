@@ -3,7 +3,7 @@ import { createManagedInstance, throwIfAborted, validateAbi, waitForInitialResou
 import { decodeValidation, validateSignal } from './runtime/validation.js';
 import { DrawMotiveError } from './runtime/errors.js';
 import { normalizeFontAssets, normalizeLanguagePacks } from './runtime/language-packs.js';
-import { decodeRender, normalizeRenderOptions } from './runtime/rendering.js';
+import { decodeRender, decodeSvgRender, normalizeRenderOptions, normalizeSvgOptions } from './runtime/rendering.js';
 import manifest from '../generated/wasm-manifest.js';
 
 export { validateTextGraphAdapters } from './adapters.js';
@@ -35,25 +35,32 @@ export async function initializeTextGraph(options = {}) {
     ...(typeof runtime.execute === 'function' ? ['textgraph-render-v1'] : []),
   ];
   const info = Object.freeze({ packageName: abiManifest.packageName, packageVersion: abiManifest.packageVersion, abiVersion: runtime.abiVersion, protocolVersion: 1, capabilities: Object.freeze([...capabilities]) });
+  // Every export format uses the same operation queue and resource-preparing executor.
+  const render = async (source, callOptions, normalize, decode, capability, format) => {
+    if (instance.state !== 'ready') throw new DrawMotiveError('INSTANCE_DISPOSED', 'The runtime instance is disposing or disposed');
+    const { request, encoding, signal } = normalize(source, callOptions);
+    throwIfAborted(signal);
+    if (typeof runtime.execute !== 'function' || !capabilities.includes(capability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', `Runtime does not support ${format} rendering`);
+    return instance.mutate(async () => {
+      throwIfAborted(signal);
+      let response;
+      try { response = await runtime.execute(JSON.stringify(request), { signal }); }
+      catch (cause) {
+        throwIfAborted(signal);
+        if (cause instanceof DrawMotiveError || cause?.name === 'AbortError') throw cause;
+        throw new DrawMotiveError('RUNTIME_FAILED', `${format} rendering could not execute`, { cause });
+      }
+      throwIfAborted(signal);
+      return decode(response, encoding);
+    });
+  };
   return Object.assign(instance, {
     info,
     async renderPng(source, callOptions = {}) {
-      if (instance.state !== 'ready') throw new DrawMotiveError('INSTANCE_DISPOSED', 'The runtime instance is disposing or disposed');
-      const { request, encoding, signal } = normalizeRenderOptions(source, callOptions);
-      throwIfAborted(signal);
-      if (typeof runtime.execute !== 'function' || !capabilities.includes('textgraph-render-v1')) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Runtime does not support PNG rendering');
-      return instance.mutate(async () => {
-        throwIfAborted(signal);
-        let response;
-        try { response = await runtime.execute(JSON.stringify(request), { signal }); }
-        catch (cause) {
-          throwIfAborted(signal);
-          if (cause instanceof DrawMotiveError || cause?.name === 'AbortError') throw cause;
-          throw new DrawMotiveError('RUNTIME_FAILED', 'PNG rendering could not execute', { cause });
-        }
-        throwIfAborted(signal);
-        return decodeRender(response, encoding);
-      });
+      return render(source, callOptions, normalizeRenderOptions, decodeRender, 'textgraph-render-v1', 'PNG');
+    },
+    async renderSvg(source, callOptions = {}) {
+      return render(source, callOptions, normalizeSvgOptions, decodeSvgRender, 'textgraph-render-svg-v1', 'SVG');
     },
     async validate(source, callOptions = {}) {
       if (instance.state !== 'ready') throw new DrawMotiveError('INSTANCE_DISPOSED', 'The runtime instance is disposing or disposed');

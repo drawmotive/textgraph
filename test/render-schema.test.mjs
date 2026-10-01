@@ -30,3 +30,32 @@ test('render protocol schema separates successes and failures and enforces PNG m
     { ...success, displayWidth: 0, displayHeight: 1 }, { ...success, displayWidth: 1 }, { ...success, displayHeight: 1 },
     { protocolVersion: 1, success: false, diagnostics: [error], displayWidth: 1, displayHeight: 1 }]) assert.equal(validate(value), false);
 });
+
+test('SVG protocol schema requires vector data and logical dimensions only on success', async () => {
+  const validate = await schema('render-svg');
+  const success = { protocolVersion: 1, success: true, svg: '<svg xmlns="http://www.w3.org/2000/svg"/>', displayWidth: 40.5, displayHeight: 20.25, diagnostics: [] };
+  const error = { code: 'TG_RENDER_ERROR', severity: 'error', stage: 'render', message: 'Cannot render' };
+  const failure = { protocolVersion: 1, success: false, diagnostics: [error] };
+  assert.equal(validate(success), true, JSON.stringify(validate.errors));
+  assert.equal(validate({ ...success, diagnostics: [{ ...error, severity: 'warning', stage: 'font' }] }), true, JSON.stringify(validate.errors));
+  assert.equal(validate(failure), true, JSON.stringify(validate.errors));
+  for (const value of [{ ...success, svg: '' }, { ...success, svg: null }, { ...success, svg: undefined },
+    { ...success, displayWidth: 0 }, { ...success, displayHeight: -1 }, { ...success, displayWidth: '1' },
+    { ...success, displayHeight: undefined }, { ...success, displayWidth: undefined },
+    { ...success, diagnostics: [error] }, { ...failure, diagnostics: [] },
+    ...['svg', 'displayWidth', 'displayHeight', 'png', 'width', 'height'].map(key => ({ ...failure, [key]: null }))]) {
+    assert.equal(validate(value), false, JSON.stringify(value));
+  }
+});
+
+test('SVG capability in manifest schema requires the shared rendering resources and Execute export', async () => {
+  const validate = await schema('wasm-manifest');
+  const valid = { ...manifest, capabilities: ['textgraph-validate-v1', 'textgraph-render-svg-v1'],
+    bridge: { ...manifest.bridge, execute: 'Execute' },
+    rendering: { theme: 'wasm/themes.css', fonts: [{ family: 'NotoSans-Regular', asset: 'wasm/NotoSans-Regular.ttf' }] },
+  };
+  assert.equal(validate(valid), true, JSON.stringify(validate.errors));
+  const { rendering, ...missing } = valid;
+  assert.equal(validate(missing), false);
+  assert.equal(validate({ ...valid, bridge: { ...valid.bridge, execute: undefined } }), false);
+});

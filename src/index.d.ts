@@ -55,6 +55,7 @@ export interface TextGraphInstance {
   renderPng(source: string, options?: TextGraphRenderPngOptions<'bytes'>): Promise<TextGraphRenderPngResult<Uint8Array>>;
   renderPng(source: string, options: TextGraphRenderPngOptions<'base64'> & { encoding: 'base64' }): Promise<TextGraphRenderPngResult<string>>;
   renderPng(source: string, options: TextGraphRenderPngOptions): Promise<TextGraphRenderPngResult<Uint8Array | string>>;
+  renderSvg(source: string, options?: TextGraphRenderSvgOptions): Promise<TextGraphRenderSvgResult>;
   readonly<T>(operation: () => T | Promise<T>): Promise<T>;
   mutate<T>(operation: () => T | Promise<T>): Promise<T>;
   dispose(): Promise<void>;
@@ -144,6 +145,20 @@ export type TextGraphRenderPngResult<Png extends Uint8Array | string = Uint8Arra
   | { readonly success: true; readonly png: Png; readonly width: number; readonly height: number;
       /** Logical display dimensions before density scaling; omitted by older runtimes. */
       readonly displayWidth?: number; readonly displayHeight?: number; readonly diagnostics: readonly TextGraphRenderDiagnostic[] }
+  | { readonly success: false; readonly diagnostics: readonly TextGraphRenderDiagnostic[] };
+
+/** Vector export uses logical diagram units and requires textgraph-render-svg-v1. */
+export interface TextGraphRenderSvgOptions {
+  /** Optional language hint for ambiguous Han text, e.g. ja or zh-CN. */
+  language?: string;
+  /** Non-negative padding in diagram units. Defaults to 10. */
+  padding?: number;
+  /** Cancellation cannot preempt native work already running on this thread. */
+  signal?: AbortSignal;
+}
+
+export type TextGraphRenderSvgResult =
+  | { readonly success: true; readonly svg: string; readonly displayWidth: number; readonly displayHeight: number; readonly diagnostics: readonly TextGraphRenderDiagnostic[] }
   | { readonly success: false; readonly diagnostics: readonly TextGraphRenderDiagnostic[] };
 
 export interface TextGraphRuntimeInfo extends TextGraphRuntimeManifest {

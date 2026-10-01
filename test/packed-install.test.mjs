@@ -19,6 +19,7 @@ test('npm tarball works outside the private workspace with no development depend
     const [packed] = JSON.parse(stdout);
     assert.ok(packed.files.some(file => file.path === 'generated/wasm-manifest.js'));
     assert.ok(packed.files.some(file => file.path === 'schemas/validation.schema.json'));
+    assert.ok(packed.files.some(file => file.path === 'schemas/render-svg.schema.json'));
     assert.deepEqual(packed.files.filter(file => file.path.endsWith('.ttf')).map(file => file.path).sort(), [
       'generated/wasm/FuzzyBubbles-Regular.ttf', 'generated/wasm/NotoSans-Regular.ttf',
     ]);
@@ -67,6 +68,10 @@ test('npm tarball works outside the private workspace with no development depend
         for (const source of ['A: 中文繁體', 'A: 日本語の図', 'A: 👩‍💻 🇯🇵 👍🏽 1️⃣']) {
           const result = await runtime.renderPng(source);
           if (!result.success || result.diagnostics.some(d => d.stage === 'font')) throw new Error(JSON.stringify(result.diagnostics));
+          const vector = await runtime.renderSvg(source);
+          if (!vector.success || vector.diagnostics.some(d => d.stage === 'font') || !vector.svg.includes('viewBox=') || vector.displayWidth <= 0 || vector.displayHeight <= 0) {
+            throw new Error(JSON.stringify(vector.diagnostics));
+          }
         }
         console.log('offline multilingual auto-discovery passed');
       } finally { await runtime.dispose(); }

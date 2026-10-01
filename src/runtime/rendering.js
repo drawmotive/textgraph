@@ -2,20 +2,35 @@ import { DrawMotiveError } from './errors.js';
 import { decodeDiagnostics, validateSignal } from './validation.js';
 
 const stages = ['parse', 'semantic', 'layout', 'render', 'font'];
+const invalid = message => { throw new DrawMotiveError('INVALID_ARGUMENT', message); };
+
+/** Both export formats share source, logical padding, language and cancellation semantics. */
+function normalizeCommonOptions(source, options) {
+  if (typeof source !== 'string' || !options || typeof options !== 'object' || Array.isArray(options)) invalid('Rendering requires a source string and options object');
+  const { padding = 10, signal, language } = options;
+  if (language !== undefined && (typeof language !== 'string' || !/^[a-z]{2,8}(?:-[A-Za-z0-9]+)*$/.test(language))) invalid('language must be a language tag');
+  // The native geometry contract uses float32; reject values lost at that boundary.
+  if (!Number.isFinite(padding) || !Number.isFinite(Math.fround(padding)) || padding < 0) invalid('padding must be non-negative and representable as a finite float32');
+  validateSignal(signal);
+  return { padding, signal, request: { protocolVersion: 1, operation: 'render', source, ...(language === undefined ? {} : { language }) } };
+}
 
 /** Normalize export settings before queuing; native receives only the render contract. */
 export function normalizeRenderOptions(source, options) {
-  const invalid = message => { throw new DrawMotiveError('INVALID_ARGUMENT', message); };
-  if (typeof source !== 'string' || !options || typeof options !== 'object' || Array.isArray(options)) invalid('Rendering requires a source string and options object');
-  const { encoding = 'bytes', scale = 1, padding = 10, maxWidth, signal, language } = options;
-  if (language !== undefined && (typeof language !== 'string' || !/^[a-z]{2,8}(?:-[A-Za-z0-9]+)*$/.test(language))) invalid('language must be a language tag');
+  const { padding, signal, request } = normalizeCommonOptions(source, options);
+  const { encoding = 'bytes', scale = 1, maxWidth } = options;
   if (!['bytes', 'base64'].includes(encoding)) invalid('encoding must be bytes or base64');
   // The native geometry contract uses float32; reject values lost at that boundary.
   if (!Number.isFinite(scale) || !Number.isFinite(Math.fround(scale)) || Math.fround(scale) <= 0) invalid('scale must be positive and representable as a finite float32');
-  if (!Number.isFinite(padding) || !Number.isFinite(Math.fround(padding)) || padding < 0) invalid('padding must be non-negative and representable as a finite float32');
   if (maxWidth !== undefined && (!Number.isSafeInteger(maxWidth) || maxWidth <= 0)) invalid('maxWidth must be a positive integer');
-  validateSignal(signal);
-  return { encoding, signal, request: { protocolVersion: 1, operation: 'render', source, ...(language === undefined ? {} : { language }), export: { format: 'png', scale, padding, ...(maxWidth === undefined ? {} : { maxWidth }) } } };
+  return { encoding, signal, request: { ...request, export: { format: 'png', scale, padding, ...(maxWidth === undefined ? {} : { maxWidth }) } } };
+}
+
+/** SVG accepts only logical export settings; PNG density and encoding have no vector meaning. */
+export function normalizeSvgOptions(source, options) {
+  const { padding, signal, request } = normalizeCommonOptions(source, options);
+  if (Reflect.ownKeys(options).some(key => !['padding', 'language', 'signal'].includes(key))) invalid('Unknown SVG rendering option');
+  return { signal, request: { ...request, export: { format: 'svg', padding } } };
 }
 
 /** Accept canonical base64 only; platform atob implementations otherwise tolerate corruption. */
@@ -56,6 +71,33 @@ export function decodeRender(json, encoding) {
     return Object.freeze({ success: true, png: encoding === 'base64' ? value.png : bytes, width: value.width, height: value.height, ...displayDimensions, diagnostics });
   } catch (cause) {
     throw new DrawMotiveError('INVALID_RESPONSE', 'The rendering response violates protocol 1', { cause });
+  }
+}
+
+/** Check the vector document boundary without requiring a DOM or loading external XML resources. */
+export function decodeSvgRender(json) {
+  try {
+    const value = JSON.parse(json);
+    if (value?.protocolVersion !== 1 || typeof value.success !== 'boolean') throw new Error('Invalid envelope');
+    const diagnostics = decodeDiagnostics(value.diagnostics, stages);
+    if (value.success === diagnostics.some(item => item.severity === 'error')) throw new Error('Inconsistent success');
+    if (!value.success) {
+      if (['svg', 'displayWidth', 'displayHeight', 'png', 'width', 'height'].some(key => Object.hasOwn(value, key))) throw new Error('Failure contains image data');
+      return Object.freeze({ success: false, diagnostics });
+    }
+    if (![value.displayWidth, value.displayHeight].every(n => Number.isFinite(n) && n > 0)) throw new Error('Invalid display dimensions');
+    // This is an envelope check, not a general XML parser: the trusted native
+    // exporter owns element syntax. Require its SVG root, namespace and complete document.
+    const document = typeof value.svg === 'string' && /^(?:<\?xml\b[^?]*\?>\s*)?<svg(?=\s|\/?>)([^>]*?)(?:\/>|>[\s\S]*<\/svg\s*>)$/.exec(value.svg.trim());
+    if (!document) throw new Error('Invalid SVG document');
+    // Consume complete attribute values so namespace-like text inside another
+    // quoted attribute cannot impersonate the root namespace.
+    const attributes = [...document[1].matchAll(/(?:^|\s)([A-Za-z_:][A-Za-z0-9_.:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)];
+    const namespaces = attributes.filter(attribute => attribute[1] === 'xmlns');
+    if (namespaces.length !== 1 || (namespaces[0][2] ?? namespaces[0][3]) !== 'http://www.w3.org/2000/svg') throw new Error('Invalid SVG namespace');
+    return Object.freeze({ success: true, svg: value.svg, displayWidth: value.displayWidth, displayHeight: value.displayHeight, diagnostics });
+  } catch (cause) {
+    throw new DrawMotiveError('INVALID_RESPONSE', 'The SVG rendering response violates protocol 1', { cause });
   }
 }
 

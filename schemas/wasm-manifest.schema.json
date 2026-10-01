@@ -178,7 +178,7 @@
         "properties": {
           "capabilities": {
             "contains": {
-              "const": "textgraph-render-v1"
+              "enum": ["textgraph-render-v1", "textgraph-render-svg-v1"]
             },
             "type": "array"
           }

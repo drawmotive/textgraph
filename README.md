@@ -2,7 +2,7 @@
 
 **Turn text into diagrams in your application.**
 
-Render flowcharts and directed graphs as PNGs in Node.js, browsers, React, and Web
+Render flowcharts and directed graphs as PNGs or SVGs in Node.js, browsers, React, and Web
 Workers. TextGraph handles automatic layout and provides source validation and
 rendering diagnostics. The renderer runs where your code runs; no hosted rendering
 API or API key is required.
@@ -35,7 +35,7 @@ TextGraph uses a small, structured language; it does not interpret unrestricted 
 
 | What you want to do | Use | Working example |
 | --- | --- | --- |
-| Generate diagrams for documentation, reports, or build jobs | Node.js: write PNG bytes to a file | [Node sample](https://github.com/drawmotive/textgraph/tree/main/samples/node) |
+| Generate diagrams for documentation, reports, or build jobs | Node.js: write PNG bytes or SVG text to a file | [Node sample](https://github.com/drawmotive/textgraph/tree/main/samples/node) |
 | Embed live diagrams in dashboards or internal tools | React component and shared provider | [React + Vite sample](https://github.com/drawmotive/textgraph/tree/main/samples/react-vite) |
 | Add editable source and previews to a web app | Browser SDK | [Plain JavaScript sample](https://github.com/drawmotive/textgraph/tree/main/samples/browser) |
 | Keep the UI responsive while rendering larger diagrams | SDK in a module Web Worker | [Worker sample](https://github.com/drawmotive/textgraph/tree/main/samples/worker) |
@@ -83,6 +83,19 @@ installation, or asset-copy step is needed. Reuse an initialized instance for
 multiple diagrams, then dispose it when the job is finished.
 
 [Complete file-to-PNG sample →](https://github.com/drawmotive/textgraph/tree/main/samples/node)
+
+For vector output, use the same initialized instance:
+
+```javascript
+const vector = await textgraph.renderSvg("browser -> api -> database", { padding: 10 });
+if (vector.success) {
+  await writeFile("diagram.svg", vector.svg, "utf8");
+}
+```
+
+SVG returns logical `displayWidth` and `displayHeight`. It accepts `padding`,
+`language`, and `signal`; raster settings such as `scale` apply only to PNG.
+React components continue to use PNG; browser and Worker SDK instances also expose `renderSvg()`.
 
 ## Add a diagram to React
 
@@ -216,9 +229,9 @@ publish anything. Samples are not included in the npm package.
 
 ## Current scope
 
-- **Available:** flowcharts and directed graphs, automatic layout, PNG rendering,
+- **Available:** flowcharts and directed graphs, automatic layout, PNG and SVG rendering,
   and source validation.
-- **Not available yet:** mind maps, sequence diagrams, slides, and SVG export.
+- **Not available yet:** mind maps, sequence diagrams, and slides.
 - **Fonts:** Noto Sans and Fuzzy Bubbles are included. Custom font descriptors are
   supported; the optional `@drawmotive/textgraph-fonts` package is not published.
   See [font configuration](https://github.com/drawmotive/textgraph/blob/main/docs/api-v1.md#fonts-and-language-packs).

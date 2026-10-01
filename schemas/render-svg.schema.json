@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "protocolVersion": { "const": 1 },
+    "success": { "type": "boolean" },
+    "svg": { "type": "string", "minLength": 1 },
+    "displayWidth": { "type": "number", "exclusiveMinimum": 0 },
+    "displayHeight": { "type": "number", "exclusiveMinimum": 0 },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "minLength": 1 },
+          "severity": { "enum": ["error", "warning"] },
+          "stage": { "enum": ["parse", "semantic", "layout", "render", "font"] },
+          "message": { "type": "string" },
+          "location": {
+            "type": "object",
+            "properties": {
+              "line": { "type": "integer", "minimum": 0 },
+              "column": { "type": "integer", "minimum": 0 }
+            },
+            "required": ["line", "column"],
+            "additionalProperties": true
+          }
+        },
+        "required": ["code", "severity", "stage", "message"],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": ["protocolVersion", "success", "diagnostics"],
+  "additionalProperties": true,
+  "allOf": [{
+    "if": { "properties": { "success": { "const": true } } },
+    "then": {
+      "required": ["svg", "displayWidth", "displayHeight"],
+      "properties": {
+        "svg": {}, "displayWidth": {}, "displayHeight": {},
+        "diagnostics": {
+          "type": "array",
+          "not": { "contains": { "type": "object", "properties": { "severity": { "const": "error" } } } }
+        }
+      }
+    },
+    "else": {
+      "not": { "anyOf": [
+        { "required": ["svg"], "properties": { "svg": {} } },
+        { "required": ["displayWidth"], "properties": { "displayWidth": {} } },
+        { "required": ["displayHeight"], "properties": { "displayHeight": {} } },
+        { "required": ["png"], "properties": { "png": {} } },
+        { "required": ["width"], "properties": { "width": {} } },
+        { "required": ["height"], "properties": { "height": {} } }
+      ] },
+      "properties": {
+        "diagnostics": {
+          "type": "array",
+          "contains": { "type": "object", "properties": { "severity": { "const": "error" } } }
+        }
+      }
+    }
+  }]
+}

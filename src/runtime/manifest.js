@@ -2,6 +2,12 @@ import { DrawMotiveError } from './errors.js';
 
 export const validationCapability = 'textgraph-validate-v1';
 export const renderingCapability = 'textgraph-render-v1';
+export const svgRenderingCapability = 'textgraph-render-svg-v1';
+
+/** Both image capabilities require the same managed executor and rendering resources. */
+export function supportsRendering(capabilities) {
+  return [renderingCapability, svgRenderingCapability].some(capability => capabilities.includes(capability));
+}
 
 /** Only native runtime formats belong to startup; fonts, themes and licenses are separate assets. */
 export function isRuntimeAsset(asset) {
@@ -43,7 +49,7 @@ export function validateManifest(manifest) {
       || manifest.bridge?.type !== 'DrawMotive.TextGraph.Bridge.Program' || manifest.bridge?.info !== 'GetRuntimeInfo'
       || manifest.bridge?.validate !== 'Validate') invalid();
   if (manifest.bridge.execute !== undefined && manifest.bridge.execute !== 'Execute') invalid();
-  if (manifest.capabilities.includes(renderingCapability) && (!manifest.rendering || manifest.bridge.execute !== 'Execute')) invalid();
+  if (supportsRendering(manifest.capabilities) && (!manifest.rendering || manifest.bridge.execute !== 'Execute')) invalid();
   if (manifest.rendering !== undefined) {
     const rendering = manifest.rendering;
     if (!rendering || !paths.has(rendering.theme) || !rendering.theme.endsWith('.css')

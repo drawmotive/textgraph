@@ -6,6 +6,8 @@ import {
   type TextGraphLanguagePack,
   type TextGraphPngEncoding,
   type TextGraphRenderPngOptions,
+  type TextGraphRenderSvgOptions,
+  type TextGraphRenderSvgResult,
 } from '../src/index.js';
 import { createTextGraphRuntimeLoader, platform as browserPlatform } from '@drawmotive/textgraph/browser';
 import { platform as nodePlatform } from '@drawmotive/textgraph/node';
@@ -93,3 +95,36 @@ async function renderingApi(encoding: TextGraphPngEncoding, options: TextGraphRe
   await runtime.dispose();
 }
 void renderingApi;
+
+async function svgRenderingApi(options: TextGraphRenderSvgOptions) {
+  const runtime = await initializeTextGraph();
+  const result: TextGraphRenderSvgResult = await runtime.renderSvg('A: 日本語', { padding: 0, language: 'ja', signal: new AbortController().signal });
+  await runtime.renderSvg('A -> B', options);
+  if (result.success) {
+    const vector: string = result.svg;
+    const width: number = result.displayWidth;
+    const height: number = result.displayHeight;
+    // @ts-expect-error SVG results carry logical display dimensions rather than raster pixels.
+    void result.width;
+    // @ts-expect-error SVG results are immutable.
+    result.svg = 'other';
+    void vector; void width; void height;
+  } else {
+    // @ts-expect-error SVG failures do not carry image data.
+    void result.svg;
+    // @ts-expect-error SVG failures do not carry dimensions.
+    void result.displayWidth;
+  }
+  // @ts-expect-error SVG options exclude PNG encoding.
+  await runtime.renderSvg('A', { encoding: 'base64' });
+  // @ts-expect-error SVG options exclude raster scale.
+  await runtime.renderSvg('A', { scale: 2 });
+  // @ts-expect-error SVG options exclude raster maxWidth.
+  await runtime.renderSvg('A', { maxWidth: 100 });
+  // @ts-expect-error SVG options exclude unknown keys.
+  await runtime.renderSvg('A', { format: 'svg' });
+  // @ts-expect-error Diagnostics are immutable.
+  result.diagnostics.push({});
+  await runtime.dispose();
+}
+void svgRenderingApi;

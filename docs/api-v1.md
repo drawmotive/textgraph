@@ -1,6 +1,6 @@
 # TextGraph API, protocol 1
 
-This contract covers validation and PNG rendering. Validation checks parsing and semantic reference resolution; it does not certify layout feasibility or renderability. Empty source is valid. Public AST, editable layout and file APIs remain separate milestones.
+This contract covers validation and PNG/SVG rendering. Validation checks parsing and semantic reference resolution; it does not certify layout feasibility or renderability. Empty source is valid. Public AST, editable layout and file APIs remain separate milestones.
 
 ```javascript
 import { initializeTextGraph } from '@drawmotive/textgraph';
@@ -38,6 +38,21 @@ For web display, use scale `2` and the returned display dimensions as image dime
 
 After applying `maxWidth`, output is limited to 16,384 pixels per side and 16,777,216 pixels in total. Larger images return the `TG_RENDER_SIZE_LIMIT` diagnostic. PNG dimensions and signature are checked against the response metadata; malformed responses reject with `INVALID_RESPONSE`.
 
+## SVG rendering
+
+`renderSvg(source, { padding, language, signal }?)` returns `{ success: true, svg, displayWidth, displayHeight, diagnostics }` or `{ success: false, diagnostics }`. The SVG is a complete vector document, and both display dimensions are positive logical diagram units matching its padded viewBox. Results and diagnostics are frozen. Diagram failures contain no image data or dimensions.
+
+```javascript
+const image = await runtime.renderSvg("browser -> api -> database", { padding: 24 });
+if (image.success) {
+  await writeFile("diagram.svg", image.svg, "utf8");
+}
+```
+
+Padding defaults to `10` and has the same finite float32 constraints as PNG. The optional language hint selects fonts in the same way as PNG. SVG rejects PNG-only `encoding`, `scale`, and `maxWidth` settings and all unknown option keys with `INVALID_ARGUMENT`. Cancellation and resource preparation share the instance queue with PNG and validation.
+
+SVG requires the additive `textgraph-render-svg-v1` capability; older runtimes reject with `UNSUPPORTED_CAPABILITY` before preparing resources or calling the bridge. The wrapper checks the document root and SVG namespace, positive display dimensions, and consistency between success and error diagnostics. Malformed responses reject with `INVALID_RESPONSE`; the document check is not a general XML parser or sanitizer.
+
 ## Fonts and language packs
 
 Runtimes advertising `textgraph-fonts-v1` prepare actual visible labels before measurement.
@@ -65,7 +80,7 @@ browser/server-owned; there is no new IndexedDB or Service Worker. Offline opera
 requires the complete runtime and font package on a local filesystem or local server;
 an online page cannot fetch an uncached font after losing network access.
 
-`renderPng(source, { language: "ja" })` can disambiguate Han-only labels. Without a hint,
+`renderPng(source, { language: "ja" })` and `renderSvg(source, { language: "ja" })` can disambiguate Han-only labels. Without a hint,
 kana selects Japanese for that label and Han-only labels use Chinese. Grapheme-aware
 emoji selection includes flags, ZWJ sequences, modifiers and keycaps. Font selection
 does not depend on which languages were rendered previously. Unsupported glyphs still
@@ -123,12 +138,14 @@ fonts with language metadata; `cancel-prepare` releases interrupted preparation.
 Render commands accept the same language hint. Existing configuration/disposal
 envelopes remain unchanged. The wrapper checks this capability before using a catalog.
 
-ABI 1.0.0 retains GetAbiVersion/GetPackageKind/CountParseDiagnostics and adds GetRuntimeInfo(), Validate(source) and Execute(requestJson) on DrawMotive.TextGraph.Bridge.Program. Info returns JSON `{ abiVersion, packageKind, protocolVersion: 1, capabilities }`; Validate returns `{ protocolVersion: 1, valid, diagnostics }`. Wrappers require `textgraph-validate-v1`; PNG rendering additionally requires `textgraph-render-v1` and the manifest `bridge.execute` export. Legacy validation exports remain supported. This is a managed export/JSON protocol, not a raw WASM pointer ABI.
+ABI 1.0.0 retains GetAbiVersion/GetPackageKind/CountParseDiagnostics and adds GetRuntimeInfo(), Validate(source) and Execute(requestJson) on DrawMotive.TextGraph.Bridge.Program. Info returns JSON `{ abiVersion, packageKind, protocolVersion: 1, capabilities }`; Validate returns `{ protocolVersion: 1, valid, diagnostics }`. Wrappers require `textgraph-validate-v1`; PNG rendering additionally requires `textgraph-render-v1`, and SVG requires `textgraph-render-svg-v1`. Both require the manifest `bridge.execute` export and rendering resources. Legacy validation exports remain supported. This is a managed export/JSON protocol, not a raw WASM pointer ABI.
 
-`generated/wasm-manifest.json` is authoritative; its ESM projection avoids JSON-module browser assumptions. Shipped schemas describe the manifest, validation response and rendering response. Manifest schema, ABI, protocol and npm versions are separate. Additive exports use capabilities; incompatible wire changes require a new supported version. npm versions and bundled assets are released together. DSL/file-format versions are not frozen by this milestone.
+`generated/wasm-manifest.json` is authoritative; its ESM projection avoids JSON-module browser assumptions. Shipped schemas describe the manifest, validation response and separate PNG/SVG rendering responses. Manifest schema, ABI, protocol and npm versions are separate. Additive exports use capabilities; incompatible wire changes require a new supported version. npm versions and bundled assets are released together. DSL/file-format versions are not frozen by this milestone.
 
 Assets have relative path, media type, byte count and SHA-256. Packaging checks reject missing/extra assets, debug files, hash/projection/version drift. Runtime data assets are hash-checked before native startup. Bundled fonts and themes are loaded and hash-checked lazily before the first render; license files require no runtime I/O. These checks establish distribution consistency, not authenticated runtime signatures. `privateSource.commit` identifies committed private C# and bridge inputs. Toolchain changes may change bytes; cross-toolchain byte-for-byte reproducibility is not promised.
 
 The rendering wire uses one `Execute(requestJson)` export. Configuration is performed once before the first render with `{ protocolVersion: 1, operation: "configure", theme, fonts: [{ family, data }], fallbackFamilies }`, where `data` is base64 font data. Its response is `{ protocolVersion: 1, success, diagnostics }`. A render request is `{ protocolVersion: 1, operation: "render", source, export: { format: "png", scale, padding, maxWidth? } }`. Native success returns base64 `png`, `width`, `height`, and diagnostics, plus an additive optional `displayWidth`/`displayHeight` pair; failures contain only `success: false` and diagnostics beside the protocol version. The JavaScript wrapper validates the display dimensions when present and converts image data to the requested encoding.
 
 For rendering-capable bridges, disposal sends `{ protocolVersion: 1, operation: "dispose" }` and validates the same success/diagnostics envelope as configuration. This request releases native resources without loading fonts or shutting down the host runtime. Legacy validation-only bridges release wrapper references directly.
+
+SVG uses the same `Execute` export with `{ protocolVersion: 1, operation: "render", source, language?, export: { format: "svg", padding } }`. Native success returns `{ protocolVersion: 1, success: true, svg, displayWidth, displayHeight, diagnostics }`; failures omit `svg` and dimensions. `schemas/render-svg.schema.json` describes this separate additive response.

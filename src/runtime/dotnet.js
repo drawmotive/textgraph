@@ -1,6 +1,6 @@
 import { createRuntimeAssetPlan } from './shared.js';
 import { DrawMotiveError } from './errors.js';
-import { validateManifest, validateBootConfig, validationCapability, renderingCapability, isRuntimeAsset } from './manifest.js';
+import { validateManifest, validateBootConfig, validationCapability, renderingCapability, svgRenderingCapability, supportsRendering, isRuntimeAsset } from './manifest.js';
 import { throwIfAborted } from './lifecycle.js';
 import { readVerifiedAsset } from './integrity.js';
 import { createRenderingExecutor } from './render-resources.js';
@@ -69,8 +69,10 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
       throw new DrawMotiveError('ABI_MISMATCH', 'Bridge and manifest disagree');
     }
     if (!Array.isArray(info.capabilities) || !info.capabilities.includes(validationCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement validation');
-    const renders = manifest.capabilities.includes(renderingCapability);
-    if (renders && !info.capabilities.includes(renderingCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement rendering');
+    const renders = supportsRendering(manifest.capabilities);
+    for (const capability of [renderingCapability, svgRenderingCapability]) {
+      if (manifest.capabilities.includes(capability) && !info.capabilities.includes(capability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement rendering');
+    }
     if (manifest.capabilities.includes(fontCapability) && !info.capabilities.includes(fontCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement lazy fonts');
     if (renders && typeof bridge[manifest.bridge.execute] !== 'function') throw new DrawMotiveError('ABI_MISMATCH', 'Rendering bridge export is missing');
     return createBridgeRuntime({ manifest, options, readAsset, bridge, info });
@@ -83,7 +85,7 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
 
 /** Owns managed bridge resources; the instance queue drains calls before invoking disposal. */
 export function createBridgeRuntime({ manifest, options, readAsset, bridge, info }) {
-  const renders = manifest.capabilities.includes(renderingCapability);
+  const renders = supportsRendering(manifest.capabilities);
   return {
     // A bridge may support operations intentionally omitted by the selected
     // manifest; advertise only the intersection that this loader exposes.

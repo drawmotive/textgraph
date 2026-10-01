@@ -3,6 +3,7 @@ import test from "node:test";
 import { createHash } from "node:crypto";
 import { createRenderingExecutor } from "../src/runtime/render-resources.js";
 import { normalizeFontAssets, normalizeLanguagePacks } from "../src/runtime/language-packs.js";
+import { initializeTextGraph } from "../src/index.js";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const base = new Map([["wasm/theme.css", new TextEncoder().encode("theme")], ["wasm/base.ttf", new Uint8Array([1])]]);
@@ -31,6 +32,7 @@ function fixture(options = {}, overrides = {}) {
         if (command.source === "invalid") return JSON.stringify({ ...ok, success: false, diagnostics: [{ severity: "error", stage: "parse", code: "TG_PARSE_ERROR", message: "invalid" }], fontRuns: [] });
         return JSON.stringify({ ...ok, fontRuns: entries.filter(e => command.source.includes(String.fromCodePoint(e.coverage[0][0]))).map(e => ({ text: String.fromCodePoint(e.coverage[0][0]), language: e.languages[0], missing: !installed.has(e.family) })) });
       }
+      if (command.operation === "render" && overrides.render) return overrides.render(command);
       return JSON.stringify(ok);
     },
   });
@@ -147,4 +149,24 @@ test("font configuration validates without reading resources and detaches caller
   const packs = normalizeLanguagePacks([{ fonts: [raw] }]);
   raw.coverage[0][0] = 0;
   assert.equal(packs[0].fonts[0].coverage[0][0], 0x4e00);
+});
+
+test("SVG public API prepares and reuses fonts before submitting the vector export", async () => {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0L10 10"/></svg>';
+  const f = fixture({ fontAssets: { catalog: new URL("https://site.test/fonts/font-catalog.json"), fallback: false } }, {
+    render: command => {
+      assert.deepEqual(command.export, { format: "svg", padding: 10 });
+      assert.ok(f.installed.has("chinese"));
+      return JSON.stringify({ ...ok, svg, displayWidth: 20.5, displayHeight: 30.25 });
+    },
+  });
+  const runtime = await initializeTextGraph({ loadRuntime: async () => ({ abiVersion: "1.0.0", capabilities: ["textgraph-render-svg-v1"], execute: f.execute }) });
+  try {
+    assert.equal((await runtime.renderSvg("中", { language: "zh-CN" })).svg, svg);
+    assert.equal((await runtime.renderSvg("中", { language: "zh-CN" })).svg, svg);
+    assert.equal(f.calls.filter(command => command.operation === "install-fonts").length, 1);
+    assert.equal(f.calls.filter(command => command.operation === "configure").length, 1);
+    assert.equal(f.calls.find(command => command.operation === "prepare-fonts").language, "zh-CN");
+    assert.ok(f.calls.findIndex(command => command.operation === "install-fonts") < f.calls.findIndex(command => command.operation === "render"));
+  } finally { await runtime.dispose(); }
 });
