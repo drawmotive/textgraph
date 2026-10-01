@@ -15,6 +15,18 @@ async function temporary(t) {
   t.after(() => rm(directory, { recursive: true, force: true }));
   return directory;
 }
+// Release policy may defer fonts while publishing the SDK. Test font publication
+// against an isolated target for the real font version, never the live milestone.
+async function publishableFonts(t) {
+  const root = path.join(await temporary(t), 'fonts');
+  await cp(fontsRoot, root, { recursive: true, filter: source => !source.includes(`${path.sep}node_modules`) && !source.endsWith('.tgz') && !source.endsWith(`${path.sep}release.json`) });
+  const pkg = await readJson(path.join(root, 'package.json'));
+  const targetFile = path.join(root, '.release/target.json');
+  const target = await readJson(targetFile);
+  delete target.excludedReason;
+  await writeFile(targetFile, JSON.stringify({ ...target, releaseVersion: pkg.version, version: pkg.version, publishable: true }));
+  return root;
+}
 async function artifact(t) {
   const directory = await temporary(t);
   const bytes = Buffer.from('immutable fonts tarball');
@@ -32,8 +44,7 @@ test('fonts use an independent Git tag and the shared strict npm channel policy'
 });
 
 test('fonts release readiness rejects a wrong tag, excluded target, altered license, and unsafe channel', async t => {
-  const root = path.join(await temporary(t), 'fonts');
-  await cp(fontsRoot, root, { recursive: true, filter: source => !source.includes(`${path.sep}node_modules`) && !source.endsWith('.tgz') && !source.endsWith(`${path.sep}release.json`) });
+  const root = await publishableFonts(t);
   const pkg = await readJson(path.join(root, 'package.json'));
   const release = await verifyFontsPackage(root, fontsReleaseChannel(pkg.version).gitTag);
   await assert.rejects(verifyFontsPackage(root, `textgraph-v${release.version}`), /tag/i);
@@ -52,14 +63,15 @@ test('fonts release readiness rejects a wrong tag, excluded target, altered lice
 });
 
 test('packing the real fonts distribution retains exact bytes and requires its complete offline surface', async t => {
+  const root = await publishableFonts(t);
   const directory = await temporary(t);
-  const release = await packFontsRelease(fontsRoot, directory);
+  const release = await packFontsRelease(root, directory);
   assert.deepEqual(await verifyFontsArtifact(directory, release), release);
   assert.equal(hash(await readFile(path.join(directory, release.filename))), release.integrity);
   const { command } = await import('../scripts/command.mjs');
-  const { stdout } = await command('npm', ['pack', '--ignore-scripts', '--dry-run', '--json', '--workspaces=false'], fontsRoot);
+  const { stdout } = await command('npm', ['pack', '--ignore-scripts', '--dry-run', '--json', '--workspaces=false'], root);
   const [packed] = JSON.parse(stdout);
-  const catalog = await readJson(path.join(fontsRoot, 'assets/font-catalog.json'));
+  const catalog = await readJson(path.join(root, 'assets/font-catalog.json'));
   verifyFontsPackList(packed, release, catalog);
   for (const file of ['assets/NotoSansJP-LICENSE.txt', 'assets/NotoColorEmoji.NOTICE.txt', 'assets/NotoSansSC-Regular.ttf', 'scripts/copy-fonts.mjs']) {
     assert.throws(() => verifyFontsPackList({ ...packed, files: packed.files.filter(item => item.path !== file) }, release, catalog), /missing/);

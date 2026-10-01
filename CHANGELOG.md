@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2-alpha.3
+
+- Add renderSvg with logical dimensions, vector viewBox and the same production
+  compiler/font pipeline as PNG.
+- Advertise textgraph-render-svg-v1; preserve existing PNG behavior and reject
+  unsupported runtimes/options before execution.
+
+
 ## 0.2.2-alpha.2 — 2026-09-25
 
 - Normalize backward connections by their directed flow during layout while retaining public endpoint and arrow semantics.

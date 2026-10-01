@@ -48,7 +48,7 @@ For existing documentation, use the
 ## Install
 
 ```bash
-npm install @drawmotive/textgraph@0.2.2-alpha.2
+npm install @drawmotive/textgraph@0.2.2-alpha.3
 ```
 
 Requires **Node.js 22+** or a modern browser with WebAssembly and Web Crypto.
