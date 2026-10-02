@@ -4,7 +4,7 @@ Use the [shared issue tracker](https://github.com/drawmotive/textgraph/issues)
 for SDK, font, sample and integration bugs or proposals. Include the affected
 version, Node/npm or browser version, OS, expected result and a small reproducer.
 
-Use Node.js 22 or 24 and npm 10 or 11. Vite samples require Node 22.12+ on the
+Use Node.js 22 and its bundled npm. Vite samples require Node 22.12+ on the
 22 line. Linux, Windows and macOS are supported build targets; see the
 [README support matrix](README.md#supported-environments) for verification limits.
 
