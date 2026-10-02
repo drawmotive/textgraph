@@ -2,6 +2,18 @@
 
 Optional local font assets for Chinese, Japanese, and color emoji. The package contains no WASM runtime and does not download fonts during installation. Importing its metadata does not read font binaries. Compatible TextGraph renderers load a font only when displayed text needs it.
 
+## Supported environments
+
+| Layer | Supported environment | Verification boundary |
+| --- | --- | --- |
+| Package build and font-copy CLI | Node.js 22 or 24; npm 10 or 11 on Linux, Windows and macOS | CI targets all three systems with both Node lines |
+| Rendering | Matching TextGraph SDK 0.2.2-alpha.2 in Node, browser or module Worker | Font support follows the renderer; fonts do not supply their own runtime |
+| Browser deployment | SDK-supported Chromium, Firefox and WebKit with HTTPS or localhost | These are SDK test engines, not separate font-package browser or device certification |
+
+The standalone font-package audit on 2026-10-01 ran Linux x64, Node 22.23.2
+and npm 10.9.8. It did not execute Windows/macOS or Node 24 checks. Vite hosts
+require Node 22.12+ on the 22 line.
+
 ```bash
 npm install @drawmotive/textgraph@0.2.2-alpha.2 @drawmotive/textgraph-fonts@0.2.2-alpha.2
 ```
@@ -37,10 +49,14 @@ Offline distributions must include this directory or the installed npm package a
 Font bytes originate from the editor's committed static assets. In the DrawMotive repository, run `node tooling/generate-font-assets.mjs` after an intentional asset update; `--check` verifies package and staging copies without rewriting them. Coverage is generated from the actual font's Unicode cmap rather than language-name guesses. No network download occurs in that command.
 
 ```bash
+npm ci
 npm run build
 npm test
+npm pack
 ```
 
 Build verifies all bytes, hashes, coverage, provenance, and licenses. Tests include a tarball installation and asset copy with npm offline mode. Each redistributed font uses SIL OFL 1.1; matching copyright/license notices and pinned upstream source revisions are in `assets/`. The small JavaScript distribution helpers use MIT; see `LICENSE`.
 
 [Report font and TextGraph issues on GitHub](https://github.com/drawmotive/textgraph/issues).
+See [Contributing](../CONTRIBUTING.md) and [NOTICE](../NOTICE).
+Vulnerability reports follow [Security reporting](../SECURITY.md).

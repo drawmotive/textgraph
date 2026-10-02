@@ -11,6 +11,7 @@ import { copyFonts } from '../scripts/copy-fonts.mjs';
 import { readFontCoverage, verifyFontAssets } from '../scripts/font-assets.mjs';
 
 const run = promisify(execFile);
+const npmCli = process.env.npm_execpath ?? path.join(path.dirname(process.execPath), process.platform === 'win32' ? 'node_modules/npm/bin/npm-cli.js' : '../lib/node_modules/npm/bin/npm-cli.js');
 const root = path.resolve(import.meta.dirname, '..');
 const includes = (font, cp) => font.coverage.some(([start, end]) => start <= cp && cp <= end);
 
@@ -92,19 +93,19 @@ test('copy command includes complete deployment assets and detects byte or metad
 test('npm tarball installs and copies fonts fully offline without another runtime', async () => {
   const temp = await mkdtemp(path.join(os.tmpdir(), 'textgraph-font-packed-'));
   try {
-    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-    const { stdout } = await run(npm, ['pack', '--ignore-scripts', '--json', '--workspaces=false', '--pack-destination', temp], { cwd: root });
+    const npm = (args, cwd) => run(process.execPath, [npmCli, ...args], { cwd });
+    const { stdout } = await npm(['pack', '--ignore-scripts', '--json', '--workspaces=false', '--pack-destination', temp], root);
     const [packed] = JSON.parse(stdout);
     const filenames = packed.files.map(file => file.path);
     assert.ok(filenames.every(name => !name.endsWith('.wasm') && !name.startsWith('test/')));
     for (const font of fontCatalog.fonts) assert.ok(filenames.includes(`assets/${font.path}`));
     await writeFile(path.join(temp, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
-    await run(npm, ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', path.join(temp, packed.filename)], { cwd: temp });
+    await npm(['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', path.join(temp, packed.filename)], temp);
     const program = `import {fontCatalog, languagePacks} from '@drawmotive/textgraph-fonts'; console.log(JSON.stringify({fonts:fontCatalog.fonts.length,packs:languagePacks.length}));`;
     assert.deepEqual(JSON.parse((await run(process.execPath, ['--input-type=module', '-e', program], { cwd: temp })).stdout), { fonts: 3, packs: 3 });
     // Exercise npm's generated .bin entry, including the POSIX symlink that
     // differs from the real module path seen by the ESM loader.
-    await run(npm, ['exec', '--offline', '--no', '--', 'textgraph-copy-fonts', path.join(temp, 'deployed')], { cwd: temp });
+    await npm(['exec', '--offline', '--no', '--', 'textgraph-copy-fonts', path.join(temp, 'deployed')], temp);
     assert.deepEqual(await verifyFontAssets(pathToFileURL(`${path.join(temp, 'deployed')}${path.sep}`)), fontCatalog);
   } finally { await rm(temp, { recursive: true, force: true }); }
 });
