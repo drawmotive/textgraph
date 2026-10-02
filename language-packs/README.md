@@ -6,12 +6,12 @@ Optional local font assets for Chinese, Japanese, and color emoji. The package c
 
 | Layer | Supported environment | Verification boundary |
 | --- | --- | --- |
-| Package build and font-copy CLI | Node.js 22 or 24; npm 10 or 11 on Linux, Windows and macOS | CI targets all three systems with both Node lines |
+| Package build and font-copy CLI | Node.js 22; npm 10 on Linux, Windows and macOS | CI targets all three systems with Node 22 |
 | Rendering | Matching TextGraph SDK 0.2.2-alpha.2 in Node, browser or module Worker | Font support follows the renderer; fonts do not supply their own runtime |
 | Browser deployment | SDK-supported Chromium, Firefox and WebKit with HTTPS or localhost | These are SDK test engines, not separate font-package browser or device certification |
 
 The standalone font-package audit on 2026-10-01 ran Linux x64, Node 22.23.2
-and npm 10.9.8. It did not execute Windows/macOS or Node 24 checks. Vite hosts
+and npm 10.9.8. It did not execute Windows/macOS checks. Vite hosts
 require Node 22.12+ on the 22 line.
 
 ```bash
