@@ -51,9 +51,23 @@ For existing documentation, use the
 npm install @drawmotive/textgraph@0.2.2-alpha.2
 ```
 
-Requires **Node.js 22+** or a modern browser with WebAssembly and Web Crypto.
+Supports **Node.js 22 and 24** or a modern browser with WebAssembly and Web Crypto.
 Browser applications need HTTPS or localhost. React support is an optional entry
 in this package, compatible with React 18.2+ and 19.
+
+## Supported environments
+
+| Layer | Supported environment | Verification boundary |
+| --- | --- | --- |
+| Node runtime and package tools | Node.js 22 or 24; npm 10 or 11 | Vite samples require Node 22.12+ on the 22 line |
+| Desktop build and Node rendering | Linux, Windows, macOS | CI targets all three systems with Node 22 and 24 |
+| Browser, React and module Worker rendering | Current Chromium, Firefox and WebKit engines | Playwright tests the SDK and samples on Linux; WebKit is not a Safari device certification |
+| React entry | React 18.2+ in the 18 line, or React 19 | React is an optional peer dependency |
+
+The standalone audit on 2026-10-01 ran Linux x64 with Node 22.23.2 and npm
+10.9.8. The support and CI targets above do not claim that Windows, macOS,
+Node 24 or every browser was executed in that audit. Browser hosts must provide
+WebAssembly, JavaScript modules, Web Crypto and a secure origin.
 
 ## Render a PNG in Node.js
 
@@ -219,8 +233,8 @@ publish anything. Samples are not included in the npm package.
 - **Available:** flowcharts and directed graphs, automatic layout, PNG rendering,
   and source validation.
 - **Not available yet:** mind maps, sequence diagrams, slides, and SVG export.
-- **Fonts:** Noto Sans and Fuzzy Bubbles are included. Custom font descriptors are
-  supported; the optional `@drawmotive/textgraph-fonts` package is not published.
+- **Fonts:** Noto Sans and Fuzzy Bubbles are included. Custom font descriptors and
+  the optional published `@drawmotive/textgraph-fonts@0.2.2-alpha.2` package are supported.
   See [font configuration](https://github.com/drawmotive/textgraph/blob/main/docs/api-v1.md#fonts-and-language-packs).
 
 ## Project links
@@ -229,6 +243,10 @@ publish anything. Samples are not included in the npm package.
 [Changelog](https://github.com/drawmotive/textgraph/blob/main/CHANGELOG.md) ·
 [Report an issue](https://github.com/drawmotive/textgraph/issues) ·
 [MIT license](https://github.com/drawmotive/textgraph/blob/main/LICENSE)
+
+For public checkout commands and pull requests, see [Contributing](CONTRIBUTING.md).
+Redistribution notices are indexed in [NOTICE](NOTICE).
+For vulnerability reports, see [Security reporting](SECURITY.md).
 
 ### Try it in a browser
 

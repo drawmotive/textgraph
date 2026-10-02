@@ -1,0 +1,25 @@
+TextGraph redistribution notices
+
+The public SDK code and documentation use the MIT license in LICENSE.
+The JavaScript helpers in language-packs use its separate MIT LICENSE.
+
+Redistributed fonts retain SIL Open Font License 1.1 and their original
+copyright notices:
+- generated/wasm/NotoSans-LICENSE.txt
+- generated/wasm/FuzzyBubbles-LICENSE.txt
+- language-packs/assets/NotoSansSC-LICENSE.txt
+- language-packs/assets/NotoSansJP-LICENSE.txt
+- language-packs/assets/NotoColorEmoji.LICENSE.txt
+- language-packs/assets/NotoColorEmoji.NOTICE.txt
+- language-packs/zh-cn/OFL.txt
+Font source revisions and distributed hashes are recorded in
+language-packs/assets/provenance.json. Preserve these files with copied fonts.
+
+The committed WASM runtime is a compiled distribution. Its manifest records
+private producer provenance; this notice grants no license to producer source
+that is not part of this public repository. Third-party runtime components and
+npm dependencies retain their own licenses; the repository MIT license does
+not replace those terms.
+
+This file indexes existing notices. It does not amend any license or grant
+rights to third-party names, trademarks or material outside this repository.
