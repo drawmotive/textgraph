@@ -11,10 +11,16 @@ for (const [environment, initialize] of [['browser', initializeBrowser], ['Worke
   test(`${environment} startup requests all runtime data before any response completes`, async () => {
     const gate = Promise.withResolvers();
     const requested = [];
+    const expected = manifest.assets.filter(isRuntimeAsset).filter(asset => !/[.](mjs|js)$/.test(asset.path));
+    const allRequested = Promise.withResolvers();
+    // Optional Node font-package discovery may await a module import. Observe
+    // the request boundary rather than assuming one microtask reaches startup.
+    const timeout = setTimeout(() => allRequested.reject(new Error('Runtime requests did not overlap before responses completed')), 5000);
     const startup = initialize({
       resolveAsset: asset => new URL(asset.path, 'https://assets.example/'),
       fetch: async url => {
         requested.push(new URL(url).pathname.slice(1));
+        if (requested.length === expected.length) allRequested.resolve();
         await gate.promise;
         return new Response(new Uint8Array([0]));
       },
@@ -22,11 +28,11 @@ for (const [environment, initialize] of [['browser', initializeBrowser], ['Worke
     // Corrupt responses must still fail preflight before .NET owns error handling.
     const rejected = assert.rejects(startup, { code: 'ASSET_INTEGRITY_MISMATCH' });
     try {
-      await Promise.resolve();
-      const expected = manifest.assets.filter(isRuntimeAsset).filter(asset => !/[.](mjs|js)$/.test(asset.path));
+      await allRequested.promise;
       assert.ok(expected.length > 1);
       assert.deepEqual(requested.toSorted(), expected.map(asset => asset.path).toSorted());
     } finally {
+      clearTimeout(timeout);
       gate.resolve();
       await rejected;
     }

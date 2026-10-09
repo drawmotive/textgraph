@@ -1,7 +1,7 @@
 export const config = /*json-start*/{
   "mainAssemblyName": "DrawMotive.TextGraph.Bridge.dll",
   "resources": {
-    "hash": "sha256-8FmwOmBZ+SFhsg4Z1Q4eyPRkYNbS6XkVYj2B2RWM2Uw=",
+    "hash": "sha256-9p7nKPZDEyEeO7h5+hbeTVO+aIMmHG1Ag8bTDOrdQuo=",
     "jsModuleNative": [
       {
         "name": "dotnet.native.js"
@@ -15,7 +15,7 @@ export const config = /*json-start*/{
     "wasmNative": [
       {
         "name": "dotnet.native.wasm",
-        "hash": "sha256-3DvnYxhVVGZUnnhjVRAjnr+yRc4RUw3tH5mtWSs4OCk="
+        "hash": "sha256-l+otbw6uFZ21z01W05/xUXFIRDzxg/dMnecyrBCASaM="
       }
     ],
     "coreAssembly": [
@@ -27,7 +27,7 @@ export const config = /*json-start*/{
       {
         "virtualPath": "System.Private.CoreLib.wasm",
         "name": "System.Private.CoreLib.wasm",
-        "hash": "sha256-R3WPOu0FW1nr0l4R5IUtgsh9K4LqI8nG4E1P2qaGZ04="
+        "hash": "sha256-uYf/GlG3fALkgSWaDt9Vqn6mq0tqM/xncMHkkH2mnjk="
       }
     ],
     "assembly": [
@@ -39,12 +39,12 @@ export const config = /*json-start*/{
       {
         "virtualPath": "Grpc.Core.Api.wasm",
         "name": "Grpc.Core.Api.wasm",
-        "hash": "sha256-cAsCPThXAaxkhablgLVwz/pEW8al1JTVs552cOIPDLY="
+        "hash": "sha256-gg8LFP6oezgeQTFssVaMra0ks5hWP86J9NmzfhC4rYs="
       },
       {
         "virtualPath": "HarfBuzzSharp.wasm",
         "name": "HarfBuzzSharp.wasm",
-        "hash": "sha256-0rnI3MbFX+T2XsQ+WPS3Gama89dTzWD0iUGVJBwTRXc="
+        "hash": "sha256-IdHAAVCqzCO9wrijQNqEG5BxcqxWCpSP0VZBaC7qTjE="
       },
       {
         "virtualPath": "MagicOnion.Abstractions.wasm",
@@ -109,7 +109,7 @@ export const config = /*json-start*/{
       {
         "virtualPath": "Microsoft.Extensions.Logging.Abstractions.wasm",
         "name": "Microsoft.Extensions.Logging.Abstractions.wasm",
-        "hash": "sha256-zydm7jLPaVif+FqW1aRZRQKUMTpfVGl3nqwspcQxoDs="
+        "hash": "sha256-20141PpUKEltX8UAUL75vqQKTz7O4t65bVFpNxnVtq0="
       },
       {
         "virtualPath": "Microsoft.Extensions.Options.wasm",
@@ -139,7 +139,7 @@ export const config = /*json-start*/{
       {
         "virtualPath": "Polly.Core.wasm",
         "name": "Polly.Core.wasm",
-        "hash": "sha256-li+Zk1bbR406FjygbR4vHFxUYBMg6YMRm3hUkOYwuzo="
+        "hash": "sha256-+O4E8HgPEQfCXVrc5qGIOHIIudYsesBVBsOfDMO1jxA="
       },
       {
         "virtualPath": "R3.wasm",
@@ -154,7 +154,7 @@ export const config = /*json-start*/{
       {
         "virtualPath": "SkiaSharp.wasm",
         "name": "SkiaSharp.wasm",
-        "hash": "sha256-MpeE81pK73isgx4BVEiPEljrY/wUyoYXGq5+xbHAMYs="
+        "hash": "sha256-ZwutJ8qzOxKdchnZ7LCPhOrIAwq+ZDU4Eao2EUPOySE="
       },
       {
         "virtualPath": "SkiaSharp.HarfBuzz.wasm",
@@ -174,22 +174,22 @@ export const config = /*json-start*/{
       {
         "virtualPath": "Graphics.Core.wasm",
         "name": "Graphics.Core.wasm",
-        "hash": "sha256-pURePVdy3OdXKVxBOGxozwxpgUuNp+gDbRR4K0yOjII="
+        "hash": "sha256-99LKei+dk+MU19LjgjT0kZfLXokIHFK89MU+hqU8Lqk="
       },
       {
         "virtualPath": "Math.Core.wasm",
         "name": "Math.Core.wasm",
-        "hash": "sha256-rAwRf96kfhvzX87bTnypm9ukbRUO04ILuNsSzbrRCdY="
+        "hash": "sha256-pdy4LK0A0uhbm44JzBQPm/7P1SQ1cZNhcvycGoJBxsk="
       },
       {
         "virtualPath": "RBush.wasm",
         "name": "RBush.wasm",
-        "hash": "sha256-EaDqY2JWw7Fb0CUJ6KczHvuqtvJKpQ3h3NAR6bDkghw="
+        "hash": "sha256-c8CJit4SZtGzETyarNEiwYWc/dzfWi5uwCy4m9CwQ98="
       },
       {
         "virtualPath": "DrawMotive.TextGraph.Bridge.wasm",
         "name": "DrawMotive.TextGraph.Bridge.wasm",
-        "hash": "sha256-ojZGmKsqH6SfJ2X8Kgdym9LOxMDXGoZuUNcdj59ZL2c="
+        "hash": "sha256-B7fOl72lT908oLFjkodTlVEx8+zoqxElSL6Enzk7NQw="
       },
       {
         "virtualPath": "System.Collections.Concurrent.wasm",
@@ -274,7 +274,7 @@ export const config = /*json-start*/{
       {
         "virtualPath": "System.Linq.wasm",
         "name": "System.Linq.wasm",
-        "hash": "sha256-4a6K3TpQt5VM+yAnqrNXot7Ym22WYMkZGioVgUU8xQA="
+        "hash": "sha256-fuRhzw+pO117bLAf4pgfy9YBNt5KfAQ9s+2VhePWmsU="
       },
       {
         "virtualPath": "System.Memory.wasm",
@@ -379,7 +379,7 @@ export const config = /*json-start*/{
       {
         "virtualPath": "System.Text.Json.wasm",
         "name": "System.Text.Json.wasm",
-        "hash": "sha256-sUgA2ZxaAqrbzqji4LJpam1l3LMSaZlQyabY9brJXSg="
+        "hash": "sha256-VDv7svOvBBRLoEC3jt8c/LiVS4CCJyY8vXuy2/npWGg="
       },
       {
         "virtualPath": "System.Text.RegularExpressions.wasm",

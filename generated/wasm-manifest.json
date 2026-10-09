@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "packageName": "@drawmotive/textgraph",
-  "packageVersion": "0.2.2-alpha.3",
+  "packageVersion": "0.2.2-alpha.4",
   "abiVersion": "1.0.0",
   "protocolVersion": 1,
   "runtimeModule": "wasm/dotnet.js",
@@ -27,7 +27,7 @@
   },
   "targetFramework": "net10.0",
   "privateSource": {
-    "commit": "ee444cb0e43081011079193af05a9707c77739fa",
+    "commit": "be84f251d1a3c5154879ffb1706f550cf2e27b7a",
     "project": "DrawMotive.TextGraph.Bridge"
   },
   "entryAssembly": "wasm/DrawMotive.TextGraph.Bridge.wasm",
@@ -52,7 +52,7 @@
       "path": "wasm/DrawMotive.TextGraph.Bridge.wasm",
       "mediaType": "application/wasm",
       "bytes": 87317,
-      "sha256": "a2364698ab2a1fa49f2765fc2a07729bd2cec4c0d71a866e50d71d8f9f592f67"
+      "sha256": "07b7ce97bda54fdd3ca0b163928753955131f3ece8ab112548be849f393b350c"
     },
     {
       "path": "wasm/ExCSS.wasm",
@@ -75,20 +75,20 @@
     {
       "path": "wasm/Graphics.Core.wasm",
       "mediaType": "application/wasm",
-      "bytes": 3976473,
-      "sha256": "a5445e3d5772dce757295c41386c68cf0c69814b8da7e8036d14782b4c8e8c82"
+      "bytes": 3978521,
+      "sha256": "f7d2ca7a2f9d93e314d7d2e38234f49197cb5e89081c52bcf4c53e86a53c2ea9"
     },
     {
       "path": "wasm/Grpc.Core.Api.wasm",
       "mediaType": "application/wasm",
       "bytes": 7957,
-      "sha256": "700b023d385701ac6485a6e580b570cffa445bc6a5d494d5b39e7670e20f0cb6"
+      "sha256": "820f0b14fea87b381e41316cb1568cadad24b398563fce89f4d9b37e10b8ad8b"
     },
     {
       "path": "wasm/HarfBuzzSharp.wasm",
       "mediaType": "application/wasm",
       "bytes": 30485,
-      "sha256": "d2b9c8dcc6c55fe4f65ec43e58f4b719a99af3d753cd60f4894195241c134577"
+      "sha256": "21d1c00150aacc23bdc2b8a340da841b907172ac560a948fd15641682eea4e31"
     },
     {
       "path": "wasm/MagicOnion.Abstractions.wasm",
@@ -118,7 +118,7 @@
       "path": "wasm/Math.Core.wasm",
       "mediaType": "application/wasm",
       "bytes": 3241241,
-      "sha256": "ac0c117fdea47e1bf35fcedb4e7ca99bdba46d150ed3820bb8db12cdbad109d6"
+      "sha256": "a5dcb82cad00d2e85b9b8e09cc140f9bfecfd5243571936172fc9c1a8241c6c9"
     },
     {
       "path": "wasm/MemoryPack.Core.wasm",
@@ -166,7 +166,7 @@
       "path": "wasm/Microsoft.Extensions.Logging.Abstractions.wasm",
       "mediaType": "application/wasm",
       "bytes": 19221,
-      "sha256": "cf2766ee32cf69589ff85a96d5a459450294313a5f5469779eac2ca5c431a03b"
+      "sha256": "db4d78d4fa5428496d5fc50050bef9bea40a4f3ecee2deb96d51693719d5b6ad"
     },
     {
       "path": "wasm/Microsoft.Extensions.Logging.wasm",
@@ -214,7 +214,7 @@
       "path": "wasm/Polly.Core.wasm",
       "mediaType": "application/wasm",
       "bytes": 62741,
-      "sha256": "962f999356db478d3a163ca06d1e2f1c5c54601320e983119b785490e630bb3a"
+      "sha256": "f8ee04f0780f1107c25d5adce6a188387208b9d62c7ac05506c39f0cc3b58f10"
     },
     {
       "path": "wasm/Polly.wasm",
@@ -238,7 +238,7 @@
       "path": "wasm/RBush.wasm",
       "mediaType": "application/wasm",
       "bytes": 24341,
-      "sha256": "11a0ea636256c3b15bd02509e8a7331efbaab6f24aa50de1dcd011e9b0e4821c"
+      "sha256": "73c0898ade1266d1b3113c9aacd122c1859cfddcdf5a2e6ec02cb89bd0b043df"
     },
     {
       "path": "wasm/SkiaSharp.HarfBuzz.wasm",
@@ -249,8 +249,8 @@
     {
       "path": "wasm/SkiaSharp.wasm",
       "mediaType": "application/wasm",
-      "bytes": 97557,
-      "sha256": "329784f35a4aef78ac831e0154488f1258eb63fc14ca86171aae7ec5b1c0318b"
+      "bytes": 102677,
+      "sha256": "670bad27cab33b129d7219d9ecb08f84eac8030abe64353811aa361143cec921"
     },
     {
       "path": "wasm/Stateless.wasm",
@@ -357,8 +357,8 @@
     {
       "path": "wasm/System.Linq.wasm",
       "mediaType": "application/wasm",
-      "bytes": 105749,
-      "sha256": "e1ae8add3a50b7954cfb2027aab357a2ded89b6d9660c9191a2a1581453cc500"
+      "bytes": 104213,
+      "sha256": "7ee461cf0fa93b5d7b6cb01fe2981fcbd60136de4a7c043db3ed9585e3d69ac5"
     },
     {
       "path": "wasm/System.Memory.wasm",
@@ -394,7 +394,7 @@
       "path": "wasm/System.Private.CoreLib.wasm",
       "mediaType": "application/wasm",
       "bytes": 2177817,
-      "sha256": "47758f3aed055b59ebd25e11e4852d82c87d2b82ea23c9c6e04d4fdaa686674e"
+      "sha256": "b987ff1a51b77c02e481259a0edf55aa7ea6ab4b6a33fc6770c1e4907da69e39"
     },
     {
       "path": "wasm/System.Private.Uri.wasm",
@@ -496,7 +496,7 @@
       "path": "wasm/System.Text.Json.wasm",
       "mediaType": "application/wasm",
       "bytes": 251669,
-      "sha256": "b14800d99c5a02aadbcea8e2e0b2696a6d65dcb312699950c9a6d8f5bac95d28"
+      "sha256": "543bfbb2f3af04144ba040b78edf1cfcb8954b808227263cbd7bb2dbf9e95868"
     },
     {
       "path": "wasm/System.Text.RegularExpressions.wasm",
@@ -556,7 +556,7 @@
       "path": "wasm/dotnet.boot.js",
       "mediaType": "text/javascript",
       "bytes": 18023,
-      "sha256": "602df46f9fade2e2e27feb927e01d3de387ca11810703efe58e7f0942ec42520"
+      "sha256": "70860e48b60926393c97b33b3c5b5e921c07993c861ad5273e5317005274ccfd"
     },
     {
       "path": "wasm/dotnet.js",
@@ -567,14 +567,14 @@
     {
       "path": "wasm/dotnet.native.js",
       "mediaType": "text/javascript",
-      "bytes": 248699,
-      "sha256": "ba22ea6d795060eff2cc5c2ac5439701e6ed30a8c98311a09ebab447d769fb13"
+      "bytes": 248697,
+      "sha256": "432e3ef8049930253ad4580757a750b831660de5206e350d2c4b98236ecee763"
     },
     {
       "path": "wasm/dotnet.native.wasm",
       "mediaType": "application/wasm",
-      "bytes": 6199000,
-      "sha256": "dc3be76318555466549e78635510239ebfb245ce11530ded1f99ad592b383829"
+      "bytes": 6307594,
+      "sha256": "97ea2d6f0eae159db5cf4d56d39ff1517148443cf183f74c9de732ac108049a3"
     },
     {
       "path": "wasm/dotnet.runtime.js",
@@ -597,8 +597,8 @@
     {
       "path": "wasm/themes.css",
       "mediaType": "text/css",
-      "bytes": 3803,
-      "sha256": "a73a9d0069d07e7db57c63ac509b63ac95a5abe2dfa81df1107161c8258c2d1b"
+      "bytes": 3795,
+      "sha256": "2a4e25471c5fbb29bd9639bc97311e1dea941ecd7f9cf9d720f18626811ff057"
     }
   ]
 }
