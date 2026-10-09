@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import manifest from '../../generated/wasm-manifest.js';
 
 test('real browser runtime validates under CSP with injected data loading', async ({ page }) => {
   await page.goto('http://127.0.0.1:4178/');
@@ -33,7 +34,10 @@ test('real module Worker downloads WASM in parallel and validates without DOM gl
   }));
   try {
     // No WASM response can complete yet: a serial loader stalls at one request.
-    await expect.poll(() => requested.size).toBeGreaterThan(1);
+    const wasm = manifest.assets.filter(asset => asset.path.endsWith('.wasm'));
+    expect(wasm.length).toBeGreaterThan(1);
+    await expect.poll(() => [...requested].map(url => new URL(url).pathname).toSorted())
+      .toEqual(wasm.map(asset => '/generated/' + asset.path).toSorted());
   } finally { gate.resolve(); }
   const actual = await initializing;
   expect(actual).toEqual({ result: { valid: true, diagnostics: [] }, state: 'disposed' });

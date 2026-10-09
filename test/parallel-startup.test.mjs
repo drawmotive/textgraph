@@ -1,25 +1,28 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import manifest from '../generated/wasm-manifest.js';
-import { loadBrowserRuntime, createTextGraphRuntimeLoader } from '../src/runtime/browser.js';
-import { loadNodeRuntime } from '../src/runtime/node.js';
+import { createTextGraphRuntimeLoader } from '../src/runtime/browser.js';
+import { initializeTextGraph as initializeBrowser } from '../src/platform/browser.js';
+import { initializeTextGraph as initializeWorker } from '../src/platform/worker.js';
+import { initializeTextGraph as initializeNode } from '../src/platform/node.js';
 import { isRuntimeAsset } from '../src/runtime/manifest.js';
 
-for (const [environment, loadRuntime] of [['browser and Worker', loadBrowserRuntime], ['Node', loadNodeRuntime]]) {
+for (const [environment, initialize] of [['browser', initializeBrowser], ['Worker', initializeWorker], ['Node', initializeNode]]) {
   test(`${environment} startup requests all runtime data before any response completes`, async () => {
     const gate = Promise.withResolvers();
     const requested = [];
-    const startup = loadRuntime({
+    const startup = initialize({
       resolveAsset: asset => new URL(asset.path, 'https://assets.example/'),
       fetch: async url => {
         requested.push(new URL(url).pathname.slice(1));
         await gate.promise;
         return new Response(new Uint8Array([0]));
       },
-    }, manifest);
+    });
     // Corrupt responses must still fail preflight before .NET owns error handling.
     const rejected = assert.rejects(startup, { code: 'ASSET_INTEGRITY_MISMATCH' });
     try {
+      await Promise.resolve();
       const expected = manifest.assets.filter(isRuntimeAsset).filter(asset => !/[.](mjs|js)$/.test(asset.path));
       assert.ok(expected.length > 1);
       assert.deepEqual(requested.toSorted(), expected.map(asset => asset.path).toSorted());
@@ -61,7 +64,7 @@ test('cancelling parallel startup forwards cancellation to every pending request
   const controller = new AbortController();
   const signals = [];
   let aborted = 0;
-  const startup = loadBrowserRuntime({
+  const startup = initializeBrowser({
     signal: controller.signal,
     fetch: (_url, { signal }) => new Promise((_resolve, reject) => {
       signals.push(signal);
@@ -70,8 +73,9 @@ test('cancelling parallel startup forwards cancellation to every pending request
         reject(new DOMException('cancelled', 'AbortError'));
       }, { once: true });
     }),
-  }, manifest);
+  });
   const rejected = assert.rejects(startup, { name: 'AbortError' });
+  await Promise.resolve();
   controller.abort();
   await rejected;
   assert.ok(signals.length > 1);
