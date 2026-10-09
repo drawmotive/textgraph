@@ -65,7 +65,7 @@ export interface TextGraphRuntime {
   readonly abiVersion: string;
   readonly capabilities?: readonly string[];
   validate?(source: string): string | Promise<string>;
-  execute?(requestJson: string, context?: { signal?: AbortSignal }): string | Promise<string>;
+  execute?(requestJson: string, context?: { signal?: AbortSignal; onPreview?(responseJson: string): void }): string | Promise<string>;
   dispose?(): void | Promise<void>;
 }
 
@@ -127,6 +127,8 @@ export interface TextGraphLanguagePack {
 export type TextGraphPngEncoding = 'bytes' | 'base64';
 
 export interface TextGraphRenderPngOptions<Encoding extends TextGraphPngEncoding = TextGraphPngEncoding> {
+  /** Receives a provisional image before optional fonts load; the promise returns the final image. */
+  onPreview?(result: Extract<TextGraphRenderPngResult<Encoding extends 'base64' ? string : Uint8Array>, { success: true }>): void;
   /** Optional language hint for ambiguous Han text, e.g. ja or zh-CN. */
   language?: string;
   /** Defaults to bytes. Base64 contains no data-URL prefix. */
@@ -149,6 +151,8 @@ export type TextGraphRenderPngResult<Png extends Uint8Array | string = Uint8Arra
 
 /** Vector export uses logical diagram units and requires textgraph-render-svg-v1. */
 export interface TextGraphRenderSvgOptions {
+  /** Receives a provisional vector before optional fonts load; the promise returns the final vector. */
+  onPreview?(result: Extract<TextGraphRenderSvgResult, { success: true }>): void;
   /** Optional language hint for ambiguous Han text, e.g. ja or zh-CN. */
   language?: string;
   /** Non-negative padding in diagram units. Defaults to 10. */

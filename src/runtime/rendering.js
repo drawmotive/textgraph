@@ -7,30 +7,31 @@ const invalid = message => { throw new DrawMotiveError('INVALID_ARGUMENT', messa
 /** Both export formats share source, logical padding, language and cancellation semantics. */
 function normalizeCommonOptions(source, options) {
   if (typeof source !== 'string' || !options || typeof options !== 'object' || Array.isArray(options)) invalid('Rendering requires a source string and options object');
-  const { padding = 10, signal, language } = options;
+  const { padding = 10, signal, language, onPreview } = options;
+  if (onPreview !== undefined && typeof onPreview !== 'function') invalid('onPreview must be a function');
   if (language !== undefined && (typeof language !== 'string' || !/^[a-z]{2,8}(?:-[A-Za-z0-9]+)*$/.test(language))) invalid('language must be a language tag');
   // The native geometry contract uses float32; reject values lost at that boundary.
   if (!Number.isFinite(padding) || !Number.isFinite(Math.fround(padding)) || padding < 0) invalid('padding must be non-negative and representable as a finite float32');
   validateSignal(signal);
-  return { padding, signal, request: { protocolVersion: 1, operation: 'render', source, ...(language === undefined ? {} : { language }) } };
+  return { padding, signal, onPreview, request: { protocolVersion: 1, operation: 'render', source, ...(language === undefined ? {} : { language }) } };
 }
 
 /** Normalize export settings before queuing; native receives only the render contract. */
 export function normalizeRenderOptions(source, options) {
-  const { padding, signal, request } = normalizeCommonOptions(source, options);
+  const { padding, signal, onPreview, request } = normalizeCommonOptions(source, options);
   const { encoding = 'bytes', scale = 1, maxWidth } = options;
   if (!['bytes', 'base64'].includes(encoding)) invalid('encoding must be bytes or base64');
   // The native geometry contract uses float32; reject values lost at that boundary.
   if (!Number.isFinite(scale) || !Number.isFinite(Math.fround(scale)) || Math.fround(scale) <= 0) invalid('scale must be positive and representable as a finite float32');
   if (maxWidth !== undefined && (!Number.isSafeInteger(maxWidth) || maxWidth <= 0)) invalid('maxWidth must be a positive integer');
-  return { encoding, signal, request: { ...request, export: { format: 'png', scale, padding, ...(maxWidth === undefined ? {} : { maxWidth }) } } };
+  return { encoding, signal, onPreview, request: { ...request, export: { format: 'png', scale, padding, ...(maxWidth === undefined ? {} : { maxWidth }) } } };
 }
 
 /** SVG accepts only logical export settings; PNG density and encoding have no vector meaning. */
 export function normalizeSvgOptions(source, options) {
-  const { padding, signal, request } = normalizeCommonOptions(source, options);
-  if (Reflect.ownKeys(options).some(key => !['padding', 'language', 'signal'].includes(key))) invalid('Unknown SVG rendering option');
-  return { signal, request: { ...request, export: { format: 'svg', padding } } };
+  const { padding, signal, onPreview, request } = normalizeCommonOptions(source, options);
+  if (Reflect.ownKeys(options).some(key => !['padding', 'language', 'signal', 'onPreview'].includes(key))) invalid('Unknown SVG rendering option');
+  return { signal, onPreview, request: { ...request, export: { format: 'svg', padding } } };
 }
 
 /** Accept canonical base64 only; platform atob implementations otherwise tolerate corruption. */

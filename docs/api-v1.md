@@ -75,10 +75,22 @@ Use `languagePacks: []` with `fallback: false` to explicitly disable automatic f
 
 Catalog fonts carry actual Unicode coverage, language hints, byte sizes and SHA-256.
 They are verified before native installation. Catalog URLs are cached per instance;
-HTTP font URLs include the content hash as a stable `v` parameter. HTTP caching remains
-browser/server-owned; there is no new IndexedDB or Service Worker. Offline operation
+HTTP font URLs include the content hash as a stable `v` parameter. The SDK automatically
+stores verified bundled and optional font bytes in browser/Worker Cache Storage
+(`textgraph-fonts-v1`) and reuses them across instances and page reloads, independent
+of server cache headers. Cached bytes are verified again before use; damaged entries
+are replaced from the configured source. Storage denial or quota errors fall back
+to normal loading. Local files and descriptors without hashes are not persisted. Offline operation
 requires the complete runtime and font package on a local filesystem or local server;
 an online page cannot fetch an uncached font after losing network access.
+
+For interactive previews, pass `onPreview` to `renderPng` or `renderSvg`. When visible
+labels need optional fonts, the callback receives a provisional successful image
+using installed fonts before catalog/font downloads. Display it with a font-loading
+notice; missing glyphs or different text geometry can appear temporarily. The returned
+promise still resolves to the final output after fonts are installed and layout is
+recomputed. Calls without the callback retain final-output semantics. Font-loading
+failures reject so the host can keep the provisional image and offer a retry.
 
 `renderPng(source, { language: "ja" })` and `renderSvg(source, { language: "ja" })` can disambiguate Han-only labels. Without a hint,
 kana selects Japanese for that label and Han-only labels use Chinese. Grapheme-aware

@@ -10,7 +10,7 @@ test('browser renders base64 PNG with lazy fonts and decodable visible content',
     } });
     try {
       await runtime.validate('A -> B');
-      const before = requests.filter(url => /[.](ttf|css)$/.test(url));
+      const before = requests.filter(url => /[.](ttf|css)(?:[?]|$)/.test(url));
       const rendered = await runtime.renderPng('A -> B', { encoding: 'base64', maxWidth: 500 });
       if (!rendered.success) throw new Error(JSON.stringify(rendered.diagnostics));
       const image = new Image();
@@ -23,14 +23,14 @@ test('browser renders base64 PNG with lazy fonts and decodable visible content',
       const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
       let ink = 0;
       for (let i = 0; i < pixels.length; i += 4) if (pixels[i] < 240 || pixels[i + 1] < 240 || pixels[i + 2] < 240) ink++;
-      const loaded = requests.filter(url => /[.](ttf|css)$/.test(url));
+      const loaded = requests.filter(url => /[.](ttf|css)(?:[?]|$)/.test(url));
       await runtime.renderPng('B -> C');
-      return { before, loaded, after: requests.filter(url => /[.](ttf|css)$/.test(url)),
+      return { before, loaded, after: requests.filter(url => /[.](ttf|css)(?:[?]|$)/.test(url)),
         width: rendered.width, height: rendered.height, decodedWidth: canvas.width, decodedHeight: canvas.height, ink };
     } finally { await runtime.dispose(); }
   });
   expect(result.before).toEqual([]);
-  expect(result.loaded.filter(url => url.endsWith('.ttf'))).toHaveLength(2);
+  expect(result.loaded.filter(url => new URL(url).pathname.endsWith('.ttf'))).toHaveLength(2);
   expect(result.loaded.filter(url => url.endsWith('.css'))).toHaveLength(1);
   expect(result.after).toEqual(result.loaded);
   expect(result.decodedWidth).toBe(result.width);

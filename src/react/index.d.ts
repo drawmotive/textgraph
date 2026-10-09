@@ -12,8 +12,10 @@ export interface TextGraphProps extends Omit<ImgHTMLAttributes<HTMLImageElement>
   source: string;
   alt?: string;
   /** Defaults to scale 1; the image displays at logical size. */
-  renderOptions?: Omit<TextGraphRenderPngOptions, 'encoding' | 'signal'>;
+  renderOptions?: Omit<TextGraphRenderPngOptions, 'encoding' | 'signal' | 'onPreview'>;
   loading?: ReactNode;
+  /** Shown beside the provisional image until optional fonts finish loading. */
+  fontsLoading?: ReactNode;
 }
 
 export declare function TextGraphProvider(props: TextGraphProviderProps): ReactElement;

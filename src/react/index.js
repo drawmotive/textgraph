@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, createElement, useContext, useEffect, useMemo, useState } from 'react';
+import { Fragment, createContext, createElement, useContext, useEffect, useMemo, useState } from 'react';
 import { createRuntimeResource } from './runtime.js';
 
 const RuntimeContext = createContext(null);
@@ -15,12 +15,12 @@ export function TextGraphProvider({ options = defaultOptions, children }) {
 
 /** Renders DSL as an image; only the latest committed input may publish a result. */
 export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = defaultOptions,
-  loading = 'Rendering diagram…', style, ...imageProps }) {
+  loading = 'Rendering diagram…', fontsLoading = 'Fonts are still loading…', style, ...imageProps }) {
   const shared = useContext(RuntimeContext);
   const resource = useMemo(() => shared ?? createRuntimeResource(defaultOptions), [shared]);
-  const { scale = 1, padding, maxWidth } = renderOptions;
-  const request = useMemo(() => ({ source, scale, padding, maxWidth, resource }),
-    [source, scale, padding, maxWidth, resource]);
+  const { scale = 1, padding, maxWidth, language } = renderOptions;
+  const request = useMemo(() => ({ source, scale, padding, maxWidth, language, resource }),
+    [source, scale, padding, maxWidth, language, resource]);
   const [state, setState] = useState(null);
 
   useEffect(() => {
@@ -30,13 +30,16 @@ export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = d
       try {
         const runtime = await resource.get();
         if (controller.signal.aborted) return;
-        const result = await runtime.renderPng(source, { scale, padding, maxWidth, encoding: 'base64', signal: controller.signal });
+        const result = await runtime.renderPng(source, { scale, padding, maxWidth, language, encoding: 'base64', signal: controller.signal,
+          onPreview: result => { if (!controller.signal.aborted) setState({ request, result, fontsLoading: true }); },
+        });
         if (!controller.signal.aborted) setState({ request, result });
       } catch (error) {
         if (!controller.signal.aborted) {
           // Host loaders may reject arbitrary values, including null. Keep the
           // failure branch explicit so reporting an error cannot break React render.
-          setState({ request, error: error instanceof Error ? error : new Error(String(error ?? 'Could not render diagram')) });
+          setState(previous => ({ request, result: previous?.request === request ? previous.result : undefined,
+            error: error instanceof Error ? error : new Error(String(error ?? 'Could not render diagram')) }));
         }
       }
     })();
@@ -46,14 +49,17 @@ export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = d
   // State is keyed by the whole request so old images disappear immediately,
   // even before passive effects clean up the previous asynchronous render.
   if (state?.request !== request) return createElement('span', { role: 'status' }, loading);
-  if (state.error || !state.result.success) {
+  if (!state.result?.success) {
     const message = state.error?.message ?? state.result.diagnostics.map(item => item.message).join('\n');
     return createElement('span', { role: 'alert' }, message || 'Could not render diagram');
   }
   const result = state.result;
   // Density improves sharpness without enlarging the diagram. Native dimensions
   // also preserve logical size when maxWidth lowers the actual render density.
-  return createElement('img', { width: result.displayWidth ?? result.width / scale, height: result.displayHeight ?? result.height / scale, ...imageProps,
+  const image = createElement('img', { width: result.displayWidth ?? result.width / scale, height: result.displayHeight ?? result.height / scale, ...imageProps,
     style: { maxWidth: '100%', ...(imageProps.height == null ? { height: 'auto' } : {}), ...style },
     src: `data:image/png;base64,${result.png}`, alt });
+  if (state.error) return createElement(Fragment, null, image, createElement('span', { role: 'alert' }, state.error.message));
+  if (state.fontsLoading) return createElement(Fragment, null, image, createElement('span', { role: 'status' }, fontsLoading));
+  return image;
 }

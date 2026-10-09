@@ -38,13 +38,19 @@ export async function initializeTextGraph(options = {}) {
   // Every export format uses the same operation queue and resource-preparing executor.
   const render = async (source, callOptions, normalize, decode, capability, format) => {
     if (instance.state !== 'ready') throw new DrawMotiveError('INSTANCE_DISPOSED', 'The runtime instance is disposing or disposed');
-    const { request, encoding, signal } = normalize(source, callOptions);
+    const { request, encoding, signal, onPreview } = normalize(source, callOptions);
     throwIfAborted(signal);
     if (typeof runtime.execute !== 'function' || !capabilities.includes(capability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', `Runtime does not support ${format} rendering`);
     return instance.mutate(async () => {
       throwIfAborted(signal);
       let response;
-      try { response = await runtime.execute(JSON.stringify(request), { signal }); }
+      const context = { signal };
+      if (onPreview) context.onPreview = json => {
+        throwIfAborted(signal);
+        const preview = decode(json, encoding);
+        if (preview.success) onPreview(preview);
+      };
+      try { response = await runtime.execute(JSON.stringify(request), context); }
       catch (cause) {
         throwIfAborted(signal);
         if (cause instanceof DrawMotiveError || cause?.name === 'AbortError') throw cause;

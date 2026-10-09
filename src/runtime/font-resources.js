@@ -2,7 +2,7 @@ import { DrawMotiveError } from './errors.js';
 import { normalizeFontMetadata } from './language-packs.js';
 import { decodeDiagnostics } from './validation.js';
 import { decodeConfiguration } from './rendering.js';
-import { readVerifiedAsset } from './integrity.js';
+import { readVerifiedFontAsset } from './font-cache.js';
 import { throwIfAborted } from './lifecycle.js';
 
 export const fontCapability = 'textgraph-fonts-v1';
@@ -102,6 +102,7 @@ export function createFontPreparation({ options, readAsset, execute }) {
     const loading = { ...options, signal: context.signal };
     const attempted = new Set();
     let consumed = false;
+    let previewed = false;
     try {
       while (true) {
         throwIfAborted(context.signal);
@@ -110,6 +111,14 @@ export function createFontPreparation({ options, readAsset, execute }) {
         if (!prepared.success) return JSON.stringify({ protocolVersion: 1, success: false, diagnostics: prepared.diagnostics });
         const missing = prepared.fontRuns.filter(run => run.missing && run.language);
         if (!missing.length) break;
+        // Native can render with its installed fallback fonts. Publish that image
+        // before optional I/O; final measurement still runs after installation.
+        if (context.onPreview && !previewed) {
+          const preview = await execute(request);
+          throwIfAborted(context.signal);
+          context.onPreview(preview);
+          previewed = true;
+        }
         const selected = new Set();
         let available = explicit;
         for (const run of missing) {
@@ -126,7 +135,7 @@ export function createFontPreparation({ options, readAsset, execute }) {
         for (const font of selected) {
           attempted.add(font.family);
           throwIfAborted(context.signal);
-          const bytes = await readVerifiedAsset({ asset: { path: `font:${font.family}`, bytes: font.bytes, sha256: font.sha256, mediaType: 'font/ttf' }, url: font.source }, loading,
+          const bytes = await readVerifiedFontAsset({ asset: { path: `font:${font.family}`, bytes: font.bytes, sha256: font.sha256, mediaType: 'font/ttf' }, url: font.source }, loading,
             font.source instanceof Uint8Array ? async () => new Response(font.source) : readAsset);
           throwIfAborted(context.signal);
           fonts.push({ family: font.family, data: fontBase64(bytes), languages: font.languages });

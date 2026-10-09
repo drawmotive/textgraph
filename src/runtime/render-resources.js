@@ -1,5 +1,6 @@
 import { createRuntimeAssetPlan } from './shared.js';
 import { readVerifiedAsset } from './integrity.js';
+import { readVerifiedFontAsset } from './font-cache.js';
 import { decodeConfiguration } from './rendering.js';
 import { throwIfAborted } from './lifecycle.js';
 import { createFontPreparation, fontBase64 as base64, fontCapability } from './font-resources.js';
@@ -18,9 +19,10 @@ export function createRenderingExecutor({ manifest, options, readAsset, execute 
       const selected = new Set([manifest.rendering.theme, ...manifest.rendering.fonts.map(font => font.asset)]);
       const plan = createRuntimeAssetPlan({ manifest: { assets: manifest.assets.filter(asset => selected.has(asset.path)) }, moduleUrl: import.meta.url, resolveAsset: options.resolveAsset });
       const byPath = new Map(plan.map(item => [item.asset.path, item]));
+      const fontPaths = new Set(manifest.rendering.fonts.map(font => font.asset));
       const load = async path => {
         throwIfAborted(context.signal);
-        const bytes = await readVerifiedAsset(byPath.get(path), loadingOptions, readAsset);
+        const bytes = await (fontPaths.has(path) ? readVerifiedFontAsset : readVerifiedAsset)(byPath.get(path), loadingOptions, readAsset);
         throwIfAborted(context.signal);
         return bytes;
       };
@@ -34,7 +36,7 @@ export function createRenderingExecutor({ manifest, options, readAsset, execute 
           throwIfAborted(context.signal);
           const item = { asset: { path: `font:${font.family}`, mediaType: 'font/ttf', bytes: font.bytes, sha256: font.sha256 }, url: font.source };
           const bytes = font.coverage
-            ? await readVerifiedAsset(item, loadingOptions, font.source instanceof Uint8Array ? async () => new Response(font.source) : readAsset)
+            ? await readVerifiedFontAsset(item, loadingOptions, font.source instanceof Uint8Array ? async () => new Response(font.source) : readAsset)
             : font.source instanceof Uint8Array ? font.source : new Uint8Array(await (await readAsset(item, loadingOptions)).arrayBuffer());
           throwIfAborted(context.signal);
           fonts.push({ family: font.family, data: base64(bytes), ...(font.languages ? { languages: font.languages } : {}) });

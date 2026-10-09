@@ -49,3 +49,27 @@ test('real native lazy fonts use rendered labels, remain installed and ignore ed
     assert.equal(requests.length, before);
   } finally { await runtime.dispose(); await clean.dispose(); }
 });
+
+test('real native preview renders before optional font download finishes and final geometry uses the font', { timeout: 120000 }, async () => {
+  const gate = Promise.withResolvers();
+  const preview = Promise.withResolvers();
+  const runtime = await initializeTextGraph({
+    fontAssets: { catalog: new URL('https://fonts.test/font-catalog.json'), fallback: false },
+    fetch: async url => {
+      const name = new URL(url).pathname.slice(1);
+      if (name.endsWith('.ttf')) await gate.promise;
+      return new Response(await readFile(new URL(name, catalogUrl)));
+    },
+  });
+  const rendering = runtime.renderPng(source.zh, { onPreview: result => preview.resolve(result) });
+  try {
+    const provisional = await preview.promise;
+    assert.ok(provisional.diagnostics.some(d => d.code === 'TG_FONT_MISSING_GLYPH'));
+    assert.ok(PNG.sync.read(Buffer.from(provisional.png)).width > 0);
+    gate.resolve();
+    const final = await rendering;
+    assert.equal(final.success, true);
+    assert.deepEqual(final.diagnostics.filter(d => d.stage === 'font'), []);
+    assert.notDeepEqual(Buffer.from(final.png), Buffer.from(provisional.png));
+  } finally { gate.resolve(); await rendering; await runtime.dispose(); }
+});

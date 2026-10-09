@@ -38,9 +38,16 @@ Use your deployed base path instead of `/` for subdirectory hosting. The [React/
 | `alt` | Image description; defaults to `TextGraph diagram`. |
 | `renderOptions` | Defaults to `scale: 1`; `padding` and `maxWidth` use SDK defaults. Set `scale: 2` explicitly for higher raster density. |
 | `loading` | React content shown with `role="status"`; defaults to `Rendering diagram…`. |
+| `fontsLoading` | Content shown beside the provisional image while optional fonts load; defaults to `Fonts are still loading…`. |
 | Other image attributes | Passed to the successful `<img>`, including `className`, `style`, `width`, and `height`. |
 
 The component owns `src`, encoding, and cancellation. While new input renders, old images are replaced by loading content. A stale result cannot replace newer input. DSL diagnostics and operational failures appear as escaped text with `role="alert"`; corrected input renders again. Changing only `alt` or image styles does not rerun layout.
+
+When optional fonts are needed, the component displays a provisional image first,
+shows `fontsLoading`, and replaces the image after loading and measuring the fonts.
+If loading fails, the preview remains beside the error. The SDK automatically caches
+verified font bytes across instances and reloads in browser Cache Storage; no host
+cache setup is required.
 
 Images use the render result's logical `displayWidth` and `displayHeight`, so increasing `scale` adds pixels without enlarging the diagram. `maxWidth` limits raster pixels rather than CSS width. Styles default to `maxWidth: '100%'` and `height: 'auto'`; supplied styles merge over these defaults, and explicit image dimensions override the logical dimensions.
 

@@ -86,11 +86,32 @@ test('render options reject invalid values before calling the runtime', async ()
   for (const source of [null, 1, {}, undefined]) await assert.rejects(instance.renderPng(source), { code: 'INVALID_ARGUMENT' });
   for (const options of [null, [], 1, { encoding: 'url' }, { scale: 0 }, { scale: NaN }, { scale: Infinity },
     { scale: 1e100 }, { scale: Number.MIN_VALUE }, { padding: 1e100 },
-    { padding: -1 }, { padding: NaN }, { maxWidth: 0 }, { maxWidth: 1.5 }, { maxWidth: Infinity }, { signal: {} }]) {
+    { padding: -1 }, { padding: NaN }, { maxWidth: 0 }, { maxWidth: 1.5 }, { maxWidth: Infinity }, { signal: {} }, { onPreview: true }]) {
     await assert.rejects(instance.renderPng('A', options), { code: 'INVALID_ARGUMENT' });
   }
   assert.equal(calls, 0);
   await instance.dispose();
+});
+
+test('preview callbacks receive validated PNGs in the requested encoding before final completion', async () => {
+  for (const encoding of ['bytes', 'base64']) {
+    const gate = Promise.withResolvers();
+    const published = Promise.withResolvers();
+    const runtime = await create(async (_request, context) => {
+      context.onPreview(JSON.stringify(success));
+      await gate.promise;
+      return JSON.stringify(success);
+    });
+    const rendering = runtime.renderPng('A', { encoding, onPreview: result => published.resolve(result) });
+    try {
+      const result = await published.promise;
+      assert.ok(Object.isFrozen(result));
+      assert.equal(typeof result.png, encoding === 'base64' ? 'string' : 'object');
+      assert.equal(result.success, true);
+    } finally { gate.resolve(); }
+    await rendering;
+    await runtime.dispose();
+  }
 });
 
 test('render response rejects malformed base64, PNG headers, dimensions and envelopes', async () => {

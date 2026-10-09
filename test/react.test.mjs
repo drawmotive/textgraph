@@ -195,3 +195,46 @@ test('non-Error initialization failures remain visible instead of breaking React
     assert.match(container.querySelector('[role=alert]').textContent, /Missing assets|Could not render diagram/);
   }
 });
+
+test('font preview remains visible with a loading status until the final image arrives', async () => {
+  const gate = deferred();
+  const f = fixture((request, context) => {
+    context.onPreview(png(10));
+    return gate.promise;
+  });
+  await render(view(f.options, 'A: 中文'));
+  assert.equal(container.querySelector('img').width, 10);
+  assert.equal(container.querySelector('[role=status]').textContent, 'Fonts are still loading…');
+  await act(async () => gate.resolve(png(20)));
+  assert.equal(container.querySelector('img').width, 20);
+  assert.equal(container.querySelector('[role=status]'), null);
+});
+
+test('language hints participate in React requests and late font previews cannot replace new source', async () => {
+  const gate = deferred();
+  let previous;
+  const f = fixture((request, context) => {
+    if (request.source === 'old') { previous = context; return gate.promise; }
+    return png(20);
+  });
+  await render(view(f.options, 'old', { renderOptions: { language: 'ja' } }));
+  await render(view(f.options, 'new', { renderOptions: { language: 'zh-CN' } }));
+  assert.equal(previous.signal.aborted, true);
+  await act(async () => {
+    assert.throws(() => previous.onPreview(png(5)), { name: 'AbortError' });
+    gate.resolve(png(5));
+  });
+  assert.equal(container.querySelector('img').width, 20);
+  assert.deepEqual(f.stats.calls.map(call => call.language), ['ja', 'zh-CN']);
+});
+
+test('font download errors retain the preview and replace the loading notice with an alert', async () => {
+  const gate = deferred();
+  const f = fixture((_request, context) => { context.onPreview(png()); return gate.promise; });
+  await render(view(f.options, 'A: 中文', { fontsLoading: 'Loading fonts' }));
+  assert.equal(container.querySelector('[role=status]').textContent, 'Loading fonts');
+  await act(async () => gate.reject(new Error('Font download failed')));
+  assert.ok(container.querySelector('img'));
+  assert.equal(container.querySelector('[role=status]'), null);
+  assert.match(container.querySelector('[role=alert]').textContent, /could not execute/);
+});

@@ -28,7 +28,10 @@ test('render preparation loads bundled resources lazily through the resolver and
   assert.deepEqual(reads, []);
   assert.equal(await execute(request), 'rendered');
   assert.equal(await execute(request), 'rendered');
-  assert.deepEqual(reads, ['https://cdn.example/wasm/themes.css', 'https://cdn.example/wasm/NotoSans-Regular.ttf', 'https://cdn.example/wasm/FuzzyBubbles-Regular.ttf', 'https://fonts.example/chinese.ttf']);
+  assert.deepEqual(reads, ['https://cdn.example/wasm/themes.css', ...rendering.fonts.map(font => {
+    const asset = assets.find(asset => asset.path === font.asset);
+    return `https://cdn.example/${font.asset}?v=${asset.sha256}`;
+  }), 'https://fonts.example/chinese.ttf']);
   assert.deepEqual(requests.map(item => item.operation), ['configure', 'render', 'render']);
   assert.deepEqual(requests[0], { protocolVersion: 1, operation: 'configure', theme: 'text { color: black; }', fonts: [
     { family: 'NotoSans-Regular', data: 'AQID' }, { family: 'FuzzyBubbles-Regular', data: 'BAUG' },

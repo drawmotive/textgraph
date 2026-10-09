@@ -170,3 +170,28 @@ test("SVG public API prepares and reuses fonts before submitting the vector expo
     assert.ok(f.calls.findIndex(command => command.operation === "install-fonts") < f.calls.findIndex(command => command.operation === "render"));
   } finally { await runtime.dispose(); }
 });
+
+test("preview is published before slow catalog and font downloads; the final render uses installed fonts", async () => {
+  const gate = Promise.withResolvers();
+  const preview = Promise.withResolvers();
+  const f = fixture({}, { read: async item => {
+    if (item.url.pathname.endsWith("font-catalog.json")) await gate.promise;
+  } });
+  const rendering = f.execute(request("中"), { onPreview: json => preview.resolve(JSON.parse(json)) });
+  try {
+    assert.equal((await preview.promise).success, true);
+    assert.equal(f.installed.size, 0);
+    assert.equal(f.calls.filter(c => c.operation === "render").length, 1);
+  } finally { gate.resolve(); }
+  await rendering;
+  assert.ok(f.installed.has("chinese"));
+  assert.equal(f.calls.filter(c => c.operation === "render").length, 2);
+});
+
+test("English and invalid sources never publish a font preview", async () => {
+  const f = fixture();
+  for (const source of ["English", "invalid"]) {
+    await f.execute(request(source), { onPreview: () => assert.fail("Unexpected font preview") });
+  }
+  assert.equal(f.reads.length, 2);
+});
