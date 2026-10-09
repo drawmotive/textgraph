@@ -9,6 +9,6 @@
     "start": "node index.mjs"
   },
   "dependencies": {
-    "@drawmotive/textgraph": "file:../.artifacts/textgraph.tgz"
+    "@drawmotive/textgraph": "0.2.2-alpha.4"
   }
 }
