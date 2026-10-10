@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 
 async function pixels(image) {
   return image.evaluate(async element => {
@@ -21,9 +23,12 @@ for (const [index, sample] of ['browser', 'react-vite', 'worker'].entries()) {
   test(`${sample} renders and updates diagrams from the packed SDK with local WASM`, async ({ page }) => {
     const pageErrors = [];
     const assets = [];
+    const fontResponses = [];
+    const manifest = JSON.parse(await readFile(new URL(`../${sample}/node_modules/@drawmotive/textgraph/generated/wasm-manifest.json`, import.meta.url), 'utf8'));
     page.on('pageerror', error => pageErrors.push(error.message));
     page.context().on('response', response => {
       if (response.url().includes('/textgraph/wasm/')) assets.push({ url: response.url(), status: response.status() });
+      if (new URL(response.url()).pathname.endsWith('.ttf')) fontResponses.push(response);
     });
     await page.goto(`http://127.0.0.1:${4180 + index}`);
     const image = page.getByAltText('Rendered diagram');
@@ -53,7 +58,19 @@ for (const [index, sample] of ['browser', 'react-vite', 'worker'].entries()) {
     await expect(image).toBeVisible();
     expect((await pixels(image)).ink).toBeGreaterThan(100);
     expect(assets.some(asset => asset.url.endsWith('/dotnet.native.wasm') && asset.status === 200)).toBe(true);
-    expect(assets.some(asset => asset.url.endsWith('.ttf') && asset.status === 200)).toBe(true);
+    // HTTP font cache identity is a query hash. Verify the font pathname and
+    // actual decoded response against the installed package's immutable manifest.
+    for (const font of manifest.rendering.fonts) {
+      const asset = manifest.assets.find(asset => asset.path === font.asset);
+      expect(asset, `Manifest asset for ${font.family}`).toBeDefined();
+      const response = fontResponses.find(response => new URL(response.url()).pathname === '/textgraph/' + asset.path);
+      expect(response, `Fetched ${asset.path}`).toBeDefined();
+      expect(response.status()).toBe(200);
+      expect(new URL(response.url()).searchParams.get('v')).toBe(asset.sha256);
+      const bytes = await response.body();
+      expect(bytes.byteLength).toBe(asset.bytes);
+      expect(createHash('sha256').update(bytes).digest('hex')).toBe(asset.sha256);
+    }
     expect(assets.filter(asset => asset.status >= 400)).toEqual([]);
     expect(pageErrors).toEqual([]);
   });
