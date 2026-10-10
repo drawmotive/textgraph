@@ -14,7 +14,7 @@
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
-    "@drawmotive/textgraph": "0.2.2-alpha.4",
+    "@drawmotive/textgraph": "0.2.2-alpha.6",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
