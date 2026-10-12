@@ -7,7 +7,7 @@ import { readFile } from 'node:fs/promises';
 test('local runtime binds global names independently of group and decoration order',
   { skip: !process.env.DRAWMOTIVE_TEXTGRAPH_RUNTIME }, async () => {
     const runtime = await initializeTextGraph();
-    const containers = 'Shopping { checkout }\nBackend { payment }';
+    const containers = 'Shopping { browse -> checkout }\nBackend { payment -> saved }';
     const references = 'checkout -> payment\ncheckout: Place an order\npayment(fill success): Take payment';
     try {
       for (const source of [containers + '\n' + references, references + '\n' + containers]) {
@@ -17,11 +17,21 @@ test('local runtime binds global names independently of group and decoration ord
         assert.ok(result.png.length > 0);
       }
       for (const source of [
+        'Shopping { browse -> checkout\ncheckout -> confirmation }\ncheckout: Place an order',
+        'Shopping { checkout\nbrowse -> checkout }\ncheckout(fill primary): Place an order',
+        'Shopping { browse(ellipse) -> checkout }\ncheckout: Place an order',
+        'Outer { Shopping { browse -> checkout } }\ncheckout -> payment',
+      ]) {
+        assert.equal((await runtime.validate(source)).valid, true, source);
+      }
+      for (const source of [
         containers + '\ncheckout -> Backend.payment',
-        'Shopping { checkout -> payment }',
         'Shopping { checkout: Place an order }',
+        'Shopping { checkout(fill primary) }',
         'Shopping { plain text }',
         'Shopping { checkout }\nBackend { checkout }',
+        'Shopping { browse -> checkout }\nBackend { checkout -> payment }',
+        'Backend { checkout -> payment }\nShopping { browse -> checkout }',
       ]) {
         assert.equal((await runtime.validate(source)).valid, false, source);
       }
@@ -89,7 +99,7 @@ test('real Node runtime renders isolated PNGs with matching byte and base64 outp
 test('released native runtime renders inline groups and recovers after unmatched braces', { timeout: 30000 }, async () => {
   const runtime = await initializeTextGraph();
   try {
-    for (const source of ['A -> {}', 'A -> {{x}}', 'A -> { B\nC }\nB -> C']) {
+    for (const source of ['A -> {}', 'A -> {{x}}', 'A -> { B -> C }']) {
       const result = await runtime.renderPng(source);
       assert.equal(result.success, true, JSON.stringify(result.diagnostics));
       assert.ok(result.png.length > 0);
