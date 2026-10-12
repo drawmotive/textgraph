@@ -4,6 +4,31 @@ import { initializeTextGraph } from '@drawmotive/textgraph/node';
 import { zhCN } from '../language-packs/index.js';
 import { readFile } from 'node:fs/promises';
 
+test('local runtime binds global names independently of group and decoration order',
+  { skip: !process.env.DRAWMOTIVE_TEXTGRAPH_RUNTIME }, async () => {
+    const runtime = await initializeTextGraph();
+    const containers = 'Shopping { checkout }\nBackend { payment }';
+    const references = 'checkout -> payment\ncheckout: Place an order\npayment(fill success): Take payment';
+    try {
+      for (const source of [containers + '\n' + references, references + '\n' + containers]) {
+        assert.equal((await runtime.validate(source)).valid, true, source);
+        const result = await runtime.renderPng(source);
+        assert.equal(result.success, true, JSON.stringify(result.diagnostics));
+        assert.ok(result.png.length > 0);
+      }
+      for (const source of [
+        containers + '\ncheckout -> Backend.payment',
+        'Shopping { checkout -> payment }',
+        'Shopping { checkout: Place an order }',
+        'Shopping { plain text }',
+        'Shopping { checkout }\nBackend { checkout }',
+      ]) {
+        assert.equal((await runtime.validate(source)).valid, false, source);
+      }
+      assert.equal((await runtime.validate(containers + '\n' + references)).valid, true);
+    } finally { await runtime.dispose(); }
+  });
+
 test('bundled native runtime retains display size when maxWidth reduces raster density', async () => {
   const runtime = await initializeTextGraph();
   try {

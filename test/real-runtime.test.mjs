@@ -4,7 +4,12 @@ import { initializeTextGraph } from '@drawmotive/textgraph/node';
 import { Worker } from 'node:worker_threads';
 import { once } from 'node:events';
 import { readFile } from 'node:fs/promises';
-import manifest from '../generated/wasm-manifest.js';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Offline preflight must cache the same verified assets selected by the Node loader.
+const runtimeRoot = process.env.DRAWMOTIVE_TEXTGRAPH_RUNTIME ?? fileURLToPath(new URL('../generated/', import.meta.url));
+const manifest = JSON.parse(await readFile(path.join(runtimeRoot, 'wasm-manifest.json'), 'utf8'));
 
 test('installed Node loader starts the real bridge and validates without host setup', async () => {
   const instance = await initializeTextGraph();
@@ -34,7 +39,7 @@ test('real Node worker_threads uses the Node loader without a browser shim', asy
 test('real runtime accepts offline data cache and rejects corrupt assets before startup', async () => {
   const data = new Map();
   for (const asset of manifest.assets.filter(asset => !/[.](mjs|js)$/.test(asset.path))) {
-    data.set(asset.path, await readFile(new URL(`../generated/${asset.path}`, import.meta.url)));
+    data.set(asset.path, await readFile(path.join(runtimeRoot, asset.path)));
   }
   const options = {
     resolveAsset: (asset, url) => data.has(asset.path) ? new URL(asset.path, 'https://offline.invalid/') : url,
