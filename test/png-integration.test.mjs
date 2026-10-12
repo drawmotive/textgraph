@@ -4,7 +4,7 @@ import { initializeTextGraph } from '@drawmotive/textgraph/node';
 import { zhCN } from '../language-packs/index.js';
 import { readFile } from 'node:fs/promises';
 
-test('local runtime binds global names independently of group and decoration order',
+test('local runtime resolves unique root names independently of group and decoration order',
   { skip: !process.env.DRAWMOTIVE_TEXTGRAPH_RUNTIME }, async () => {
     const runtime = await initializeTextGraph();
     const containers = 'Shopping { browse -> checkout }\nBackend { payment -> saved }';
@@ -21,21 +21,101 @@ test('local runtime binds global names independently of group and decoration ord
         'Shopping { checkout\nbrowse -> checkout }\ncheckout(fill primary): Place an order',
         'Shopping { browse(ellipse) -> checkout }\ncheckout: Place an order',
         'Outer { Shopping { browse -> checkout } }\ncheckout -> payment',
+        containers + '\ncheckout -> Backend.payment',
+        containers + '\nShopping.checkout -> payment',
+        'Shopping { browse(ellipse) ->(dashed primary) checkout : Submit order }\ncheckout: Place an order',
       ]) {
         assert.equal((await runtime.validate(source)).valid, true, source);
       }
       for (const source of [
-        containers + '\ncheckout -> Backend.payment',
         'Shopping { checkout: Place an order }',
         'Shopping { checkout(fill primary) }',
         'Shopping { plain text }',
-        'Shopping { checkout }\nBackend { checkout }',
-        'Shopping { browse -> checkout }\nBackend { checkout -> payment }',
-        'Backend { checkout -> payment }\nShopping { browse -> checkout }',
       ]) {
         assert.equal((await runtime.validate(source)).valid, false, source);
       }
       assert.equal((await runtime.validate(containers + '\n' + references)).valid, true);
+    } finally { await runtime.dispose(); }
+  });
+
+test('local runtime keeps repeated group node names local and requires prefixes for ambiguous root names',
+  { skip: !process.env.DRAWMOTIVE_TEXTGRAPH_RUNTIME }, async () => {
+    const runtime = await initializeTextGraph();
+    const groups = ['Review { submit -> done }', 'Delivery { pack -> done }'];
+    const references = 'Review.done -> pack\nReview.done: Approved\nDelivery.done: Delivered';
+    try {
+      for (const ordered of [groups, groups.toReversed()]) {
+        const structure = ordered.join('\n');
+        assert.equal((await runtime.validate(structure)).valid, true, structure);
+        for (const source of [structure + '\n' + references, references + '\n' + structure]) {
+          assert.equal((await runtime.validate(source)).valid, true, source);
+          const rendered = await runtime.renderPng(source);
+          assert.equal(rendered.success, true, JSON.stringify(rendered.diagnostics));
+          assert.ok(rendered.png.length > 0);
+        }
+        for (const ambiguous of ['done -> pack', 'done: Complete', 'done(fill success)', 'done, pack(primary)']) {
+          for (const source of [structure + '\n' + ambiguous, ambiguous + '\n' + structure]) {
+            const result = await runtime.validate(source);
+            assert.equal(result.valid, false, source);
+            const messages = result.diagnostics.map(item => item.message).join('\n');
+            assert.match(messages, /Review\.done/);
+            assert.match(messages, /Delivery\.done/);
+          }
+        }
+      }
+      assert.equal((await runtime.validate('Review { submit -> done\ndone -> submit }\nDelivery { pack -> done }')).valid, true);
+      assert.equal((await runtime.validate('Outer { A\nInner { A -> B } }\nOuter.A -> Inner.A')).valid, true);
+      assert.equal((await runtime.validate(groups.join('\n') + '\nReview.done, Delivery.done(primary)')).valid, true);
+      const example = await readFile(new URL('../examples/repeated-names.textgraph', import.meta.url), 'utf8');
+      assert.equal((await runtime.renderPng(example)).success, true);
+    } finally { await runtime.dispose(); }
+  });
+
+test('local runtime resolves unique nested suffixes and qualified external endpoints for nodes and groups',
+  { skip: !process.env.DRAWMOTIVE_TEXTGRAPH_RUNTIME }, async () => {
+    const runtime = await initializeTextGraph();
+    try {
+      for (const source of [
+        'Outer { Backend { payment -> saved } }\npayment -> saved\nBackend.payment: Take payment',
+        'Outer { Backend { payment -> saved } }\nOuter.Backend.payment -> Backend.saved',
+        'Left { Lane { A } }\nRight { Lane { B } }\nLane.A -> Lane.B',
+        'Left { Lane { A } }\nRight { Lane { B } }\nLeft.Lane -> Right.Lane',
+        'Outer { Inner { A } }\nstart -> Inner',
+        'Left { A -> Right.B }\nRight { B }',
+        'Left { A -> Right }\nRight { B }',
+        'Left { A -> Outer.Right }\nOuter { Right { B } }',
+        'Left { Lane { A }\nLane -> B }\nRight { Lane { C } }',
+        'Left { Lane }\nRight { Lane { A } }\nLeft.Lane -> Right.Lane',
+      ]) {
+        assert.equal((await runtime.validate(source)).valid, true, source);
+      }
+      for (const source of [
+        'Left { Lane { A } }\nRight { Lane { B } }\nLane -> exit',
+        'Left { Lane }\nRight { Lane { A } }\nLane -> exit',
+        'Left { Lane\nLane { A } }',
+        'Left { A }\nLeft.missing -> A',
+        'Left { A -> Right.missing }\nRight { B }',
+        'Left { Right.B }\nRight { B }',
+      ]) {
+        assert.equal((await runtime.validate(source)).valid, false, source);
+      }
+    } finally { await runtime.dispose(); }
+  });
+
+test('local runtime supports scoped connections in anonymous and inline groups',
+  { skip: !process.env.DRAWMOTIVE_TEXTGRAPH_RUNTIME }, async () => {
+    const runtime = await initializeTextGraph();
+    try {
+      for (const source of [
+        '{ Left { A -> B }\nRight { A -> C } }\nLeft.A -> Right.A',
+        'start -> Review { A -> done }\nDelivery { B -> done }\nReview.done -> Delivery.done',
+        'Outer { start -> Inner { A -> B } }\nInner.A -> B',
+        'Outer { A -> { B -> C } }\nB -> C',
+      ]) {
+        const result = await runtime.renderPng(source);
+        assert.equal(result.success, true, source + '\n' + JSON.stringify(result.diagnostics));
+        assert.ok(result.png.length > 0);
+      }
     } finally { await runtime.dispose(); }
   });
 

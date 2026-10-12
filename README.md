@@ -31,13 +31,12 @@ Actual SDK output from
 Keep source in version control and render again when relationships change.
 TextGraph uses a small, structured language; it does not interpret unrestricted prose.
 
-Node names are global: `payment` always refers to the same node, including when
-it belongs to a group. Connections inside a group introduce its members; no
-separate member list is needed. Group bodies also allow bare members, nested
-groups and comments. Connections can style their endpoints inline, such as
-`browse(ellipse) -> checkout`. Put connections between groups and separate
-node labels or styles at the root, in any order. A node can belong to one
-group. To draw two nodes with the same visible label, give them distinct names.
+Connections inside a group introduce that group's local nodes; no separate
+member list is needed. Group bodies also allow bare members, nested groups
+and comments. Connections can style their endpoints inline, such as
+`browse(ellipse) -> checkout`. Keep standalone node labels or styles at the
+root, in any order. At the root, a short name such as `payment` finds the
+node when that name is unique in the diagram.
 
 ```textgraph
 shopping(info): Shopping {
@@ -52,10 +51,35 @@ checkout: Place an order
 payment(diamond): Payment accepted?
 ```
 
-Use `payment` everywhere, without a group path. Repeated references inside its
-group reuse that member; referencing it at the root keeps its membership. An
-ungrouped node needs no separate declaration: a root arrow or decoration can
-introduce it.
+Here `payment` and `backend.payment` both refer to the backend node. Root
+connections and decorations keep its containment, even when they appear
+before the groups. An ungrouped node needs no separate declaration: a root
+arrow or decoration can introduce it.
+
+The same name in two groups creates two nodes. Inside each group, short names
+refer to its local nodes. At the root, use a group prefix only when needed to
+distinguish matches:
+
+```textgraph
+Review { submit -> done }
+Delivery { pack -> done }
+
+Review.done -> pack
+submit: Place an order
+Review.done: Approved
+Delivery.done: Delivered
+```
+
+`done` at the root is ambiguous and reports the matching qualified names.
+Group endpoints prefer a local member or group, then a unique declared group
+elsewhere. Ambiguous group names need a prefix. Nested names can use a unique
+suffix:
+with `Outer { Backend { payment } }`, `payment`, `Backend.payment` and
+`Outer.Backend.payment` all work when they identify a single object. A
+qualified connection endpoint may refer to another group's existing node
+without moving it. Unknown qualified names report an error.
+
+[Complete repeated-name example](examples/repeated-names.textgraph)
 
 ## Choose your workflow
 
