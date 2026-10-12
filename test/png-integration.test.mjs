@@ -64,7 +64,7 @@ test('real Node runtime renders isolated PNGs with matching byte and base64 outp
 test('released native runtime renders inline groups and recovers after unmatched braces', { timeout: 30000 }, async () => {
   const runtime = await initializeTextGraph();
   try {
-    for (const source of ['A -> {}', 'A -> {{x}}', 'A -> { B -> C }']) {
+    for (const source of ['A -> {}', 'A -> {{x}}', 'A -> { B\nC }\nB -> C']) {
       const result = await runtime.renderPng(source);
       assert.equal(result.success, true, JSON.stringify(result.diagnostics));
       assert.ok(result.png.length > 0);

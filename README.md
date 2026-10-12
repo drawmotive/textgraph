@@ -31,6 +31,27 @@ Actual SDK output from
 Keep source in version control and render again when relationships change.
 TextGraph uses a small, structured language; it does not interpret unrestricted prose.
 
+Node names are global: `payment` always refers to the same node, including when
+it belongs to a group. Group bodies list members or nested groups; put arrows,
+node labels and node styles at the root, in any order. A node can belong to one
+group. To draw two nodes with the same visible label, give them distinct names.
+
+```textgraph
+shopping(info): Shopping {
+  checkout
+}
+backend: Backend {
+  payment
+}
+
+checkout -> payment
+checkout: Place an order
+payment(diamond): Payment accepted?
+```
+
+Use `payment` everywhere, without a group path. An ungrouped node needs no
+separate declaration: a root arrow or decoration can introduce it.
+
 ## Choose your workflow
 
 | What you want to do | Use | Working example |
