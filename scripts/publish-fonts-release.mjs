@@ -4,20 +4,22 @@ import { command } from './command.mjs';
 import { assertRegistryState, assertPublishedState } from './release-policy.mjs';
 import { readPublicRegistry, waitForPublication } from './publish-release.mjs';
 import { fontsRoot, verifyFontsArtifact, verifyFontsPackage } from './fonts-release.mjs';
+import { releaseOptions } from './release.mjs';
 
 /** Bootstrap and OIDC publish the same verified artifact, preserving existing latest. */
-export async function publishFontsRelease({ directory, expected, dryRun = false, readRegistry = () => readPublicRegistry('@drawmotive/textgraph-fonts'), run = command }) {
-  const release = await verifyFontsArtifact(directory, expected);
+export async function publishFontsRelease({ directory, expected, dryRun = false, readRegistry = () => readPublicRegistry('@drawmotive/textgraph-fonts'), run = command, options }) {
+  options ??= await releaseOptions(fontsRoot);
+  const release = await verifyFontsArtifact(directory, expected, options);
   const before = await readRegistry();
-  assertRegistryState(release.version, before);
+  assertRegistryState(release.version, before, options);
   if (before?.versions?.[release.version]) {
-    assertPublishedState(release, before, before);
+    assertPublishedState(release, before, before, options);
     return { ...release, status: 'already-published' };
   }
   const args = ['publish', path.join(directory, release.filename), '--ignore-scripts', '--access', 'public', '--tag', release.tag, '--registry', 'https://registry.npmjs.org/'];
   if (dryRun) args.push('--dry-run');
   await run('npm', args, fontsRoot, { interactive: !dryRun });
-  if (!dryRun) await waitForPublication(release, before, readRegistry);
+  if (!dryRun) await waitForPublication(release, before, readRegistry, undefined, options);
   return { ...release, status: dryRun ? 'dry-run' : 'published' };
 }
 

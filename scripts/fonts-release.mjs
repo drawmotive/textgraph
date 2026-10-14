@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { command } from './command.mjs';
 import { releaseChannel } from './release-policy.mjs';
+import { releaseOptions } from './release.mjs';
 import { checkComponent } from '../language-packs/.release/check.cjs';
 import { verifyFontAssets } from '../language-packs/scripts/font-assets.mjs';
 
@@ -24,8 +25,8 @@ const licenseHashes = {
 };
 
 /** Fonts share version/channel policy but have an independent immutable Git tag. */
-export function fontsReleaseChannel(version) {
-  return { ...releaseChannel(version), gitTag: `textgraph-fonts-v${version}` };
+export function fontsReleaseChannel(version, options = {}) {
+  return { ...releaseChannel(version, options), gitTag: `textgraph-fonts-v${version}` };
 }
 
 /** Release readiness covers font bytes, coverage, provenance, and original notices. */
@@ -33,7 +34,9 @@ export async function verifyFontsPackage(root = fontsRoot, gitTag) {
   const errors = checkComponent(root, { ready: true });
   if (errors.length) throw new Error(errors.join('\n'));
   const pkg = await readJson(path.join(root, 'package.json'));
-  const release = fontsReleaseChannel(pkg.version);
+  const target = await readJson(path.join(root, '.release/target.json'));
+  assert.ok([1, 2].includes(target.schemaVersion), 'Unknown release target schema.');
+  const release = fontsReleaseChannel(pkg.version, { legacy: target.schemaVersion === 1 });
   assert.equal(pkg.name, packageName, 'Unexpected npm package');
   assert.notEqual(pkg.private, true, 'Package is private');
   assert.deepEqual(pkg.publishConfig, { access: 'public', registry: 'https://registry.npmjs.org/', tag: release.tag }, 'Unsafe publish configuration');
@@ -43,7 +46,7 @@ export async function verifyFontsPackage(root = fontsRoot, gitTag) {
     const bytes = await readFile(path.join(root, file));
     assert.equal(createHash('sha256').update(bytes).digest('hex'), expected, `License integrity mismatch: ${file}`);
   }
-  return { ...release, name: pkg.name };
+  return { ...release, name: pkg.name, ...(target.schemaVersion === 1 ? {} : { releaseSchemaVersion: 2 }) };
 }
 
 /** Require the complete offline distribution and exclude release tooling/private data. */
@@ -71,14 +74,16 @@ export async function packFontsRelease(root = fontsRoot, destination = path.join
   verifyFontsPackList(packed, release, await readJson(path.join(root, 'assets/font-catalog.json')));
   const receipt = { ...release, filename: packed.filename, integrity: packed.integrity };
   await writeFile(path.join(destination, 'release.json'), `${JSON.stringify(receipt, null, 2)}\n`);
-  await verifyFontsArtifact(destination, release);
+  await verifyFontsArtifact(destination, release, await releaseOptions(root));
   return receipt;
 }
 
 /** Artifact checks run before registry access and prevent path or channel substitution. */
-export async function verifyFontsArtifact(directory, expected) {
+export async function verifyFontsArtifact(directory, expected, options) {
   const receipt = await readJson(path.join(directory, 'release.json'));
-  const release = fontsReleaseChannel(receipt.version);
+  options ??= await releaseOptions(fontsRoot);
+  const release = fontsReleaseChannel(receipt.version, options);
+  assert.equal(receipt.releaseSchemaVersion, options.legacy ? undefined : 2, 'Artifact release schema mismatch');
   assert.equal(receipt.name, packageName, 'Artifact package mismatch');
   for (const key of ['version', 'tag', 'gitTag']) assert.equal(receipt[key], release[key], `Artifact ${key} mismatch`);
   if (expected) for (const key of ['name', 'version', 'tag', 'gitTag']) assert.equal(receipt[key], expected[key], `Artifact ${key} mismatch`);

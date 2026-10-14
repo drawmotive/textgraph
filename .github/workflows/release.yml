@@ -15,7 +15,7 @@ on:
         required: false
         type: string
       tag:
-        description: Existing release tag (textgraph-vX.Y.Z or textgraph-vX.Y.Z-alpha.N)
+        description: Existing numeric release tag (textgraph-vX.Y.Z; legacy tags support retries)
         required: true
         type: string
 permissions:

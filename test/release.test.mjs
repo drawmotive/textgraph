@@ -5,10 +5,14 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
-import { releaseChannel, assertRegistryState, assertPublishedState } from "../scripts/release-policy.mjs";
+import { releaseChannel as numericChannel, assertRegistryState as numericRegistryState, assertPublishedState as numericPublishedState } from "../scripts/release-policy.mjs";
 import { prepareVersion, verifyPackage, verifyArtifact, verifyPackList } from "../scripts/release.mjs";
 import { publishRelease, waitForPublication, readPublicRegistry } from "../scripts/publish-release.mjs";
 import { command } from '../scripts/command.mjs';
+
+const releaseChannel = version => numericChannel(version, { legacy: true });
+const assertRegistryState = (version, state) => numericRegistryState(version, state, { legacy: true });
+const assertPublishedState = (release, before, after) => numericPublishedState(release, before, after, { legacy: true });
 
 const packageRoot = path.resolve(import.meta.dirname, "..");
 const readJson = async file => JSON.parse(await readFile(file, "utf8"));
@@ -46,6 +50,9 @@ async function fixture(t) {
   const root = await mkdtemp(path.join(tmpdir(), "textgraph-release-test-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   await mkdir(path.join(root, "generated"));
+  await mkdir(path.join(root, ".release"), { recursive: true });
+  await cp(path.join(packageRoot, ".release/target.json"), path.join(root, ".release/target.json"));
+  await cp(path.join(packageRoot, ".release/release-version.cjs"), path.join(root, ".release/release-version.cjs"));
   for (const file of ["package.json", "package-lock.json", "generated/wasm-manifest.json", "generated/wasm-manifest.js"]) {
     await cp(path.join(packageRoot, file), path.join(root, file));
   }
@@ -262,7 +269,6 @@ test("coordinated SDK checkout refuses direct off-policy preparation without mut
 
 test('prepack preserves the coordinated release gate when React and sample commands are present', async t => {
   const root = await fixture(t);
-  await mkdir(path.join(root, '.release'));
   await cp(path.join(packageRoot, '.release/check.cjs'), path.join(root, '.release/check.cjs'));
   const target = await readJson(path.join(packageRoot, '.release/target.json'));
   await writeFile(path.join(root, '.release/target.json'), JSON.stringify({
@@ -270,4 +276,32 @@ test('prepack preserves the coordinated release gate when React and sample comma
   }));
   await assert.rejects(command('npm', ['run', 'prepack', '--workspaces=false'], root),
     /Release check: .*not publishable.*Not approved for this coordinated release/);
+});
+
+test("numeric release policy uses patch zero for stable and all remaining single digits for preview", () => {
+  for (let patch = 0; patch <= 9; patch++) assert.equal(numericChannel('0.3.' + patch).tag, patch === 0 ? 'latest' : 'alpha');
+  for (const version of ['0.3.1-alpha.1', '0.3.10', '00.3.1']) assert.throws(() => numericChannel(version));
+  const registry = { 'dist-tags': { latest: '0.3.0', alpha: '0.3.1' }, versions: { '0.3.0': {} } };
+  assert.doesNotThrow(() => numericRegistryState('0.3.2', registry));
+  assert.throws(() => numericRegistryState('0.3.1', { ...registry, 'dist-tags': { latest: '0.3.0', alpha: '0.3.2' } }), /older/);
+  assert.throws(() => numericRegistryState('0.3.2', { 'dist-tags': { latest: '0.4.0' }, versions: { '0.4.0': {} } }), /older latest/);
+});
+test("schema-two preparation rejects legacy identities before changing metadata", async t => {
+  const root = await fixture(t);
+  await writeFile(path.join(root, '.release/target.json'), JSON.stringify({ schemaVersion: 2 }));
+  const before = await readFile(path.join(root, 'package.json'));
+  await assert.rejects(prepareVersion(root, '0.3.1-alpha.1'));
+  assert.deepEqual(await readFile(path.join(root, 'package.json')), before);
+  assert.equal((await prepareVersion(root, '0.3.2')).tag, 'alpha');
+});
+
+test("numeric artifact receipt carries its schema and cannot be replayed as a historical default", async t => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'numeric-sdk-artifact-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+  const bytes=Buffer.from('numeric archive');
+  const receipt={...numericChannel('0.3.2'),name:'@drawmotive/textgraph',releaseSchemaVersion:2,filename:'drawmotive-textgraph-0.3.2.tgz',integrity:'sha512-'+createHash('sha512').update(bytes).digest('base64')};
+  await writeFile(path.join(directory,receipt.filename),bytes);await writeFile(path.join(directory,'release.json'),JSON.stringify(receipt));
+  assert.deepEqual(await verifyArtifact(directory,receipt,{legacy:false}),receipt);
+  await assert.rejects(verifyArtifact(directory,receipt,{legacy:true}),/release schema mismatch/);
+  delete receipt.releaseSchemaVersion;await writeFile(path.join(directory,'release.json'),JSON.stringify(receipt));
+  await assert.rejects(verifyArtifact(directory,undefined,{legacy:false}),/release schema mismatch/);
 });

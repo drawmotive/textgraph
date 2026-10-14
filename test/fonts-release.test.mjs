@@ -4,7 +4,7 @@ import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { fontsRoot, fontsReleaseChannel, verifyFontsPackage, verifyFontsPackList, packFontsRelease, verifyFontsArtifact } from '../scripts/fonts-release.mjs';
+import { fontsRoot, fontsReleaseChannel as numericFontsChannel, verifyFontsPackage, verifyFontsPackList, packFontsRelease, verifyFontsArtifact } from '../scripts/fonts-release.mjs';
 import { publishFontsRelease } from '../scripts/publish-fonts-release.mjs';
 import { readPublicRegistry } from '../scripts/publish-release.mjs';
 
@@ -36,6 +36,8 @@ async function artifact(t) {
   return { directory, release };
 }
 const registryVersion = release => ({ [release.version]: { dist: { integrity: release.integrity } } });
+
+const fontsReleaseChannel = version => numericFontsChannel(version, { legacy: true });
 
 test('fonts use an independent Git tag and the shared strict npm channel policy', () => {
   assert.deepEqual(fontsReleaseChannel('0.2.2-alpha.1'), { version: '0.2.2-alpha.1', tag: 'alpha', gitTag: 'textgraph-fonts-v0.2.2-alpha.1' });
@@ -144,4 +146,19 @@ test('fonts registry reads and dist-tags address the fonts package independently
     assert.equal(registry['dist-tags'].alpha, '0.2.2-alpha.1');
     assert.deepEqual(calls, ['https://registry.npmjs.org/@drawmotive%2ftextgraph-fonts', 'https://registry.npmjs.org/-/package/@drawmotive%2ftextgraph-fonts/dist-tags']);
   } finally { globalThis.fetch = originalFetch; }
+});
+
+test('numeric fonts previews use the exact numeric identity and alpha channel', () => {
+  assert.deepEqual(numericFontsChannel('0.3.2'), { version: '0.3.2', tag: 'alpha', gitTag: 'textgraph-fonts-v0.3.2' });
+  assert.equal(numericFontsChannel('0.3.0').tag, 'latest');
+  assert.throws(() => numericFontsChannel('0.3.10'));
+});
+
+test('numeric fonts artifact requires the numeric receipt schema before publication',async t=>{
+  const directory=await temporary(t),bytes=Buffer.from('numeric font archive');
+  const receipt={...numericFontsChannel('0.3.2'),name:'@drawmotive/textgraph-fonts',releaseSchemaVersion:2,filename:'drawmotive-textgraph-fonts-0.3.2.tgz',integrity:hash(bytes)};
+  await writeFile(path.join(directory,receipt.filename),bytes);await writeFile(path.join(directory,'release.json'),JSON.stringify(receipt));
+  assert.deepEqual(await verifyFontsArtifact(directory,receipt,{legacy:false}),receipt);
+  delete receipt.releaseSchemaVersion;await writeFile(path.join(directory,'release.json'),JSON.stringify(receipt));
+  await assert.rejects(verifyFontsArtifact(directory,undefined,{legacy:false}),/release schema mismatch/);
 });

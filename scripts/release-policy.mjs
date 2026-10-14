@@ -1,31 +1,19 @@
-/** Select explicit publish tags; npm may also assign latest on first publication. */
-export function releaseChannel(version) {
-  if (typeof version !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-alpha\.(0|[1-9]\d*))?$/.test(version) || version.trim() !== version) {
-    throw new Error("Release version must be X.Y.Z or X.Y.Z-alpha.N, without a prefix or build metadata.");
-  }
-  return { version, tag: version.includes("-") ? "alpha" : "latest", gitTag: `textgraph-v${version}` };
-}
+import { releaseTag, compareReleaseVersions } from "../.release/release-version.cjs";
 
-function compareVersions(left, right) {
-  const parts = value => value.split(/\.|-alpha\./).map(BigInt);
-  const a = parts(left);
-  const b = parts(right);
-  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] > b[i] ? 1 : -1;
-  if (a.length !== b.length) return a.length === 3 ? 1 : -1;
-  return a[3] === b[3] ? 0 : a[3] > b[3] ? 1 : -1;
+/** Explicit targets select historical suffix rules or the numeric release sequence. */
+export function releaseChannel(version, options = {}) {
+  return { version, tag: releaseTag(version, options), gitTag: `textgraph-v${version}` };
 }
 
 /** Reject broken defaults and accidental channel rollback before an immutable publish. */
-export function assertRegistryState(version, packument) {
-  const release = releaseChannel(version);
+export function assertRegistryState(version, packument, options = {}) {
+  const release = releaseChannel(version, options);
   const tags = packument?.["dist-tags"] ?? {};
   if (tags.latest && !packument.versions?.[tags.latest]) {
     throw new Error("Registry latest must reference an existing version.");
   }
-  if (tags.latest) releaseChannel(tags.latest);
-  if (tags[release.tag]) {
-    releaseChannel(tags[release.tag]);
-    if (compareVersions(version, tags[release.tag]) < 0) throw new Error(`Refusing an older ${release.tag} release.`);
+  for (const tag of new Set(['latest', release.tag])) {
+    if (tags[tag] && compareReleaseVersions(version, tags[tag]) < 0) throw new Error(`Refusing an older ${tag} release.`);
   }
   return release;
 }
@@ -38,8 +26,8 @@ export function assertLatestPreserved(release, before, after) {
 }
 
 /** Verify bytes and channels independently of npm CLI success output. */
-export function assertPublishedState(release, before, after) {
-  assertRegistryState(release.version, after);
+export function assertPublishedState(release, before, after, options = {}) {
+  assertRegistryState(release.version, after, options);
   if (after?.versions?.[release.version]?.dist?.integrity !== release.integrity) throw new Error("Published tarball integrity does not match the verified artifact.");
   if (after?.["dist-tags"]?.[release.tag] !== release.version) throw new Error(`Published ${release.tag} does not reference the release version.`);
   assertLatestPreserved(release, before, after);

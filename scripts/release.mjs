@@ -12,6 +12,13 @@ const readJson = async file => JSON.parse(await readFile(file, "utf8"));
 const json = value => `${JSON.stringify(value, null, 2)}\n`;
 const registry = "https://registry.npmjs.org/";
 
+/** Existing schema-one targets preserve frozen history; new targets require numeric identities. */
+export async function releaseOptions(root = packageRoot) {
+  const target = await readJson(path.join(root, ".release/target.json"));
+  assert.ok([1, 2].includes(target.schemaVersion), "Unknown release target schema.");
+  return { legacy: target.schemaVersion === 1 };
+}
+
 /** Change npm identity metadata together; existing native provenance stays factual. */
 export async function prepareVersion(root, version) {
   const targetPath = path.join(root, ".release/target.json");
@@ -19,7 +26,7 @@ export async function prepareVersion(root, version) {
     const target = await readJson(targetPath);
     if (version !== target.version) throw new Error("Version must match generated release target; update root release.json and release:sync.");
   }
-  const release = releaseChannel(version);
+  const release = releaseChannel(version, await releaseOptions(root));
   const pkg = await readJson(path.join(root, "package.json"));
   const lock = await readJson(path.join(root, "package-lock.json"));
   const manifest = await readJson(path.join(root, "generated/wasm-manifest.json"));
@@ -44,7 +51,8 @@ export async function verifyPackage(root = packageRoot, gitTag) {
     if (errors.length) throw new Error(errors.join("\n"));
   }
   const pkg = await readJson(path.join(root, "package.json"));
-  const release = releaseChannel(pkg.version);
+  const options = await releaseOptions(root);
+  const release = releaseChannel(pkg.version, options);
   assert.equal(pkg.name, "@drawmotive/textgraph", "Unexpected npm package");
   assert.notEqual(pkg.private, true, "Package is private");
   assert.deepEqual(pkg.publishConfig, { access: "public", registry, tag: release.tag }, "Unsafe publish configuration");
@@ -70,7 +78,7 @@ export async function verifyPackage(root = packageRoot, gitTag) {
   }
   const diskPaths = (await readdir(path.join(root, "generated/wasm"))).map(name => `wasm/${name}`).sort();
   assert.deepEqual(diskPaths, [...paths].sort(), "Unmanifested runtime assets");
-  return { ...release, name: pkg.name };
+  return { ...release, name: pkg.name, ...(options.legacy ? {} : { releaseSchemaVersion: 2 }) };
 }
 
 /** Inspect npm pack output, excluding private inputs and validating artifact identity. */
@@ -99,14 +107,16 @@ export async function packRelease(root = packageRoot, destination = path.join(ro
   verifyPackList(packed, release);
   const receipt = { ...release, filename: packed.filename, integrity: packed.integrity };
   await writeFile(path.join(destination, "release.json"), json(receipt));
-  await verifyArtifact(destination, release);
+  await verifyArtifact(destination, release, await releaseOptions(root));
   return receipt;
 }
 
 /** Reject modified artifacts and receipts before contacting the publication endpoint. */
-export async function verifyArtifact(directory, expected) {
+export async function verifyArtifact(directory, expected, options) {
   const receipt = await readJson(path.join(directory, "release.json"));
-  const release = releaseChannel(receipt.version);
+  options ??= await releaseOptions();
+  const release = releaseChannel(receipt.version, options);
+  assert.equal(receipt.releaseSchemaVersion, options.legacy ? undefined : 2, 'Artifact release schema mismatch');
   assert.equal(receipt.name, "@drawmotive/textgraph");
   for (const key of ["version", "tag", "gitTag"]) assert.equal(receipt[key], release[key], `Artifact ${key} mismatch`);
   if (expected) for (const key of ["name", "version", "tag", "gitTag"]) assert.equal(receipt[key], expected[key], `Artifact ${key} mismatch`);

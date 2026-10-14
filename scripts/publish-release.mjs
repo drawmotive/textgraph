@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { setTimeout } from "node:timers/promises";
 import { command } from "./command.mjs";
 import { assertRegistryState, assertPublishedState, assertLatestPreserved } from "./release-policy.mjs";
-import { packageRoot, verifyArtifact, verifyPackage } from "./release.mjs";
+import { packageRoot, verifyArtifact, verifyPackage, releaseOptions } from "./release.mjs";
 
 /** Registry absence is valid for a first release; other failures must stop publishing. */
 export async function readPublicRegistry(packageName = "@drawmotive/textgraph") {
@@ -25,15 +25,16 @@ export async function readPublicRegistry(packageName = "@drawmotive/textgraph") 
 }
 
 /** Registry reads may lag a successful write; unsafe visible state is never retried. */
-export async function waitForPublication(release, before, readRegistry, delay = setTimeout) {
+export async function waitForPublication(release, before, readRegistry, delay = setTimeout, options) {
+  options ??= await releaseOptions();
   for (let attempt = 0; attempt < 6; attempt++) {
     const after = await readRegistry();
-    assertRegistryState(release.version, after);
+    assertRegistryState(release.version, after, options);
     if (after) assertLatestPreserved(release, before, after);
     const published = after?.versions?.[release.version];
     if (published && published.dist?.integrity !== release.integrity) throw new Error("Published tarball integrity mismatch.");
     if (published && after?.["dist-tags"]?.[release.tag] === release.version) {
-      assertPublishedState(release, before, after);
+      assertPublishedState(release, before, after, options);
       return;
     }
     if (attempt < 5) await delay(2000);
@@ -42,18 +43,19 @@ export async function waitForPublication(release, before, readRegistry, delay = 
 }
 
 /** One immutable tarball is used for local bootstrap and CI trusted publishing. */
-export async function publishRelease({ directory, expected, dryRun = false, readRegistry = readPublicRegistry, run = command }) {
-  const release = await verifyArtifact(directory, expected);
+export async function publishRelease({ directory, expected, dryRun = false, readRegistry = readPublicRegistry, run = command, options }) {
+  options ??= await releaseOptions();
+  const release = await verifyArtifact(directory, expected, options);
   const before = await readRegistry();
-  assertRegistryState(release.version, before);
+  assertRegistryState(release.version, before, options);
   if (before?.versions?.[release.version]) {
-    assertPublishedState(release, before, before);
+    assertPublishedState(release, before, before, options);
     return { ...release, status: "already-published" };
   }
   const args = ["publish", path.join(directory, release.filename), "--ignore-scripts", "--access", "public", "--tag", release.tag, "--registry", "https://registry.npmjs.org/"];
   if (dryRun) args.push("--dry-run");
   await run("npm", args, packageRoot, { interactive: !dryRun });
-  if (!dryRun) await waitForPublication(release, before, readRegistry);
+  if (!dryRun) await waitForPublication(release, before, readRegistry, undefined, options);
   return { ...release, status: dryRun ? "dry-run" : "published" };
 }
 

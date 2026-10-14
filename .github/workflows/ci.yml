@@ -2,6 +2,7 @@ name: Package contracts
 on:
   push:
     branches: ["**"]
+    tags-ignore: ["coordinated-artifact-*"]
   pull_request:
   workflow_call:
     inputs:
