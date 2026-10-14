@@ -46,8 +46,9 @@ jobs:
           import { appendFileSync } from "node:fs";
           import { execFileSync } from "node:child_process";
           import { releaseChannel } from "./scripts/release-policy.mjs";
+          import { releaseOptions } from "./scripts/release.mjs";
           const tag = process.env.RELEASE_TAG;
-          const release = releaseChannel(tag.replace(/^textgraph-v/, ""));
+          const release = releaseChannel(tag.replace(/^textgraph-v/, ""), await releaseOptions());
           if (tag !== release.gitTag) throw new Error("Invalid release tag");
           const ref = execFileSync("git", ["rev-parse", `refs/tags/${tag}^{commit}`], { encoding: "utf8" }).trim();
           if (process.env.GITHUB_REF !== `refs/tags/${tag}` || process.env.GITHUB_SHA !== ref) {

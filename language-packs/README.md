@@ -2,12 +2,14 @@
 
 Optional local font assets for Chinese, Japanese, and color emoji. The package contains no WASM runtime and does not download fonts during installation. Importing its metadata does not read font binaries. Compatible TextGraph renderers load a font only when displayed text needs it.
 
+Use matching SDK/font versions in production. New numeric releases use patch `0` for stable and `1` through `9` for previews on the `alpha` channel; historical suffixed releases remain installable.
+
 ## Supported environments
 
 | Layer | Supported environment | Verification boundary |
 | --- | --- | --- |
 | Package build and font-copy CLI | Node.js 22; npm 10 on Linux, Windows and macOS | CI targets all three systems with Node 22 |
-| Rendering | Matching TextGraph SDK 0.2.2-alpha.2 in Node, browser or module Worker | Font support follows the renderer; fonts do not supply their own runtime |
+| Rendering | Matching public TextGraph SDK in Node, browser or module Worker | Font support follows the renderer; fonts do not supply their own runtime |
 | Browser deployment | SDK-supported Chromium, Firefox and WebKit with HTTPS or localhost | These are SDK test engines, not separate font-package browser or device certification |
 
 The standalone font-package audit on 2026-10-01 ran Linux x64, Node 22.23.2
@@ -15,7 +17,7 @@ and npm 10.9.8. It did not execute Windows/macOS checks. Vite hosts
 require Node 22.12+ on the 22 line.
 
 ```bash
-npm install @drawmotive/textgraph@0.2.2-alpha.2 @drawmotive/textgraph-fonts@0.2.2-alpha.2
+npm install @drawmotive/textgraph@alpha @drawmotive/textgraph-fonts@alpha
 ```
 
 ```javascript

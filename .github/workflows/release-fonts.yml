@@ -45,9 +45,10 @@ jobs:
           node --input-type=module <<'JS'
           import { appendFileSync } from 'node:fs';
           import { execFileSync } from 'node:child_process';
-          import { fontsReleaseChannel } from './scripts/fonts-release.mjs';
+          import { fontsReleaseChannel, fontsRoot } from './scripts/fonts-release.mjs';
+          import { releaseOptions } from './scripts/release.mjs';
           const tag = process.env.RELEASE_TAG;
-          const release = fontsReleaseChannel(tag.replace(/^textgraph-fonts-v/, ''));
+          const release = fontsReleaseChannel(tag.replace(/^textgraph-fonts-v/, ''), await releaseOptions(fontsRoot));
           if (tag !== release.gitTag) throw new Error('Invalid fonts release tag');
           const ref = execFileSync('git', ['rev-parse', `refs/tags/${tag}^{commit}`], { encoding: 'utf8' }).trim();
           if (process.env.GITHUB_REF !== `refs/tags/${tag}` || process.env.GITHUB_SHA !== ref) {
