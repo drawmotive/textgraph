@@ -22,7 +22,11 @@
     "ja",
     "emoji",
     "assets",
-    "scripts"
+    "scripts",
+    "examples/online-order.textgraph",
+    "examples/online-order.png",
+    "examples/cjk-emoji.textgraph",
+    "examples/cjk-emoji.png"
   ],
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.mjs",

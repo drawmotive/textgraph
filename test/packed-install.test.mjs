@@ -18,6 +18,7 @@ test('npm tarball works outside the private workspace with no development depend
     const { stdout } = await runNpm(['pack', '--ignore-scripts', '--json', '--workspaces=false', '--pack-destination', root], packageRoot);
     const [packed] = JSON.parse(stdout);
     assert.ok(packed.files.some(file => file.path === 'generated/wasm-manifest.js'));
+    for (const file of ['docs/images/online-order.png', 'examples/online-order.textgraph']) assert.ok(packed.files.some(item => item.path === file), 'Missing README example: ' + file);
     assert.ok(packed.files.some(file => file.path === 'schemas/validation.schema.json'));
     assert.ok(packed.files.some(file => file.path === 'schemas/render-svg.schema.json'));
     assert.deepEqual(packed.files.filter(file => file.path.endsWith('.ttf')).map(file => file.path).sort(), [

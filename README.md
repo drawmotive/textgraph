@@ -13,21 +13,46 @@ API or API key is required.
 
 ## A few lines. A diagram.
 
-```textgraph
-(horizontal)
-browser -> api -> database
+<!-- public-preview:start -->
 
-browser: Browser
-api(fill primary): API Gateway
-database: Database
+```textgraph
+shopping(info): Shopping {
+  browse -> checkout
+}
+
+processing(primary): Behind the scenes {
+  payment -> saved : Yes
+  payment ->(dashed warning) retry : No
+  retry ->(dashed warning) payment
+  saved -> email
+}
+
+delivery(success): Delivery {
+  pack -> ship -> arrived
+}
+
+checkout -> payment
+saved -> pack
+
+browse: Browse the shop
+checkout: Place an order
+payment(diamond fill primary): Payment\naccepted?
+retry(warning): Try another\npayment
+saved: Save the order
+email: Send confirmation\nemail
+pack: Prepare the package
+ship: Ship the package
+arrived(ellipse fill success): Package arrives
 ```
 
-![TextGraph output: Browser connects to API Gateway, which connects to Database.](https://raw.githubusercontent.com/drawmotive/textgraph/main/docs/images/service-flow.png)
+![Online order: shopping, a payment decision and retry, confirmation, and delivery.](docs/images/online-order.png)
 
-**[Edit this exact diagram in the playground →](https://textgraph.dev/playground#source=%28horizontal%29%0Abrowser%20-%3E%20api%20-%3E%20database%0A%0Abrowser%3A%20Browser%0Aapi%28fill%20primary%29%3A%20API%20Gateway%0Adatabase%3A%20Database%0A)**
+[Open the full diagram](docs/images/online-order.png) · [Copy the source](examples/online-order.textgraph) · [Try this diagram](https://textgraph.dev/playground?d=1.eJxtkcFqwzAQRO_6ij3ah_yADimEnksgvRRy2UqbaIm9EivHwZT-e5GlJAR6MlppZmeec4gpsZw7llPsLRzaGX4MwLfGWybYbMEFcpd4ncyvMUmjo5yLKCmPqEtvYUeBxcMUCLIjobwaJFxGkqk4ZJzJg4Uvyi8XncccyMMNVVjOPShNuoCFj2igHf551QwMNOPNFmhEHkpATwPPpEuXr64k7S28t1FL5S5rpMCpfFGVZ_JFeu9ZxvcVjwVFZ0yFYmFX4ayNQ0wPqYX9gI4ABaJ6UtN8Os84RvFw4mGAJ7l9vT4KOkdpIv9m1tbdvauFT10AJU6B9CgvsSwccK4h6rIVgoUDiQcX5cQ64sRRjlLxlA4W9koJterKBM9kCo3y_zm9jBucjoaBU6aa_gl2X581htn8AYyRzTM)
 
-Actual SDK output from
-[service-flow.textgraph](https://github.com/drawmotive/textgraph/blob/main/examples/service-flow.textgraph).
+<!-- public-preview:end -->
+
+For Chinese, Japanese, and color emoji, see the [packaged font examples](https://github.com/drawmotive/textgraph/tree/main/language-packs#language-coverage).
+
 Keep source in version control and render again when relationships change.
 TextGraph uses a small, structured language; it does not interpret unrestricted prose.
 

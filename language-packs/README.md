@@ -4,6 +4,63 @@ Optional local font assets for Chinese, Japanese, and color emoji. The package c
 
 Use matching SDK/font versions in production. New numeric releases use patch `0` for stable and `1` through `9` for previews on the `alpha` channel; historical suffixed releases remain installable.
 
+## Example output
+
+<!-- public-preview:start -->
+
+```textgraph
+shopping(info): Shopping {
+  browse -> checkout
+}
+
+processing(primary): Behind the scenes {
+  payment -> saved : Yes
+  payment ->(dashed warning) retry : No
+  retry ->(dashed warning) payment
+  saved -> email
+}
+
+delivery(success): Delivery {
+  pack -> ship -> arrived
+}
+
+checkout -> payment
+saved -> pack
+
+browse: Browse the shop
+checkout: Place an order
+payment(diamond fill primary): Payment\naccepted?
+retry(warning): Try another\npayment
+saved: Save the order
+email: Send confirmation\nemail
+pack: Prepare the package
+ship: Ship the package
+arrived(ellipse fill success): Package arrives
+```
+
+![Online order: shopping, a payment decision and retry, confirmation, and delivery.](examples/online-order.png)
+
+[Open the full diagram](examples/online-order.png) · [Copy the source](examples/online-order.textgraph) · [Try this diagram](https://textgraph.dev/playground?d=1.eJxtkcFqwzAQRO_6ij3ah_yADimEnksgvRRy2UqbaIm9EivHwZT-e5GlJAR6MlppZmeec4gpsZw7llPsLRzaGX4MwLfGWybYbMEFcpd4ncyvMUmjo5yLKCmPqEtvYUeBxcMUCLIjobwaJFxGkqk4ZJzJg4Uvyi8XncccyMMNVVjOPShNuoCFj2igHf551QwMNOPNFmhEHkpATwPPpEuXr64k7S28t1FL5S5rpMCpfFGVZ_JFeu9ZxvcVjwVFZ0yFYmFX4ayNQ0wPqYX9gI4ABaJ6UtN8Os84RvFw4mGAJ7l9vT4KOkdpIv9m1tbdvauFT10AJU6B9CgvsSwccK4h6rIVgoUDiQcX5cQ64sRRjlLxlA4W9koJterKBM9kCo3y_zm9jBucjoaBU6aa_gl2X581htn8AYyRzTM)
+
+<!-- public-preview:end -->
+
+## Language coverage
+
+The optional font package renders Chinese, Japanese, and color emoji with package-local font bytes. Japanese kana selects the Japanese font; use the SDK language hint for Han-only Japanese labels. This example demonstrates selected glyphs, not every Unicode character.
+
+```textgraph
+(horizontal)
+chinese -> japanese -> emoji
+
+chinese: 中文开始繁體測試
+japanese: 日本語の図
+emoji: 😀 👩‍💻 🇯🇵 👍🏽 1️⃣
+```
+
+![Chinese and Japanese labels followed by color emoji, rendered with the packaged fonts.](examples/cjk-emoji.png)
+
+[Copy the multilingual source](examples/cjk-emoji.textgraph). Regenerate from the parent workspace with `npm run component -- textgraph examples:fonts`.
+
 ## Supported environments
 
 | Layer | Supported environment | Verification boundary |

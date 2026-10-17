@@ -55,6 +55,10 @@ export function verifyFontsPackList(packed, release, catalog) {
   assert.equal(packed.version, release.version, 'Tarball version mismatch');
   assert.equal(packed.filename, `drawmotive-textgraph-fonts-${release.version}.tgz`, 'Unexpected tarball filename');
   const required = [
+    'examples/online-order.textgraph',
+    'examples/online-order.png',
+    'examples/cjk-emoji.textgraph',
+    'examples/cjk-emoji.png',
     'package.json', 'README.md', 'index.js', 'index.d.ts', 'catalog.js', 'descriptor.js',
     'zh-cn/index.js', 'zh-cn/index.d.ts', 'ja/index.js', 'ja/index.d.ts', 'emoji/index.js', 'emoji/index.d.ts',
     'assets/font-catalog.json', 'assets/files.json', 'assets/provenance.json',

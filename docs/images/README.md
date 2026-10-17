@@ -1,28 +1,7 @@
-# README preview
+# Public previews
 
-`service-flow.png` is actual output from the package's bundled renderer, using
-`examples/service-flow.textgraph`. Keep the root README's source block and
-playground link synchronized with that file.
+online-order.png is a byte-for-byte copy of the canonical VS Code repository preview, paired with examples/online-order.textgraph. Each public repository owns its image and uses a relative README reference.
 
-Regenerate from the repository root with Node.js 22+:
+In the parent workspace, regenerate with `npm run component -- vscode-editor examples:render`, then run `npm run docs:previews -- sync` and `npm run docs:previews -- check`. Browser and VS Code screenshots come from their real application capture operations, not from the plain diagram render.
 
-```bash
-node --input-type=module <<'JS'
-import { readFile, writeFile } from 'node:fs/promises';
-import { initializeTextGraph } from '@drawmotive/textgraph/node';
-
-const textgraph = await initializeTextGraph();
-try {
-  const source = await readFile('examples/service-flow.textgraph', 'utf8');
-  const result = await textgraph.renderPng(source, { scale: 2, padding: 24 });
-  if (!result.success) throw new Error(JSON.stringify(result.diagnostics));
-  await writeFile('docs/images/service-flow.png', result.png);
-} finally {
-  await textgraph.dispose();
-}
-JS
-```
-
-The root README uses an absolute GitHub raw URL so the image works on npm as well
-as GitHub. Push the image and source to the public repository before publishing
-the next npm version; npm refreshes its displayed README on publication.
+The existing service-flow.png and its source remain available as a separate historical example. Public README display on npm must be checked separately from archive inclusion; publication is controller-owned.

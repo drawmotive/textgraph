@@ -75,10 +75,11 @@ test('packing the real fonts distribution retains exact bytes and requires its c
   const [packed] = JSON.parse(stdout);
   const catalog = await readJson(path.join(root, 'assets/font-catalog.json'));
   verifyFontsPackList(packed, release, catalog);
-  for (const file of ['assets/NotoSansJP-LICENSE.txt', 'assets/NotoColorEmoji.NOTICE.txt', 'assets/NotoSansSC-Regular.ttf', 'scripts/copy-fonts.mjs']) {
+  for (const file of ['examples/online-order.textgraph', 'examples/online-order.png', 'examples/cjk-emoji.textgraph', 'examples/cjk-emoji.png', 'assets/NotoSansJP-LICENSE.txt', 'assets/NotoColorEmoji.NOTICE.txt', 'assets/NotoSansSC-Regular.ttf', 'scripts/copy-fonts.mjs']) {
     assert.throws(() => verifyFontsPackList({ ...packed, files: packed.files.filter(item => item.path !== file) }, release, catalog), /missing/);
   }
   assert.throws(() => verifyFontsPackList({ ...packed, files: [...packed.files, { path: '.npmrc' }] }, release, catalog), /Unexpected/);
+  assert.throws(() => verifyFontsPackList({ ...packed, files: [...packed.files, { path: 'examples/unapproved.png' }] }, release, catalog), /Unexpected/);
   assert.throws(() => verifyFontsPackList({ ...packed, name: '@drawmotive/textgraph' }, release, catalog), /package mismatch/);
 });
 
