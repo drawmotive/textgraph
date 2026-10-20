@@ -123,10 +123,10 @@ For existing documentation, use the
 ## Install
 
 ```bash
-npm install @drawmotive/textgraph@alpha
+npm install @drawmotive/textgraph@0.3.0
 ```
 
-The `alpha` channel includes previews. New releases use numeric versions: patch `0` is stable and patches `1` through `9` are previews; historical suffixed versions remain available. See [release policy](docs/releases.md).
+The current stable release is `0.3.0`, available through `latest`. The `alpha` channel includes previews. New releases use numeric versions: patch `0` is stable and patches `1` through `9` are previews; historical suffixed versions remain available. See [release policy](docs/releases.md).
 
 Supports **Node.js 22** or a modern browser with WebAssembly and Web Crypto.
 Browser applications need HTTPS or localhost. React support is an optional entry
@@ -300,21 +300,21 @@ TypeScript declarations are included for every public entry point.
 
 ## Run the examples locally
 
-Samples are complete applications in the public repository and use a local
-package tarball. To try the React sample from a fresh checkout:
+Samples are complete applications in the public repository and pin the public
+`@drawmotive/textgraph@0.3.0` package. To try the React sample from a fresh checkout:
 
 ```bash
 git clone https://github.com/drawmotive/textgraph.git
 cd textgraph
-node samples/prepare.mjs react-vite
 cd samples/react-vite
+npm ci
 npm run dev
 ```
 
 Vite samples require Node.js **22.12+**. Replace `react-vite` with `browser` or
 `worker` for those samples. The Node sample uses `npm start` instead.
-Preparation packages the checkout and installs sample dependencies; it does not
-publish anything. Samples are not included in the npm package.
+The shared sample guide also describes explicit development tarball testing.
+Samples are not included in the npm package.
 
 [Sample setup and deployment →](https://github.com/drawmotive/textgraph/blob/main/samples/README.md)
 
@@ -324,7 +324,7 @@ publish anything. Samples are not included in the npm package.
   and source validation.
 - **Not available yet:** mind maps, sequence diagrams, and slides.
 - **Fonts:** Noto Sans and Fuzzy Bubbles are included. Custom font descriptors and
-  the optional published `@drawmotive/textgraph-fonts@0.2.2-alpha.2` package are supported.
+  the optional published `@drawmotive/textgraph-fonts@0.3.0` package are supported.
   See [font configuration](https://github.com/drawmotive/textgraph/blob/main/docs/api-v1.md#fonts-and-language-packs).
 
 ## Project links

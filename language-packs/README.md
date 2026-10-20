@@ -74,7 +74,7 @@ and npm 10.9.8. It did not execute Windows/macOS checks. Vite hosts
 require Node 22.12+ on the 22 line.
 
 ```bash
-npm install @drawmotive/textgraph@alpha @drawmotive/textgraph-fonts@alpha
+npm install @drawmotive/textgraph@0.3.0 @drawmotive/textgraph-fonts@0.3.0
 ```
 
 ```javascript

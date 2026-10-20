@@ -3,16 +3,28 @@
 > **[Report all TextGraph issues on GitHub →](https://github.com/drawmotive/textgraph/issues)**
 > Include problems with these samples in the shared tracker.
 
-These applications live with the SDK and consume its actual npm tarball. They do not import SDK source files or require the private .NET repository. Node.js 22.12+ is required for the Vite samples; the Node sample requires Node.js 22+.
+These applications live with the SDK and pin the public `@drawmotive/textgraph@0.3.0` package in their manifests and lockfiles. They do not import SDK source files or require the private .NET repository. Node.js 22.12+ is required for the Vite samples; the Node sample requires Node.js 22+.
 
-| Sample | Purpose | Run after preparation |
+| Sample | Purpose | Run after installation |
 | --- | --- | --- |
 | [browser](browser/) | Plain HTML and JavaScript: DSL to PNG | `cd samples/browser && npm run dev` |
 | [react-vite](react-vite/) | React component: source prop to diagram, live updates | `cd samples/react-vite && npm run dev` |
 | [worker](worker/) | Render in a module Worker; transfer PNG bytes to the page | `cd samples/worker && npm run dev` |
 | [node](node/) | Read a DSL file and write a PNG | `cd samples/node && npm start` |
 
-## Prepare from a fresh checkout
+## Run from a fresh checkout
+
+Install a sample's locked public dependencies, then run its command from the table:
+
+```bash
+cd samples/browser
+npm ci
+npm run dev
+```
+
+Each sample has its own `package.json` and lockfile and can be copied into another repository without changing its SDK dependency.
+
+## Test a development SDK tarball
 
 Run from the TextGraph repository root:
 
@@ -24,7 +36,7 @@ This packs the checked-out SDK into `samples/.artifacts/textgraph.tgz`, then ins
 
 This is a development test artifact, produced with `npm pack --ignore-scripts` just like the package-contract CI check. It is not a release artifact or proof of release readiness. Normal `npm pack` and release commands retain the coordinated release checks, including target version and native source provenance. Do not change package/native versions to make samples appear release-ready; prepare actual releases through the repository's release workflow.
 
-Each sample has its own `package.json` and lockfile. Preparation refreshes the local tarball integrity in selected lockfiles. Copying a sample to another repository is supported: change `@drawmotive/textgraph` to a published version that includes the API demonstrated, then run `npm install`. The React entry point and asset-copy command were added after `0.1.0-alpha.1`.
+Preparation replaces the selected samples' SDK dependencies with the local tarball and refreshes their lockfile integrity. Restore the committed manifests and lockfiles before returning to the published `0.3.0` SDK.
 
 ## Browser deployment and WASM
 
