@@ -6,13 +6,16 @@ import { createHash } from "node:crypto";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 import { releaseChannel as numericChannel, assertRegistryState as numericRegistryState, assertPublishedState as numericPublishedState } from "../scripts/release-policy.mjs";
-import { prepareVersion, verifyPackage, verifyArtifact, verifyPackList } from "../scripts/release.mjs";
-import { publishRelease, waitForPublication, readPublicRegistry } from "../scripts/publish-release.mjs";
+import { prepareVersion, verifyPackage, verifyArtifact as verifyReleaseArtifact, verifyPackList } from "../scripts/release.mjs";
+import { publishRelease as publishRetainedRelease, waitForPublication as waitForRetainedPublication, readPublicRegistry } from "../scripts/publish-release.mjs";
 import { command } from '../scripts/command.mjs';
 
 const releaseChannel = version => numericChannel(version, { legacy: true });
 const assertRegistryState = (version, state) => numericRegistryState(version, state, { legacy: true });
 const assertPublishedState = (release, before, after) => numericPublishedState(release, before, after, { legacy: true });
+const verifyArtifact = (directory, expected, options = { legacy: true }) => verifyReleaseArtifact(directory, expected, options);
+const publishRelease = options => publishRetainedRelease({ options: { legacy: true }, ...options });
+const waitForPublication = (release, before, readRegistry, delay) => waitForRetainedPublication(release, before, readRegistry, delay, { legacy: true });
 
 const packageRoot = path.resolve(import.meta.dirname, "..");
 const readJson = async file => JSON.parse(await readFile(file, "utf8"));
@@ -51,7 +54,8 @@ async function fixture(t) {
   t.after(() => rm(root, { recursive: true, force: true }));
   await mkdir(path.join(root, "generated"));
   await mkdir(path.join(root, ".release"), { recursive: true });
-  await cp(path.join(packageRoot, ".release/target.json"), path.join(root, ".release/target.json"));
+  const target = await readJson(path.join(packageRoot, ".release/target.json"));
+  await writeFile(path.join(root, ".release/target.json"), JSON.stringify({ ...target, schemaVersion: 1 }));
   await cp(path.join(packageRoot, ".release/release-version.cjs"), path.join(root, ".release/release-version.cjs"));
   for (const file of ["package.json", "package-lock.json", "generated/wasm-manifest.json", "generated/wasm-manifest.js"]) {
     await cp(path.join(packageRoot, file), path.join(root, file));
@@ -270,7 +274,7 @@ test("coordinated SDK checkout refuses direct off-policy preparation without mut
 test('prepack preserves the coordinated release gate when React and sample commands are present', async t => {
   const root = await fixture(t);
   await cp(path.join(packageRoot, '.release/check.cjs'), path.join(root, '.release/check.cjs'));
-  const target = await readJson(path.join(packageRoot, '.release/target.json'));
+  const target = await readJson(path.join(root, '.release/target.json'));
   await writeFile(path.join(root, '.release/target.json'), JSON.stringify({
     ...target, publishable: false, excludedReason: 'Not approved for this coordinated release',
   }));
