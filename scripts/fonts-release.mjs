@@ -36,7 +36,7 @@ export async function verifyFontsPackage(root = fontsRoot, gitTag) {
   const pkg = await readJson(path.join(root, 'package.json'));
   const target = await readJson(path.join(root, '.release/target.json'));
   assert.ok([1, 2].includes(target.schemaVersion), 'Unknown release target schema.');
-  const release = fontsReleaseChannel(pkg.version, { legacy: target.schemaVersion === 1 });
+  const release = fontsReleaseChannel(pkg.version, { legacy: target.schemaVersion === 1, channel: target.channel });
   assert.equal(pkg.name, packageName, 'Unexpected npm package');
   assert.notEqual(pkg.private, true, 'Package is private');
   assert.deepEqual(pkg.publishConfig, { access: 'public', registry: 'https://registry.npmjs.org/', tag: release.tag }, 'Unsafe publish configuration');
@@ -46,7 +46,7 @@ export async function verifyFontsPackage(root = fontsRoot, gitTag) {
     const bytes = await readFile(path.join(root, file));
     assert.equal(createHash('sha256').update(bytes).digest('hex'), expected, `License integrity mismatch: ${file}`);
   }
-  return { ...release, name: pkg.name, ...(target.schemaVersion === 1 ? {} : { releaseSchemaVersion: 2 }) };
+  return { ...release, name: pkg.name, ...(target.schemaVersion === 1 ? {} : { releaseSchemaVersion: 2, releaseChannel: target.channel }) };
 }
 
 /** Require the complete offline distribution and exclude release tooling/private data. */
@@ -88,6 +88,7 @@ export async function verifyFontsArtifact(directory, expected, options) {
   options ??= await releaseOptions(fontsRoot);
   const release = fontsReleaseChannel(receipt.version, options);
   assert.equal(receipt.releaseSchemaVersion, options.legacy ? undefined : 2, 'Artifact release schema mismatch');
+  if (receipt.releaseChannel !== undefined) assert.equal(receipt.releaseChannel, options.channel, 'Artifact release channel mismatch');
   assert.equal(receipt.name, packageName, 'Artifact package mismatch');
   for (const key of ['version', 'tag', 'gitTag']) assert.equal(receipt[key], release[key], `Artifact ${key} mismatch`);
   if (expected) for (const key of ['name', 'version', 'tag', 'gitTag']) assert.equal(receipt[key], expected[key], `Artifact ${key} mismatch`);

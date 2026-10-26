@@ -16,7 +16,7 @@ const registry = "https://registry.npmjs.org/";
 export async function releaseOptions(root = packageRoot) {
   const target = await readJson(path.join(root, ".release/target.json"));
   assert.ok([1, 2].includes(target.schemaVersion), "Unknown release target schema.");
-  return { legacy: target.schemaVersion === 1 };
+  return { legacy: target.schemaVersion === 1, ...(target.schemaVersion === 2 && target.channel !== undefined ? { channel: target.channel } : {}) };
 }
 
 /** Change npm identity metadata together; existing native provenance stays factual. */
@@ -78,7 +78,7 @@ export async function verifyPackage(root = packageRoot, gitTag) {
   }
   const diskPaths = (await readdir(path.join(root, "generated/wasm"))).map(name => `wasm/${name}`).sort();
   assert.deepEqual(diskPaths, [...paths].sort(), "Unmanifested runtime assets");
-  return { ...release, name: pkg.name, ...(options.legacy ? {} : { releaseSchemaVersion: 2 }) };
+  return { ...release, name: pkg.name, ...(options.legacy ? {} : { releaseSchemaVersion: 2, ...(options.channel === undefined ? {} : { releaseChannel: options.channel }) }) };
 }
 
 /** Inspect npm pack output, excluding private inputs and validating artifact identity. */
@@ -117,6 +117,7 @@ export async function verifyArtifact(directory, expected, options) {
   options ??= await releaseOptions();
   const release = releaseChannel(receipt.version, options);
   assert.equal(receipt.releaseSchemaVersion, options.legacy ? undefined : 2, 'Artifact release schema mismatch');
+  if (receipt.releaseChannel !== undefined) assert.equal(receipt.releaseChannel, options.channel, 'Artifact release channel mismatch');
   assert.equal(receipt.name, "@drawmotive/textgraph");
   for (const key of ["version", "tag", "gitTag"]) assert.equal(receipt[key], release[key], `Artifact ${key} mismatch`);
   if (expected) for (const key of ["name", "version", "tag", "gitTag"]) assert.equal(receipt[key], expected[key], `Artifact ${key} mismatch`);
