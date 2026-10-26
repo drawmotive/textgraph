@@ -11,7 +11,7 @@ Releases are selected deliberately and published by `.github/workflows/release.y
 
 Alpha releases update `alpha` and preserve an existing `latest`. npm may assign `latest` on a package’s first publication even when `alpha` is specified.
 
-New releases use numeric `X.Y.Z` versions: patch `0` is stable and patches `1` through `9` are previews. Every package and extension uses the same identity. Published schema-one targets retain their historical suffix rules for retries; new schema-two targets reject suffixes and multi-digit patches. The optional `@drawmotive/textgraph-fonts` package uses the separate fonts workflow described below.
+New releases use canonical numeric X.Y.Z versions. Every numeric version is stable and every package and extension uses the same identity. Patch fields may contain multiple digits. Published schema-one targets retain their historical suffix rules for retries; new schema-two targets reject suffixes and preview channel overrides. The optional @drawmotive/textgraph-fonts package uses the separate fonts workflow described below.
 
 ## Account setup
 

@@ -282,12 +282,12 @@ test('prepack preserves the coordinated release gate when React and sample comma
     /Release check: .*not publishable.*Not approved for this coordinated release/);
 });
 
-test("numeric release policy uses patch zero for stable and all remaining single digits for preview", () => {
-  for (let patch = 0; patch <= 9; patch++) assert.equal(numericChannel('0.3.' + patch).tag, patch === 0 ? 'latest' : 'alpha');
-  for (const version of ['0.3.1-alpha.1', '0.3.10', '00.3.1']) assert.throws(() => numericChannel(version));
+test("every numeric release uses latest including multi-digit patches", () => {
+  for (let patch = 0; patch <= 12; patch++) assert.equal(numericChannel('0.3.' + patch).tag, 'latest');
+  for (const version of ['0.3.1-alpha.1', '00.3.1']) assert.throws(() => numericChannel(version));
   const registry = { 'dist-tags': { latest: '0.3.0', alpha: '0.3.1' }, versions: { '0.3.0': {} } };
   assert.doesNotThrow(() => numericRegistryState('0.3.2', registry));
-  assert.throws(() => numericRegistryState('0.3.1', { ...registry, 'dist-tags': { latest: '0.3.0', alpha: '0.3.2' } }), /older/);
+  assert.throws(() => numericRegistryState('0.3.1', { 'dist-tags': { latest: '0.3.2', alpha: '0.3.0' }, versions: { '0.3.2': {} } }), /older/);
   assert.throws(() => numericRegistryState('0.3.2', { 'dist-tags': { latest: '0.4.0' }, versions: { '0.4.0': {} } }), /older latest/);
 });
 test("schema-two preparation rejects legacy identities before changing metadata", async t => {
@@ -296,7 +296,7 @@ test("schema-two preparation rejects legacy identities before changing metadata"
   const before = await readFile(path.join(root, 'package.json'));
   await assert.rejects(prepareVersion(root, '0.3.1-alpha.1'));
   assert.deepEqual(await readFile(path.join(root, 'package.json')), before);
-  assert.equal((await prepareVersion(root, '0.3.2')).tag, 'alpha');
+  assert.equal((await prepareVersion(root, '0.3.2')).tag, 'latest');
 });
 
 test("numeric artifact receipt carries its schema and cannot be replayed as a historical default", async t => {

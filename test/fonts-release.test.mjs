@@ -86,7 +86,7 @@ test('packing the real fonts distribution retains exact bytes and requires its c
 test('fonts artifact verification rejects tampering and receipt identity/channel substitution before network calls', async t => {
   const { directory, release } = await artifact(t);
   const noNetwork = async () => assert.fail('Artifact must be verified before registry access');
-  for (const patch of [{ name: '@drawmotive/textgraph' }, { tag: 'latest' }, { gitTag: 'textgraph-v0.3.1' }, { filename: '../other.tgz' }]) {
+  for (const patch of [{ name: '@drawmotive/textgraph' }, { tag: 'alpha' }, { gitTag: 'textgraph-v0.3.1' }, { filename: '../other.tgz' }]) {
     await writeFile(path.join(directory, 'release.json'), JSON.stringify({ ...release, ...patch }));
     await assert.rejects(publishFontsRelease({ directory, expected: release, options: { legacy: false }, readRegistry: noNetwork }), /mismatch/);
   }
@@ -95,14 +95,14 @@ test('fonts artifact verification rejects tampering and receipt identity/channel
   await assert.rejects(publishFontsRelease({ directory, expected: release, options: { legacy: false }, readRegistry: noNetwork }), /integrity mismatch/);
 });
 
-test('fonts bootstrap publishes alpha exactly once and accepts npm assigning the initial latest', async t => {
+test('fonts bootstrap publishes stable exactly once and assigns latest', async t => {
   const { directory, release } = await artifact(t);
   let registry = null;
   let writes = 0;
   const options = { directory, expected: release, options: { legacy: false }, readRegistry: async () => registry, run: async (executable, args) => {
     writes++;
     assert.equal(executable, 'npm');
-    assert.deepEqual(args, ['publish', path.join(directory, release.filename), '--ignore-scripts', '--access', 'public', '--tag', 'alpha', '--registry', 'https://registry.npmjs.org/']);
+    assert.deepEqual(args, ['publish', path.join(directory, release.filename), '--ignore-scripts', '--access', 'public', '--tag', 'latest', '--registry', 'https://registry.npmjs.org/']);
     registry = { 'dist-tags': { alpha: release.version, latest: release.version }, versions: registryVersion(release) };
   } };
   assert.equal((await publishFontsRelease(options)).status, 'published');
@@ -113,18 +113,14 @@ test('fonts bootstrap publishes alpha exactly once and accepts npm assigning the
   assert.equal(writes, 1);
 });
 
-test('subsequent fonts alpha publications preserve latest and refuse channel rollback', async t => {
+test('subsequent stable fonts publications advance latest and refuse channel rollback', async t => {
   const { directory, release } = await artifact(t);
-  const before = { 'dist-tags': { latest: '0.2.1' }, versions: { '0.2.1': {} } };
-  for (const preserveLatest of [true, false]) {
-    let registry = before;
-    const operation = publishFontsRelease({ directory, expected: release, options: { legacy: false }, readRegistry: async () => registry, run: async () => {
-      registry = { 'dist-tags': { alpha: release.version, latest: preserveLatest ? '0.2.1' : release.version }, versions: { ...before.versions, ...registryVersion(release) } };
-    } });
-    if (preserveLatest) assert.equal((await operation).status, 'published');
-    else await assert.rejects(operation, /latest/);
-  }
-  await assert.rejects(publishFontsRelease({ directory, expected: release, options: { legacy: false }, readRegistry: async () => ({ ...before, 'dist-tags': { ...before['dist-tags'], alpha: '0.3.2' } }), run: async () => assert.fail('Must not downgrade alpha') }), /older/);
+  const before = { 'dist-tags': { latest: '0.3.0' }, versions: { '0.3.0': {} } };
+  let registry = before;
+  assert.equal((await publishFontsRelease({ directory, expected: release, options: { legacy: false }, readRegistry: async () => registry, run: async () => {
+    registry = { 'dist-tags': { latest: release.version }, versions: { ...before.versions, ...registryVersion(release) } };
+  } })).status, 'published');
+  await assert.rejects(publishFontsRelease({ directory, expected: release, options: { legacy: false }, readRegistry: async () => ({ 'dist-tags': { latest: '0.3.2' }, versions: { '0.3.2': {} } }), run: async () => assert.fail('Must not downgrade latest') }), /older/);
 });
 
 test('fonts dry-run verifies the retained artifact and passes an explicit dry-run to npm', async t => {
@@ -149,10 +145,10 @@ test('fonts registry reads and dist-tags address the fonts package independently
   } finally { globalThis.fetch = originalFetch; }
 });
 
-test('numeric fonts previews use the exact numeric identity and alpha channel', () => {
-  assert.deepEqual(numericFontsChannel('0.3.2'), { version: '0.3.2', tag: 'alpha', gitTag: 'textgraph-fonts-v0.3.2' });
+test('numeric fonts releases use the exact numeric identity and latest channel', () => {
+  assert.deepEqual(numericFontsChannel('0.3.2'), { version: '0.3.2', tag: 'latest', gitTag: 'textgraph-fonts-v0.3.2' });
   assert.equal(numericFontsChannel('0.3.0').tag, 'latest');
-  assert.throws(() => numericFontsChannel('0.3.10'));
+  assert.equal(numericFontsChannel('0.3.10').tag, 'latest');
 });
 
 test('numeric fonts artifact requires the numeric receipt schema before publication',async t=>{
