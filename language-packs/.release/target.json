@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
-  "releaseVersion": "0.3.0",
+  "releaseVersion": "0.3.1",
   "channel": "stable",
   "name": "@drawmotive/textgraph-fonts",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "dependencies": {},
   "native": false,
   "publishable": true
