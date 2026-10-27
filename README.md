@@ -119,7 +119,7 @@ For existing documentation, use the
 npm install @drawmotive/textgraph@0.3.0
 ```
 
-The current stable release is `0.3.0`, available through `latest`. The `alpha` channel includes previews. New releases use numeric versions: patch `0` is stable and patches `1` through `9` are previews; historical suffixed versions remain available. See [release policy](docs/releases.md).
+The current stable release is `0.3.0`, available through `latest`. The `alpha` channel includes previews. New releases use canonical numeric versions; every numeric version is stable and publishes to the latest channel. Historical suffixed versions remain available. See [release policy](docs/releases.md).
 
 Supports **Node.js 22** or a modern browser with WebAssembly and Web Crypto.
 Browser applications need HTTPS or localhost. React support is an optional entry

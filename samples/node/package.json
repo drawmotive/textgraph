@@ -9,6 +9,6 @@
     "start": "node index.mjs"
   },
   "dependencies": {
-    "@drawmotive/textgraph": "0.3.0"
+    "@drawmotive/textgraph": "0.3.1"
   }
 }
