@@ -2,6 +2,14 @@
 
 Optional local font assets for Chinese, Japanese, and color emoji. The package contains no WASM runtime and does not download fonts during installation. Importing its metadata does not read font binaries. Compatible TextGraph renderers load a font only when displayed text needs it.
 
+This package serves offline applications and integrations. Its complete font
+distribution and npm release are independent of the shared online resources at
+assets.drawmotive.com. The online fallback is used only when a host has no local
+font source; it is not an installation dependency or a replacement for shipping
+the package's bytes. Offline hosts include the package or its copied assets and
+set the renderer's font fallback to false. A damaged configured local source
+reports its error instead of silently downloading another distribution.
+
 Use matching SDK/font versions in production. New numeric releases use patch `0` for stable and `1` through `9` for previews on the `alpha` channel; historical suffixed releases remain installable.
 
 ## Example output

@@ -68,8 +68,8 @@ const runtime = await initializeTextGraph({
 
 `fontAssets.catalog` is authoritative: missing or corrupt files fail without silently
 switching versions. With no catalog or language packs, fonts are resolved on demand
-from `https://diagrams-staging.drawmotive.com/editor/static/font-catalog.json`.
-Font paths resolve relative to that catalog beneath `/editor/static/`. Set `fallback: false`
+from `https://assets.drawmotive.com/static/font-catalog.json`.
+Font paths resolve relative to that catalog beneath `/static/`. Set `fallback: false`
 to prohibit that external access, or supply another catalog URL as `fallback`.
 Installing a local package takes precedence over fallback even in offline mode.
 Use `languagePacks: []` with `fallback: false` to explicitly disable automatic font sources.

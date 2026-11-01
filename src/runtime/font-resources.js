@@ -6,8 +6,8 @@ import { readVerifiedFontAsset } from './font-cache.js';
 import { throwIfAborted } from './lifecycle.js';
 
 export const fontCapability = 'textgraph-fonts-v1';
-// The diagrams host serves its native font distribution beneath the editor base.
-const defaultFontCatalog = 'https://diagrams-staging.drawmotive.com/editor/static/font-catalog.json';
+// Shared online assets publish independently of applications and offline npm packs.
+const defaultFontCatalog = 'https://assets.drawmotive.com/static/font-catalog.json';
 
 export function fontBase64(bytes) {
   const chunks = [];
