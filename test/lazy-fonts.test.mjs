@@ -54,12 +54,12 @@ test("local catalog and font bytes load only for encountered text; installed fon
   assert.ok(f.calls.findIndex(c => c.operation === "install-fonts") < f.calls.findIndex(c => c.operation === "render" && c.source === "中"));
 });
 
-test("unconfigured online host falls back to staging only on demand; offline host never does", async () => {
+test("unconfigured online host uses diagrams fonts only on demand; offline host never does", async () => {
   const online = fixture();
   await online.execute(request("English"));
   assert.ok(online.reads.every(url => url.startsWith("https://site.test/")));
   await online.execute(request("中"));
-  assert.deepEqual(online.reads.slice(2), ["https://staging.drawmotive.com/static/font-catalog.json", `https://staging.drawmotive.com/static/chinese.ttf?v=${entries[0].sha256}`]);
+  assert.deepEqual(online.reads.slice(2), ["https://diagrams-staging.drawmotive.com/editor/static/font-catalog.json", `https://diagrams-staging.drawmotive.com/editor/static/chinese.ttf?v=${entries[0].sha256}`]);
   const offline = fixture({ fontAssets: { fallback: false } });
   await offline.execute(request("中"));
   assert.equal(offline.reads.length, 2);

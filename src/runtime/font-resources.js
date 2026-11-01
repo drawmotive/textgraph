@@ -6,7 +6,8 @@ import { readVerifiedFontAsset } from './font-cache.js';
 import { throwIfAborted } from './lifecycle.js';
 
 export const fontCapability = 'textgraph-fonts-v1';
-const stagingCatalog = 'https://staging.drawmotive.com/static/font-catalog.json';
+// The diagrams host serves its native font distribution beneath the editor base.
+const defaultFontCatalog = 'https://diagrams-staging.drawmotive.com/editor/static/font-catalog.json';
 
 export function fontBase64(bytes) {
   const chunks = [];
@@ -80,7 +81,7 @@ export function createFontPreparation({ options, readAsset, execute }) {
   const installed = new Set(packs.flatMap(pack => pack.fonts).filter(font => !font.coverage).map(font => font.family));
   const settings = options.fontAssets ?? {};
   // A configured package is authoritative, including its failures. Never probe another source silently.
-  const catalogUrl = settings.catalog ?? (packs.length ? undefined : settings.fallback === false ? undefined : settings.fallback ?? new URL(stagingCatalog));
+  const catalogUrl = settings.catalog ?? (packs.length ? undefined : settings.fallback === false ? undefined : settings.fallback ?? new URL(defaultFontCatalog));
   let catalog;
   async function candidates(context) {
     if (!catalogUrl) return explicit;
