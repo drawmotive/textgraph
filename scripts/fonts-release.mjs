@@ -21,7 +21,7 @@ const licenseHashes = {
   'assets/NotoSansSC-LICENSE.txt': '1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9',
   'assets/NotoSansJP-LICENSE.txt': '1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9',
   'assets/NotoColorEmoji.LICENSE.txt': '6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2',
-  'assets/NotoColorEmoji.NOTICE.txt': '2971652640a0602abc1a9f9fa83ea176c238ca2b651b4aedafaefe8825e54518',
+  'assets/NotoColorEmoji.NOTICE.txt': 'c36ddf2d840972650b35192ee786159192aa1d7f24a73d5766930286ea08cee6',
 };
 
 /** Fonts share version/channel policy but have an independent immutable Git tag. */
