@@ -84,6 +84,8 @@ jobs:
           cache: npm
       - run: npm install --global npm@12.2.1
       - run: npm ci
+      - name: Use the Ubuntu archive over HTTPS
+        run: sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:browser
       - run: npm run test:samples
