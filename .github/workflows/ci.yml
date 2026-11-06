@@ -37,7 +37,7 @@ jobs:
           name: textgraph-npm-${{ matrix.os }}-node-${{ matrix.node }}
           path: "*.tgz"
           if-no-files-found: error
-      - run: node samples/prepare.mjs node
+      - run: npm run samples:prepare -- node
       - run: npm run test:samples:node
       - name: Check React 18 compatibility
         run: |
