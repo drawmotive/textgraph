@@ -27,6 +27,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
+      - run: npm install --global npm@12.2.1
       - run: npm ci
       - run: npm test
       - run: npm run build
@@ -61,6 +62,7 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
           cache-dependency-path: language-packs/package-lock.json
+      - run: npm install --global npm@12.2.1
       - run: npm ci --workspaces=false
       - run: npm test
       - run: npm run build
@@ -80,6 +82,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - run: npm install --global npm@12.2.1
       - run: npm ci
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:browser

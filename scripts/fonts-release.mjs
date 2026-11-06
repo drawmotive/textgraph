@@ -1,3 +1,4 @@
+import { parseNpmPack } from "../.release/release-registry.mjs";
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -74,7 +75,7 @@ export async function packFontsRelease(root = fontsRoot, destination = path.join
   const release = await verifyFontsPackage(root, gitTag);
   await mkdir(destination, { recursive: true });
   const { stdout } = await command('npm', ['pack', '--ignore-scripts', '--json', '--workspaces=false', '--pack-destination', destination], root);
-  const [packed] = JSON.parse(stdout);
+  const packed = parseNpmPack(stdout, release.name);
   verifyFontsPackList(packed, release, await readJson(path.join(root, 'assets/font-catalog.json')));
   const receipt = { ...release, filename: packed.filename, integrity: packed.integrity };
   await writeFile(path.join(destination, 'release.json'), `${JSON.stringify(receipt, null, 2)}\n`);

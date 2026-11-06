@@ -1,3 +1,4 @@
+import { parseNpmPack } from "../.release/release-registry.mjs";
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -72,7 +73,7 @@ test('packing the real fonts distribution retains exact bytes and requires its c
   assert.equal(hash(await readFile(path.join(directory, release.filename))), release.integrity);
   const { command } = await import('../scripts/command.mjs');
   const { stdout } = await command('npm', ['pack', '--ignore-scripts', '--dry-run', '--json', '--workspaces=false'], root);
-  const [packed] = JSON.parse(stdout);
+  const packed = parseNpmPack(stdout, release.name);
   const catalog = await readJson(path.join(root, 'assets/font-catalog.json'));
   verifyFontsPackList(packed, release, catalog);
   for (const file of ['examples/online-order.textgraph', 'examples/online-order.png', 'examples/cjk-emoji.textgraph', 'examples/cjk-emoji.png', 'assets/NotoSansJP-LICENSE.txt', 'assets/NotoColorEmoji.NOTICE.txt', 'assets/NotoSansSC-Regular.ttf', 'scripts/copy-fonts.mjs']) {

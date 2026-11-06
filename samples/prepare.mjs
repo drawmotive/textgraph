@@ -1,3 +1,4 @@
+import { parseNpmPack } from "../.release/release-registry.mjs";
 import { mkdir, rename } from 'node:fs/promises';
 import path from 'node:path';
 import { command } from '../scripts/command.mjs';
@@ -16,7 +17,7 @@ for (const sample of samples) {
 // still enforce the coordinated target and native provenance without overrides.
 await mkdir(artifacts, { recursive: true });
 const { stdout: output } = await command('npm', ['pack', '--ignore-scripts', '--json', '--workspaces=false', '--pack-destination', artifacts], root);
-const [packed] = JSON.parse(output);
+const packed = parseNpmPack(output, '@drawmotive/textgraph');
 await rename(path.join(artifacts, packed.filename), path.join(artifacts, 'textgraph.tgz'));
 for (const sample of samples) {
   await command('npm', ['install', '../.artifacts/textgraph.tgz', '--save-exact', '--ignore-scripts', '--workspaces=false', '--no-audit', '--no-fund'], path.join(import.meta.dirname, sample), { interactive: true });

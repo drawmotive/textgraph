@@ -1,3 +1,4 @@
+import { parseNpmPack } from "../.release/release-registry.mjs";
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -16,7 +17,7 @@ test('npm tarball works outside the private workspace with no development depend
   try {
     const packageRoot = path.resolve(import.meta.dirname, '..');
     const { stdout } = await runNpm(['pack', '--ignore-scripts', '--json', '--workspaces=false', '--pack-destination', root], packageRoot);
-    const [packed] = JSON.parse(stdout);
+    const packed = parseNpmPack(stdout, '@drawmotive/textgraph');
     assert.ok(packed.files.some(file => file.path === 'generated/wasm-manifest.js'));
     for (const file of ['docs/images/online-order.png', 'examples/online-order.textgraph']) assert.ok(packed.files.some(item => item.path === file), 'Missing README example: ' + file);
     assert.ok(packed.files.some(file => file.path === 'schemas/validation.schema.json'));
@@ -45,7 +46,7 @@ test('npm tarball works outside the private workspace with no development depend
     assert.deepEqual(await readFile(path.join(consumer, 'public/textgraph/wasm/dotnet.native.wasm')),
       await readFile(path.join(packageRoot, 'generated/wasm/dotnet.native.wasm')));
     const { stdout: fontPackOutput } = await runNpm(['pack', '--ignore-scripts', '--json', '--workspaces=false', '--pack-destination', root], path.join(packageRoot, 'language-packs'));
-    const [fontPack] = JSON.parse(fontPackOutput);
+    const fontPack = parseNpmPack(fontPackOutput, '@drawmotive/textgraph-fonts');
     assert.equal(fontPack.name, '@drawmotive/textgraph-fonts');
     assert.ok(fontPack.files.some(file => file.path === 'index.d.ts'));
     assert.ok(fontPack.files.some(file => file.path === 'zh-cn/index.d.ts'));

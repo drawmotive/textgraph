@@ -1,3 +1,4 @@
+import { parseNpmPack } from "../.release/release-registry.mjs";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
@@ -103,7 +104,7 @@ export async function packRelease(root = packageRoot, destination = path.join(ro
   const release = await verifyPackage(root, gitTag);
   await mkdir(destination, { recursive: true });
   const { stdout } = await command("npm", ["pack", "--ignore-scripts", "--json", "--workspaces=false", "--pack-destination", destination], root);
-  const [packed] = JSON.parse(stdout);
+  const packed = parseNpmPack(stdout, release.name);
   verifyPackList(packed, release);
   const receipt = { ...release, filename: packed.filename, integrity: packed.integrity };
   await writeFile(path.join(destination, "release.json"), json(receipt));

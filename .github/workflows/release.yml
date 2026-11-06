@@ -37,6 +37,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: npm install --global npm@12.2.1
       - name: Validate release tag and resolve immutable commit
         id: release
         env:
@@ -72,6 +73,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - run: npm install --global npm@12.2.1
       - run: npm ci
       - name: Verify tag and pack tested checkout
         env:
@@ -100,7 +102,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --global npm@11.11.1
+      - run: npm install --global npm@12.2.1
       - uses: actions/download-artifact@v4
         with:
           name: textgraph-npm-release
@@ -123,7 +125,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --global npm@11.19.1
+      - run: npm install --global npm@12.2.1
       - name: Download the reviewed archive without rebuilding
         env:
           GH_TOKEN: ${{ github.token }}
