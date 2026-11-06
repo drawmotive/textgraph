@@ -1,11 +1,11 @@
 {
   "schemaVersion": 2,
-  "releaseVersion": "0.3.1",
+  "releaseVersion": "0.3.2",
   "channel": "stable",
   "name": "@drawmotive/textgraph",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "dependencies": {},
   "native": true,
   "publishable": true,
-  "nativeSourceCommit": "1b7f23e074f955ec2ae7de79551df27319973f96"
+  "nativeSourceCommit": "df7bdd29ed2f844636a36e1c974df3850a366914"
 }
