@@ -95,7 +95,9 @@ test('npm tarball installs and copies fonts fully offline without another runtim
   try {
     const npm = (args, cwd) => run(process.execPath, [npmCli, ...args], { cwd });
     const { stdout } = await npm(['pack', '--ignore-scripts', '--json', '--workspaces=false', '--pack-destination', temp], root);
-    const [packed] = JSON.parse(stdout);
+    const report = JSON.parse(stdout);
+    assert.deepEqual(Object.keys(report), ['@drawmotive/textgraph-fonts']);
+    const packed = report['@drawmotive/textgraph-fonts'];
     const filenames = packed.files.map(file => file.path);
     assert.ok(filenames.every(name => !name.endsWith('.wasm') && !name.startsWith('test/')));
     for (const font of fontCatalog.fonts) assert.ok(filenames.includes(`assets/${font.path}`));
