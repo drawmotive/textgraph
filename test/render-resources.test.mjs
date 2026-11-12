@@ -10,7 +10,7 @@ import { loadNodeRuntime } from '../src/runtime/node.js';
 import { createBridgeRuntime } from '../src/runtime/dotnet.js';
 
 const resources = new Map([['wasm/themes.css', new TextEncoder().encode('text { color: black; }')], ['wasm/NotoSans-Regular.ttf', new Uint8Array([1, 2, 3])], ['wasm/FuzzyBubbles-Regular.ttf', new Uint8Array([4, 5, 6])]]);
-const rendering = { theme: 'wasm/themes.css', fonts: [{ family: 'NotoSans-Regular', asset: 'wasm/NotoSans-Regular.ttf' }, { family: 'FuzzyBubbles-Regular', asset: 'wasm/FuzzyBubbles-Regular.ttf' }] };
+const rendering = { theme: 'wasm/themes.css', fonts: [{ family: 'Noto Sans', asset: 'wasm/NotoSans-Regular.ttf' }, { family: 'Fuzzy Bubbles', asset: 'wasm/FuzzyBubbles-Regular.ttf' }] };
 const assets = [...resources].map(([path, data]) => ({ path, mediaType: path.endsWith('.css') ? 'text/css' : 'font/ttf', bytes: data.length, sha256: createHash('sha256').update(data).digest('hex') }));
 const renderManifest = () => ({ ...structuredClone(manifest), rendering, bridge: { ...manifest.bridge, execute: 'Execute' }, capabilities: [...new Set([...manifest.capabilities.filter(capability => capability !== 'textgraph-fonts-v1'), 'textgraph-render-v1'])], assets: [...manifest.assets.filter(asset => !resources.has(asset.path)), ...assets] });
 const configured = JSON.stringify({ protocolVersion: 1, success: true, diagnostics: [] });
@@ -34,7 +34,7 @@ test('render preparation loads bundled resources lazily through the resolver and
   }), 'https://fonts.example/chinese.ttf']);
   assert.deepEqual(requests.map(item => item.operation), ['configure', 'render', 'render']);
   assert.deepEqual(requests[0], { protocolVersion: 1, operation: 'configure', theme: 'text { color: black; }', fonts: [
-    { family: 'NotoSans-Regular', data: 'AQID' }, { family: 'FuzzyBubbles-Regular', data: 'BAUG' },
+    { family: 'Noto Sans', data: 'AQID' }, { family: 'Fuzzy Bubbles', data: 'BAUG' },
     { family: 'Chinese', data: 'BwgJ' }, { family: 'Japanese', data: 'CgsM' },
   ], fallbackFamilies: ['Chinese', 'Japanese'] });
 });

@@ -1,6 +1,6 @@
 import { DrawMotiveError } from './errors.js';
 
-const defaultFamilies = ['NotoSans-Regular', 'FuzzyBubbles-Regular'];
+const defaultFamilies = ['Noto Sans', 'Fuzzy Bubbles'];
 const fail = message => { throw new DrawMotiveError('INVALID_ARGUMENT', message); };
 
 function copyUrl(value, name) {

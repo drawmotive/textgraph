@@ -187,7 +187,8 @@ test('language packs validate eagerly, copy bytes and URLs, and perform no I/O f
     [{ fonts: [{ family: 'A', source: './font.ttf' }] }], [{ fonts: [{ family: 'A', source: new Uint8Array() }] }],
     [{ fonts: [{ family: 'A', source: bytes }], fallbackFamilies: ['missing'] }],
     [{ fonts: [{ family: 'A', source: bytes }, { family: 'A', source: bytes }] }],
-    [{ fonts: [{ family: 'NotoSans-Regular', source: bytes }] }]]) {
+    [{ fonts: [{ family: 'Noto Sans', source: bytes }] }],
+    [{ fonts: [{ family: 'Fuzzy Bubbles', source: bytes }] }]]) {
     await assert.rejects(create(undefined, {}, { languagePacks }), { code: 'INVALID_ARGUMENT' });
   }
 });

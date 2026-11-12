@@ -9,7 +9,7 @@ test('manifest schema requires resource declarations and Execute when rendering 
   const validate = await schema('wasm-manifest');
   const valid = { ...manifest, bridge: { ...manifest.bridge, execute: 'Execute' },
     capabilities: [...new Set([...manifest.capabilities, 'textgraph-render-v1'])],
-    rendering: { theme: 'wasm/themes.css', fonts: [{ family: 'NotoSans-Regular', asset: 'wasm/NotoSans-Regular.ttf' }] },
+    rendering: { theme: 'wasm/themes.css', fonts: [{ family: 'Noto Sans', asset: 'wasm/NotoSans-Regular.ttf' }] },
   };
   assert.equal(validate(valid), true, JSON.stringify(validate.errors));
   const { rendering, ...missingResources } = valid;
@@ -52,7 +52,7 @@ test('SVG capability in manifest schema requires the shared rendering resources 
   const validate = await schema('wasm-manifest');
   const valid = { ...manifest, capabilities: ['textgraph-validate-v1', 'textgraph-render-svg-v1'],
     bridge: { ...manifest.bridge, execute: 'Execute' },
-    rendering: { theme: 'wasm/themes.css', fonts: [{ family: 'NotoSans-Regular', asset: 'wasm/NotoSans-Regular.ttf' }] },
+    rendering: { theme: 'wasm/themes.css', fonts: [{ family: 'Noto Sans', asset: 'wasm/NotoSans-Regular.ttf' }] },
   };
   assert.equal(validate(valid), true, JSON.stringify(validate.errors));
   const { rendering, ...missing } = valid;

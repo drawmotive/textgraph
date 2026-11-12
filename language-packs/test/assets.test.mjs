@@ -18,7 +18,9 @@ const includes = (font, cp) => font.coverage.some(([start, end]) => start <= cp 
 test('catalog identities, actual font coverage, hashes and licenses agree', async () => {
   assert.deepEqual(await verifyFontAssets(), fontCatalog);
   assert.deepEqual(languagePacks, [zhCN, ja, emoji]);
-  for (const [pack, language, text] of [[zhCN, 'zh', '开始结束中文漢字繁體龍門臺灣'], [ja, 'ja', '日本語ひらがなカタカナ'], [emoji, 'emoji', '😀👨👩👧👦🇨🇳🏽']]) {
+  for (const [pack, language, family, text] of [[zhCN, 'zh', 'Noto Sans SC', '开始结束中文漢字繁體龍門臺灣'], [ja, 'ja', 'Noto Sans JP', '日本語ひらがなカタカナ'], [emoji, 'emoji', 'Noto Color Emoji', '😀👨👩👧👦🇨🇳🏽']]) {
+    assert.equal(pack.fonts[0].family, family);
+    assert.deepEqual(pack.fallbackFamilies, [family]);
     assert.deepEqual(pack.fonts[0].languages, [language]);
     assert.ok(Object.isFrozen(pack.fonts[0].coverage));
     for (const character of text) assert.ok(includes(pack.fonts[0], character.codePointAt(0)), `${language} lacks ${character}`);
