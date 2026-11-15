@@ -5,7 +5,7 @@ import { throwIfAborted } from './lifecycle.js';
 import { readVerifiedAsset } from './integrity.js';
 import { createRenderingExecutor } from './render-resources.js';
 import { decodeConfiguration } from './rendering.js';
-import { fontCapability } from './font-resources.js';
+import { fontBytesCapability, fontCapability } from './font-resources.js';
 
 /** Starts one isolated .NET module graph; platform loaders own all data I/O. */
 export async function startTextGraphRuntime(options, manifest, readAsset) {
@@ -91,7 +91,11 @@ export function createBridgeRuntime({ manifest, options, readAsset, bridge, info
     // manifest; advertise only the intersection that this loader exposes.
     abiVersion: info.abiVersion, capabilities: info.capabilities.filter(capability => manifest.capabilities.includes(capability)),
     validate: source => bridge[manifest.bridge.validate](source),
-    ...(renders ? { execute: createRenderingExecutor({ manifest, options, readAsset, execute: request => bridge[manifest.bridge.execute](request) }) } : {}),
+    ...(renders ? { execute: createRenderingExecutor({ manifest, options, readAsset,
+      // Binary font transport is a bridge implementation detail, not a consumer capability.
+      binaryFonts: info.capabilities.includes(fontBytesCapability),
+      execute: (request, fontData) => fontData === undefined
+        ? bridge[manifest.bridge.execute](request) : bridge[manifest.bridge.execute](request, fontData) }) } : {}),
     async dispose() {
       if (!bridge) return;
       try {

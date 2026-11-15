@@ -8,6 +8,7 @@ import { validateManifest, validateBootConfig } from '../src/runtime/manifest.js
 import { config } from '../generated/wasm/dotnet.boot.js';
 import { loadNodeRuntime } from '../src/runtime/node.js';
 import { createBridgeRuntime } from '../src/runtime/dotnet.js';
+import { encodeFontBatch, fontBytesCapability } from '../src/runtime/font-resources.js';
 
 const resources = new Map([['wasm/themes.css', new TextEncoder().encode('text { color: black; }')], ['wasm/NotoSans-Regular.ttf', new Uint8Array([1, 2, 3])], ['wasm/FuzzyBubbles-Regular.ttf', new Uint8Array([4, 5, 6])]]);
 const rendering = { theme: 'wasm/themes.css', fonts: [{ family: 'Noto Sans', asset: 'wasm/NotoSans-Regular.ttf' }, { family: 'Fuzzy Bubbles', asset: 'wasm/FuzzyBubbles-Regular.ttf' }] };
@@ -37,6 +38,49 @@ test('render preparation loads bundled resources lazily through the resolver and
     { family: 'Noto Sans', data: 'AQID' }, { family: 'Fuzzy Bubbles', data: 'BAUG' },
     { family: 'Chinese', data: 'BwgJ' }, { family: 'Japanese', data: 'CgsM' },
   ], fallbackFamilies: ['Chinese', 'Japanese'] });
+});
+
+test('font batches keep base64 data for older bridges and send raw bytes beside JSON for binary bridges', () => {
+  const first = new Uint8Array([1, 2, 3]);
+  const second = new Uint8Array([4, 5]);
+  const entries = [{ family: 'A', bytes: first, languages: ['zh'] }, { family: 'B', bytes: second }];
+  assert.deepEqual(encodeFontBatch(entries, false), { fonts: [{ family: 'A', data: 'AQID', languages: ['zh'] }, { family: 'B', data: 'BAU=' }] });
+  const binary = encodeFontBatch(entries, true);
+  assert.deepEqual(binary.fonts, [{ family: 'A', byteLength: 3, languages: ['zh'] }, { family: 'B', byteLength: 2 }]);
+  assert.deepEqual([...binary.data], [1, 2, 3, 4, 5]);
+  // A single large font must not be copied again before it crosses into WASM memory.
+  assert.equal(encodeFontBatch([entries[0]], true).data, first);
+});
+
+test('binary render preparation configures with byte lengths and one concatenated font buffer', async () => {
+  const calls = [];
+  const languagePacks = normalizeLanguagePacks([{ fonts: [{ family: 'Japanese', source: new Uint8Array([10, 11, 12]) }], fallbackFamilies: ['Japanese'] }]);
+  const execute = createRenderingExecutor({ manifest: renderManifest(), options: { languagePacks }, binaryFonts: true,
+    execute: (json, fontData) => { calls.push({ command: JSON.parse(json), fontData }); return JSON.parse(json).operation === 'configure' ? configured : 'rendered'; },
+    readAsset: async item => new Response(resources.get(item.asset.path)),
+  });
+  assert.equal(await execute(request), 'rendered');
+  assert.deepEqual(calls[0].command.fonts, [{ family: 'Noto Sans', byteLength: 3 }, { family: 'Fuzzy Bubbles', byteLength: 3 }, { family: 'Japanese', byteLength: 3 }]);
+  assert.deepEqual([...calls[0].fontData], [1, 2, 3, 4, 5, 6, 10, 11, 12]);
+  assert.equal(calls[1].fontData, undefined);
+});
+
+test('bridge runtime uses binary fonts only when the bridge advertises them and keeps the capability private', async () => {
+  for (const binary of [false, true]) {
+    const declared = renderManifest();
+    const calls = [];
+    const runtime = createBridgeRuntime({ manifest: declared, options: {}, readAsset: async item => new Response(resources.get(item.asset.path)),
+      info: { abiVersion: '1.0.0', capabilities: binary ? [...declared.capabilities, fontBytesCapability] : declared.capabilities },
+      bridge: { Validate: () => 'validated', Execute: (...args) => { calls.push(args); return configured; } },
+    });
+    try {
+      assert.equal(runtime.capabilities.includes(fontBytesCapability), false);
+      await runtime.execute(request);
+      assert.equal(calls[0].length, binary ? 2 : 1);
+      assert.equal('data' in JSON.parse(calls[0][0]).fonts[0], !binary);
+      assert.equal(calls[1].length, 1);
+    } finally { await runtime.dispose(); }
+  }
 });
 
 test('render preparation rejects corruption before native configuration and can retry a repaired resource', async () => {

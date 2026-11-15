@@ -6,6 +6,8 @@ import { readVerifiedFontAsset } from './font-cache.js';
 import { throwIfAborted } from './lifecycle.js';
 
 export const fontCapability = 'textgraph-fonts-v1';
+// Bridge-only transport capability: font bytes travel beside the JSON request.
+export const fontBytesCapability = 'textgraph-font-bytes-v1';
 // Shared online assets publish independently of applications and offline npm packs.
 const defaultFontCatalog = 'https://assets.drawmotive.com/static/font-catalog.json';
 
@@ -13,6 +15,22 @@ export function fontBase64(bytes) {
   const chunks = [];
   for (let offset = 0; offset < bytes.length; offset += 32768) chunks.push(String.fromCharCode(...bytes.subarray(offset, offset + 32768)));
   return btoa(chunks.join(''));
+}
+
+/**
+ * Encodes one configure/install font batch for the bridge. WASM linear memory never shrinks,
+ * so binary-capable bridges receive raw bytes beside the JSON: base64 JSON text would leave
+ * several transient copies of a large CJK font as a permanent memory high-water mark.
+ * Older bridges keep the base64 `data` wire.
+ */
+export function encodeFontBatch(entries, binary) {
+  if (!binary) return { fonts: entries.map(({ bytes, ...font }) => ({ ...font, data: fontBase64(bytes) })) };
+  const fonts = entries.map(({ bytes, ...font }) => ({ ...font, byteLength: bytes.length }));
+  if (entries.length === 1) return { fonts, data: entries[0].bytes };
+  const data = new Uint8Array(entries.reduce((total, entry) => total + entry.bytes.length, 0));
+  let offset = 0;
+  for (const entry of entries) { data.set(entry.bytes, offset); offset += entry.bytes.length; }
+  return { fonts, data };
 }
 
 /** Catalog paths stay within their deployment directory, independent of the hosting origin. */
@@ -73,7 +91,7 @@ function matches(font, run) {
 }
 
 /** Owns optional font I/O inside the instance queue; native owns text, shaping and final coverage. */
-export function createFontPreparation({ options, readAsset, execute }) {
+export function createFontPreparation({ options, readAsset, execute, binaryFonts = false }) {
   const packs = options.languagePacks ?? [];
   const fallbackOrder = [...new Set(packs.flatMap(pack => pack.fallbackFamilies))];
   const descriptors = packs.flatMap(pack => pack.fonts);
@@ -139,11 +157,12 @@ export function createFontPreparation({ options, readAsset, execute }) {
           const bytes = await readVerifiedFontAsset({ asset: { path: `font:${font.family}`, bytes: font.bytes, sha256: font.sha256, mediaType: 'font/ttf' }, url: font.source }, loading,
             font.source instanceof Uint8Array ? async () => new Response(font.source) : readAsset);
           throwIfAborted(context.signal);
-          fonts.push({ family: font.family, data: fontBase64(bytes), languages: font.languages });
+          fonts.push({ family: font.family, bytes, languages: font.languages });
         }
         const installedAfter = new Set([...installed, ...fonts.map(font => font.family)]);
         const order = [...fallbackOrder, ...(catalog ?? []).map(font => font.family)].filter(family => installedAfter.has(family));
-        decodeConfiguration(await execute(JSON.stringify({ protocolVersion: 1, operation: 'install-fonts', fonts, fallbackFamilies: order })), 'font installation');
+        const batch = encodeFontBatch(fonts, binaryFonts);
+        decodeConfiguration(await execute(JSON.stringify({ protocolVersion: 1, operation: 'install-fonts', fonts: batch.fonts, fallbackFamilies: order }), batch.data), 'font installation');
         // Native has committed before cancellation can be observed: preserve that installation identity.
         for (const font of fonts) installed.add(font.family);
       }

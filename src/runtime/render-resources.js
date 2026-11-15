@@ -3,14 +3,14 @@ import { readVerifiedAsset } from './integrity.js';
 import { readVerifiedFontAsset } from './font-cache.js';
 import { decodeConfiguration } from './rendering.js';
 import { throwIfAborted } from './lifecycle.js';
-import { createFontPreparation, fontBase64 as base64, fontCapability } from './font-resources.js';
+import { createFontPreparation, encodeFontBatch, fontCapability } from './font-resources.js';
 import { DrawMotiveError } from './errors.js';
 
 /** Preparation lives inside the instance operation queue; validation never triggers font I/O. */
-export function createRenderingExecutor({ manifest, options, readAsset, execute }) {
+export function createRenderingExecutor({ manifest, options, readAsset, execute, binaryFonts = false }) {
   let configured = false;
   const lazy = manifest.capabilities?.includes(fontCapability);
-  const prepareFonts = lazy ? createFontPreparation({ options, readAsset, execute }) : undefined;
+  const prepareFonts = lazy ? createFontPreparation({ options, readAsset, execute, binaryFonts }) : undefined;
   return async (request, context = {}) => {
     const loadingOptions = { ...options, signal: context.signal };
     throwIfAborted(context.signal);
@@ -28,7 +28,7 @@ export function createRenderingExecutor({ manifest, options, readAsset, execute 
       };
       const theme = new TextDecoder('utf-8', { fatal: true }).decode(await load(manifest.rendering.theme));
       const fonts = [];
-      for (const font of manifest.rendering.fonts) fonts.push({ family: font.family, data: base64(await load(font.asset)) });
+      for (const font of manifest.rendering.fonts) fonts.push({ family: font.family, bytes: await load(font.asset) });
       const fallbackFamilies = [];
       for (const pack of options.languagePacks ?? []) {
         for (const font of pack.fonts) {
@@ -39,12 +39,13 @@ export function createRenderingExecutor({ manifest, options, readAsset, execute 
             ? await readVerifiedFontAsset(item, loadingOptions, font.source instanceof Uint8Array ? async () => new Response(font.source) : readAsset)
             : font.source instanceof Uint8Array ? font.source : new Uint8Array(await (await readAsset(item, loadingOptions)).arrayBuffer());
           throwIfAborted(context.signal);
-          fonts.push({ family: font.family, data: base64(bytes), ...(font.languages ? { languages: font.languages } : {}) });
+          fonts.push({ family: font.family, bytes, ...(font.languages ? { languages: font.languages } : {}) });
         }
         for (const family of pack.fallbackFamilies) if (fonts.some(font => font.family === family) && !fallbackFamilies.includes(family)) fallbackFamilies.push(family);
       }
       throwIfAborted(context.signal);
-      decodeConfiguration(await execute(JSON.stringify({ protocolVersion: 1, operation: 'configure', theme, fonts, fallbackFamilies })));
+      const batch = encodeFontBatch(fonts, binaryFonts);
+      decodeConfiguration(await execute(JSON.stringify({ protocolVersion: 1, operation: 'configure', theme, fonts: batch.fonts, fallbackFamilies }), batch.data));
       // Native configuration is committed even when the caller cancels during that synchronous operation.
       configured = true;
       throwIfAborted(context.signal);
