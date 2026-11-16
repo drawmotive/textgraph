@@ -1,7 +1,7 @@
 export const config = /*json-start*/{
   "mainAssemblyName": "DrawMotive.TextGraph.Bridge.dll",
   "resources": {
-    "hash": "sha256-9n8bZP01JsTzo6CQ5YUKcg7M3F0CuCHDxUhe4nSnqtg=",
+    "hash": "sha256-bNSrJfUpafZyxzBWXmDhooAtChVOAFRk+vI4yIqrGCM=",
     "jsModuleNative": [
       {
         "name": "dotnet.native.js"
@@ -39,7 +39,7 @@ export const config = /*json-start*/{
       {
         "virtualPath": "HarfBuzzSharp.wasm",
         "name": "HarfBuzzSharp.wasm",
-        "hash": "sha256-uccuQcX8oCqYe4YoPUYtONDrpaLTDC7IY90w/WqVPPo="
+        "hash": "sha256-7QLO3NzswYWVv85R3fq2+YAnvDWUyOIh+3mr+W/vDMc="
       },
       {
         "virtualPath": "Markdig.wasm",
@@ -94,12 +94,12 @@ export const config = /*json-start*/{
       {
         "virtualPath": "SkiaSharp.wasm",
         "name": "SkiaSharp.wasm",
-        "hash": "sha256-fs5KbfiDyQEO2/dbW2ynYy7eJCQOx2KLGKX4nwVX5P8="
+        "hash": "sha256-OTwf/fTPgv3YG6OXl0kXZYcXDTh+Da4fCL/Xcyo/Za8="
       },
       {
         "virtualPath": "SkiaSharp.HarfBuzz.wasm",
         "name": "SkiaSharp.HarfBuzz.wasm",
-        "hash": "sha256-rA5XJZ6nuAh9qRQpcowxtTLxycKjrV9ke8wW6Zc7ty8="
+        "hash": "sha256-CUH6T98sZNZuEhXtTs5+bAN8ujxDB41OsBzN7CgtmbM="
       },
       {
         "virtualPath": "ZstdSharp.wasm",
@@ -109,7 +109,7 @@ export const config = /*json-start*/{
       {
         "virtualPath": "Graphics.Core.wasm",
         "name": "Graphics.Core.wasm",
-        "hash": "sha256-ilCom5c6C2qXwehEVYVOiCfx8rTviSq7e0qTE5sSpmw="
+        "hash": "sha256-lb7C5FBYQm8S7K1tuv0dvEja1Q6d+e4NE6fpYM2xzXs="
       },
       {
         "virtualPath": "Math.Core.wasm",
@@ -119,12 +119,12 @@ export const config = /*json-start*/{
       {
         "virtualPath": "RBush.wasm",
         "name": "RBush.wasm",
-        "hash": "sha256-RMKFjTrTk1j3k6BZy00XTpcZULmWFYSFcr1IQwmeyjU="
+        "hash": "sha256-El0nqoqf12gDG/n0sJcbRA4xviUA8Kqqyu3qL3BGuGY="
       },
       {
         "virtualPath": "DrawMotive.TextGraph.Bridge.wasm",
         "name": "DrawMotive.TextGraph.Bridge.wasm",
-        "hash": "sha256-af8ZiUTGxrTtBBhldycWWHq2EPP1sHIy+B9AFeQsThw="
+        "hash": "sha256-evpb5KucmG41qa3kLp+aydhATMHgJTD//t6m3z/5Fzw="
       },
       {
         "virtualPath": "System.Collections.Concurrent.wasm",
