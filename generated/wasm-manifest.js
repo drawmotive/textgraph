@@ -33,7 +33,7 @@ export default {
   },
   "targetFramework": "net10.0",
   "privateSource": {
-    "commit": "b07883c93cfa8e0cf5599a6b8b318d3a5c6f542a",
+    "commit": "4ad7d0f8627b9fde581ac846938bcdcc63ad952a",
     "project": "DrawMotive.TextGraph.Bridge"
   },
   "entryAssembly": "wasm/DrawMotive.TextGraph.Bridge.wasm",
@@ -59,7 +59,7 @@ export default {
       "path": "wasm/DrawMotive.TextGraph.Bridge.wasm",
       "mediaType": "application/wasm",
       "bytes": 80661,
-      "sha256": "7afa5be4ab9c986e35a9ade42e9f9ac9d8404cc1e02530fffedea6df3ff9173c"
+      "sha256": "ee7969572557938fe11c86cbe25531b1b59b6d205932681578518cfb51c69fb7"
     },
     {
       "path": "wasm/ExCSS.wasm",
@@ -82,14 +82,14 @@ export default {
     {
       "path": "wasm/Graphics.Core.wasm",
       "mediaType": "application/wasm",
-      "bytes": 3796249,
-      "sha256": "95bec2e45058426f12ecad6dbafd1dbc48dad50e9df9ee0d13a7e960cdb1cd7b"
+      "bytes": 3796761,
+      "sha256": "eae98d20f04e1b10a3e197973c92d206e70e7f05e09163bf846061fcbebaa4d3"
     },
     {
       "path": "wasm/HarfBuzzSharp.wasm",
       "mediaType": "application/wasm",
       "bytes": 27925,
-      "sha256": "ed02cedcdcecc18595bfce51ddfab6f98027bc3594c8e221fb79abf96fef0cc7"
+      "sha256": "5613665bdc2396b12856d832d02c6eba14328c8d4f1e22991d868607298ec6d9"
     },
     {
       "path": "wasm/Markdig.wasm",
@@ -173,19 +173,19 @@ export default {
       "path": "wasm/RBush.wasm",
       "mediaType": "application/wasm",
       "bytes": 14101,
-      "sha256": "125d27aa8a9fd768031bf9f4b0971b440e31be2500f0aaaacaedea2f7046b866"
+      "sha256": "d56d7d78c255e9ec8216e33281837ec6f7a689a11ff86228e49ec1a8bd4a6b9e"
     },
     {
       "path": "wasm/SkiaSharp.HarfBuzz.wasm",
       "mediaType": "application/wasm",
       "bytes": 6421,
-      "sha256": "0941fa4fdf2c64d66e1215ed4ece7e6c037cba3c43078d4eb01ccdec282d99b3"
+      "sha256": "902d52ee09d592d994469418433130ab8cac4c1e33c58caaa54dd6241b3cfd08"
     },
     {
       "path": "wasm/SkiaSharp.wasm",
       "mediaType": "application/wasm",
       "bytes": 104725,
-      "sha256": "393c1ffdf4cf82fdd81ba3979749176587170d387e0dae1f08bfd7732a3f65af"
+      "sha256": "2522a651826afa482921eec589f2c0374cd3868f6b83d655c375d2af9c38cda5"
     },
     {
       "path": "wasm/System.Collections.Concurrent.wasm",
@@ -359,7 +359,7 @@ export default {
       "path": "wasm/dotnet.boot.js",
       "mediaType": "text/javascript",
       "bytes": 11347,
-      "sha256": "3b23d6887cb8eb55efa42c6381ccff5f4c8bad7169667b3eece2dc088c98672e"
+      "sha256": "40245546bdec879c2b4ef77a57af5a8bcb98b368126dc2e5a42ba82f2461b8d1"
     },
     {
       "path": "wasm/dotnet.js",
