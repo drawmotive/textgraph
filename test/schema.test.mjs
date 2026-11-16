@@ -5,6 +5,16 @@ import Ajv from 'ajv/dist/2020.js';
 import manifest from '../generated/wasm-manifest.js';
 const read = async path => JSON.parse(await readFile(new URL(path, import.meta.url), 'utf8'));
 
+test('runtime manifest schema accepts supported framework generations and rejects unknown ones', async () => {
+  const validate = new Ajv({ strict: true }).compile(await read('../schemas/wasm-manifest.schema.json'));
+  for (const targetFramework of ['net10.0', 'net11.0']) {
+    assert.equal(validate({ ...manifest, targetFramework }), true, JSON.stringify(validate.errors));
+  }
+  for (const targetFramework of ['net9.0', 'net12.0', 'net11.0-browser']) {
+    assert.equal(validate({ ...manifest, targetFramework }), false, targetFramework);
+  }
+});
+
 test('JSON and ESM manifest projections match and conform to the shipped schema', async () => {
   const json = await read('../generated/wasm-manifest.json');
   assert.deepEqual(manifest, json);

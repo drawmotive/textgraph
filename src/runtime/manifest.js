@@ -27,12 +27,14 @@ export function validateBootConfig(config, manifest) {
   visit(config.resources);
 }
 
-/** Reject incompatible bundles and ambiguous paths before any executable asset is imported. */
+/** Reject incompatible bundles and ambiguous paths before any executable asset is imported.
+ * The bridge ABI supports the bundled .NET 10 runtime and the .NET 11 producer;
+ * later runtime generations require an explicit compatibility decision. */
 export function validateManifest(manifest) {
   const invalid = () => { throw new DrawMotiveError('INVALID_MANIFEST', 'Invalid TextGraph runtime manifest'); };
   if (!manifest || manifest.schemaVersion !== 1 || manifest.packageName !== '@drawmotive/textgraph'
       || typeof manifest.packageVersion !== 'string' || !manifest.packageVersion || manifest.protocolVersion !== 1
-      || manifest.targetFramework !== 'net10.0' || !/^[a-f0-9]{40}$/.test(manifest.privateSource?.commit ?? '')
+      || !['net10.0', 'net11.0'].includes(manifest.targetFramework) || !/^[a-f0-9]{40}$/.test(manifest.privateSource?.commit ?? '')
       || manifest.privateSource?.project !== 'DrawMotive.TextGraph.Bridge' || !Array.isArray(manifest.assets)) invalid();
   if (manifest.abiVersion !== '1.0.0') throw new DrawMotiveError('ABI_MISMATCH', 'Unsupported TextGraph ABI');
   if (!Array.isArray(manifest.capabilities) || !manifest.capabilities.every(item => typeof item === 'string')) invalid();
