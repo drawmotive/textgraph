@@ -17,7 +17,11 @@ export function isRuntimeAsset(asset) {
 
 /** Boot metadata cannot expand the preflighted asset authority after native startup begins. */
 export function validateBootConfig(config, manifest) {
-  if (config?.mainAssemblyName !== manifest.bridge.assembly) throw new DrawMotiveError('ABI_MISMATCH', 'Unexpected boot entry assembly');
+  // SDK 11 boot metadata uses the assembly stem; export lookup still owns the
+  // manifest's DLL identity. Unknown frameworks must not inherit either format.
+  const expectedAssemblyName = manifest.targetFramework === 'net10.0' ? manifest.bridge.assembly
+    : manifest.targetFramework === 'net11.0' ? manifest.bridge.assembly.replace(/[.]dll$/, '') : undefined;
+  if (!expectedAssemblyName || config?.mainAssemblyName !== expectedAssemblyName) throw new DrawMotiveError('ABI_MISMATCH', 'Unexpected boot entry assembly');
   const paths = new Set(manifest.assets.filter(isRuntimeAsset).map(asset => asset.path.slice(5)));
   if (!config.resources || typeof config.resources !== 'object') throw new DrawMotiveError('INVALID_MANIFEST', 'Missing boot resources');
   const visit = value => {
@@ -28,12 +32,14 @@ export function validateBootConfig(config, manifest) {
   visit(config.resources);
 }
 
-/** Reject incompatible bundles and ambiguous paths before any executable asset is imported. */
+/** Reject incompatible bundles and ambiguous paths before any executable asset is imported.
+ * The bridge ABI supports the bundled .NET 10 runtime and the .NET 11 producer;
+ * later runtime generations require an explicit compatibility decision. */
 export function validateManifest(manifest) {
   const invalid = () => { throw new DrawMotiveError('INVALID_MANIFEST', 'Invalid TextGraph runtime manifest'); };
   if (!manifest || manifest.schemaVersion !== 1 || manifest.packageName !== '@drawmotive/textgraph'
       || typeof manifest.packageVersion !== 'string' || !manifest.packageVersion || manifest.protocolVersion !== 1
-      || manifest.targetFramework !== 'net10.0' || !/^[a-f0-9]{40}$/.test(manifest.privateSource?.commit ?? '')
+      || !['net10.0', 'net11.0'].includes(manifest.targetFramework) || !/^[a-f0-9]{40}$/.test(manifest.privateSource?.commit ?? '')
       || manifest.privateSource?.project !== 'DrawMotive.TextGraph.Bridge' || !Array.isArray(manifest.assets)) invalid();
   if (manifest.abiVersion !== '1.0.0') throw new DrawMotiveError('ABI_MISMATCH', 'Unsupported TextGraph ABI');
   if (!Array.isArray(manifest.capabilities) || !manifest.capabilities.every(item => typeof item === 'string')) invalid();

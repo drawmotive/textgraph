@@ -5,6 +5,19 @@ import { validateManifest } from '../src/runtime/manifest.js';
 const source = JSON.parse(await readFile(new URL('../generated/wasm-manifest.json', import.meta.url)));
 const manifest = () => ({ ...structuredClone(source), protocolVersion: 1, runtimeModule: 'wasm/dotnet.js', bridge: { ...source.bridge, assembly: 'DrawMotive.TextGraph.Bridge.dll', type: 'DrawMotive.TextGraph.Bridge.Program', info: 'GetRuntimeInfo', validate: 'Validate' }, capabilities: [...source.capabilities, 'textgraph-validate-v1'] });
 
+for (const targetFramework of ['net10.0', 'net11.0']) {
+  test(`manifest accepts the supported ${targetFramework} runtime without rewriting its identity`, () => {
+    const input = { ...manifest(), targetFramework };
+    assert.equal(validateManifest(input), input);
+  });
+}
+
+for (const targetFramework of ['net9.0', 'net12.0', 'net11.0-browser', undefined]) {
+  test(`manifest rejects unsupported target framework ${String(targetFramework)} before startup`, () => {
+    assert.throws(() => validateManifest({ ...manifest(), targetFramework }), { code: 'INVALID_MANIFEST' });
+  });
+}
+
 test('manifest validation rejects incompatible identity and incomplete capabilities', () => {
   assert.doesNotThrow(() => validateManifest(manifest()));
   for (const change of [{ schemaVersion: 2 }, { abiVersion: '2.0.0' }, { protocolVersion: 2 }, { packageName: 'other' }, { capabilities: [] }, { runtimeModule: 'wasm/missing.js' }]) {

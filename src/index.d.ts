@@ -7,7 +7,7 @@ export interface TextGraphRuntimeManifest {
 export interface TextGraphAbiManifest extends TextGraphRuntimeManifest {
   readonly schemaVersion: 1;
   readonly protocolVersion: 1;
-  readonly targetFramework: 'net10.0';
+  readonly targetFramework: 'net10.0' | 'net11.0';
   readonly privateSource: { readonly commit: string; readonly project: string };
   readonly entryAssembly: string;
   readonly runtimeWasm: string;
