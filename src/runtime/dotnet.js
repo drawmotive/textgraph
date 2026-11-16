@@ -38,19 +38,25 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
     await WebAssembly.compile(data.get(manifest.runtimeWasm));
     // Import dependency modules before create(): its asynchronous imports otherwise
     // turn missing modules into fatal unhandled runtime startup failures.
+    let bootConfig;
     for (const item of plan) {
       if (!/[.]js$/.test(item.asset.path) || item.asset.path === manifest.runtimeModule) continue;
       let imported;
       try { imported = await import(/* webpackIgnore: true */ /* @vite-ignore */ moduleUrl(item)); }
       catch (cause) { throw new DrawMotiveError('RESOURCE_NOT_FOUND', `Could not import ${item.asset.path}`, { cause, details: { asset: item.asset.path } }); }
-      if (item.asset.path === 'wasm/dotnet.boot.js') validateBootConfig(imported.config, manifest);
+      if (item.asset.path === 'wasm/dotnet.boot.js') {
+        bootConfig = imported.config;
+        validateBootConfig(bootConfig, manifest);
+      }
     }
     throwIfAborted(options.signal);
     const runtimeEntry = byName.get(manifest.runtimeModule.slice(5));
     let dotnet;
     try { ({ dotnet } = await import(/* webpackIgnore: true */ /* @vite-ignore */ moduleUrl(runtimeEntry))); }
     catch (cause) { throw new DrawMotiveError('RESOURCE_NOT_FOUND', 'Could not import the runtime module', { cause, details: { asset: runtimeEntry.asset.path } }); }
-    const runtime = await dotnet.withResourceLoader((type, name) => {
+    // SDK 11 no longer loads dotnet.boot.js implicitly. Both SDKs must start
+    // from the exact boot configuration whose resource authority we checked.
+    const runtime = await dotnet.withConfig(bootConfig).withResourceLoader((type, name) => {
       const item = byName.get(name);
       if (!item) throw new DrawMotiveError('RESOURCE_NOT_FOUND', 'Runtime requested an unlisted asset', { details: { asset: name } });
       if (/[.](mjs|js)$/.test(name)) return moduleUrl(item);
