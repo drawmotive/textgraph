@@ -5,6 +5,7 @@ import { DrawMotiveError } from './runtime/errors.js';
 import { normalizeFontAssets, normalizeLanguagePacks } from './runtime/language-packs.js';
 import { decodeRender, decodeSvgRender, normalizeRenderOptions, normalizeSvgOptions } from './runtime/rendering.js';
 import manifest from '../generated/wasm-manifest.js';
+import { darkRenderingCapability } from './runtime/manifest.js';
 
 export { validateTextGraphAdapters } from './adapters.js';
 export { DrawMotiveError } from './runtime/errors.js';
@@ -41,6 +42,8 @@ export async function initializeTextGraph(options = {}) {
     const { request, encoding, signal, onPreview } = normalize(source, callOptions);
     throwIfAborted(signal);
     if (typeof runtime.execute !== 'function' || !capabilities.includes(capability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', `Runtime does not support ${format} rendering`);
+    // Older bridges ignore additive export fields; require native support before any resource I/O.
+    if (request.export.dark && !capabilities.includes(darkRenderingCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', `Runtime does not support dark rendering (${darkRenderingCapability})`);
     return instance.mutate(async () => {
       throwIfAborted(signal);
       let response;

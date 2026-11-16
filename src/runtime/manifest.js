@@ -3,10 +3,11 @@ import { DrawMotiveError } from './errors.js';
 export const validationCapability = 'textgraph-validate-v1';
 export const renderingCapability = 'textgraph-render-v1';
 export const svgRenderingCapability = 'textgraph-render-svg-v1';
+export const darkRenderingCapability = 'textgraph-render-dark-v1';
 
-/** Both image capabilities require the same managed executor and rendering resources. */
+/** Image formats and native dark rendering require the same executor and resources. */
 export function supportsRendering(capabilities) {
-  return [renderingCapability, svgRenderingCapability].some(capability => capabilities.includes(capability));
+  return [renderingCapability, svgRenderingCapability, darkRenderingCapability].some(capability => capabilities.includes(capability));
 }
 
 /** Only native runtime formats belong to startup; fonts, themes and licenses are separate assets. */

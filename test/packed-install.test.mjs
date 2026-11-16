@@ -29,6 +29,7 @@ test('npm tarball works outside the private workspace with no development depend
     assert.ok(packed.files.every(file => !file.path.startsWith('samples/')));
     assert.ok(packed.files.some(file => file.path === 'src/react/index.js'));
     assert.ok(packed.files.some(file => file.path === 'scripts/copy-assets.mjs'));
+    assert.ok(packed.files.some(file => file.path === 'scripts/textgraph.mjs'));
     assert.ok(packed.files.some(file => file.path === 'generated/wasm/NotoSans-LICENSE.txt'));
     assert.ok(packed.files.some(file => file.path === 'generated/wasm/FuzzyBubbles-LICENSE.txt'));
     assert.ok(packed.files.every(file => !/[.](pdb|map|cs)$/.test(file.path) && !file.path.startsWith('.local/')));
@@ -45,6 +46,14 @@ test('npm tarball works outside the private workspace with no development depend
     await exec(process.execPath, [cli, 'public/textgraph/wasm'], { cwd: consumer });
     assert.deepEqual(await readFile(path.join(consumer, 'public/textgraph/wasm/dotnet.native.wasm')),
       await readFile(path.join(packageRoot, 'generated/wasm/dotnet.native.wasm')));
+    const renderCli = path.join(consumer, 'node_modules/@drawmotive/textgraph/scripts/textgraph.mjs');
+    await writeFile(path.join(consumer, 'diagram.textgraph'), 'A -> B');
+    for (const format of ['png', 'svg']) {
+      await exec(process.execPath, [renderCli, 'render', 'diagram.textgraph', '--output', `diagram.${format}`], { cwd: consumer, timeout: 30000 });
+      const image = await readFile(path.join(consumer, `diagram.${format}`));
+      if (format === 'png') assert.deepEqual([...image.slice(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+      else assert.ok(image.toString('utf8').includes('xmlns="http://www.w3.org/2000/svg"'));
+    }
     const { stdout: fontPackOutput } = await runNpm(['pack', '--ignore-scripts', '--json', '--workspaces=false', '--pack-destination', root], path.join(packageRoot, 'language-packs'));
     const fontPack = parseNpmPack(fontPackOutput, '@drawmotive/textgraph-fonts');
     assert.equal(fontPack.name, '@drawmotive/textgraph-fonts');

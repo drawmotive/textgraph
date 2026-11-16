@@ -1,6 +1,6 @@
 import { createRuntimeAssetPlan } from './shared.js';
 import { DrawMotiveError } from './errors.js';
-import { validateManifest, validateBootConfig, validationCapability, renderingCapability, svgRenderingCapability, supportsRendering, isRuntimeAsset } from './manifest.js';
+import { validateManifest, validateBootConfig, validationCapability, renderingCapability, svgRenderingCapability, darkRenderingCapability, supportsRendering, isRuntimeAsset } from './manifest.js';
 import { throwIfAborted } from './lifecycle.js';
 import { readVerifiedAsset } from './integrity.js';
 import { createRenderingExecutor } from './render-resources.js';
@@ -70,7 +70,7 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
     }
     if (!Array.isArray(info.capabilities) || !info.capabilities.includes(validationCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement validation');
     const renders = supportsRendering(manifest.capabilities);
-    for (const capability of [renderingCapability, svgRenderingCapability]) {
+    for (const capability of [renderingCapability, svgRenderingCapability, darkRenderingCapability]) {
       if (manifest.capabilities.includes(capability) && !info.capabilities.includes(capability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement rendering');
     }
     if (manifest.capabilities.includes(fontCapability) && !info.capabilities.includes(fontCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement lazy fonts');

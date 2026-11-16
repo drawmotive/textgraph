@@ -36,12 +36,15 @@ Use your deployed base path instead of `/` for subdirectory hosting. The [React/
 | --- | --- |
 | `source` | Required DSL string; changes trigger rendering. |
 | `alt` | Image description; defaults to `TextGraph diagram`. |
-| `renderOptions` | Defaults to `scale: 1`; `padding` and `maxWidth` use SDK defaults. Set `scale: 2` explicitly for higher raster density. |
+| `renderOptions` | Defaults to `scale: 1`; `padding` and `maxWidth` use SDK defaults. Set `scale: 2` for higher raster density or `dark: true` for a native dark image. |
 | `loading` | React content shown with `role="status"`; defaults to `Rendering diagram…`. |
 | `fontsLoading` | Content shown beside the provisional image while optional fonts load; defaults to `Fonts are still loading…`. |
 | Other image attributes | Passed to the successful `<img>`, including `className`, `style`, `width`, and `height`. |
 
 The component owns `src`, encoding, and cancellation. While new input renders, old images are replaced by loading content. A stale result cannot replace newer input. DSL diagnostics and operational failures appear as escaped text with `role="alert"`; corrected input renders again. Changing only `alt` or image styles does not rerun layout.
+Changing `renderOptions.dark` rerenders the exported PNG using the selected native
+theme. The default is `false`; `true` requires matching runtime assets advertising
+`textgraph-render-dark-v1`. Language hints and font previews use the same request.
 
 When optional fonts are needed, the component displays a provisional image first,
 shows `fontsLoading`, and replaces the image after loading and measuring the fonts.

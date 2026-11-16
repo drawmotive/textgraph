@@ -1,7 +1,7 @@
 {
   "name": "@drawmotive/textgraph",
   "version": "0.3.3",
-  "description": "Render TextGraph flowcharts and directed graphs as PNG images in Node.js, browsers, React, and Web Workers.",
+  "description": "Render TextGraph flowcharts and directed graphs as PNG and SVG in Node.js, browsers, React, Web Workers, and the CLI.",
   "keywords": [
     "textgraph",
     "diagram",
@@ -49,7 +49,8 @@
     "schemas",
     "docs",
     "examples",
-    "scripts/copy-assets.mjs"
+    "scripts/copy-assets.mjs",
+    "scripts/textgraph.mjs"
   ],
   "scripts": {
     "build": "node --check src/index.js && tsc -p tsconfig.json",
@@ -107,6 +108,7 @@
     }
   },
   "bin": {
+    "textgraph": "./scripts/textgraph.mjs",
     "textgraph-copy-assets": "./scripts/copy-assets.mjs"
   }
 }

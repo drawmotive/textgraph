@@ -103,7 +103,7 @@ without moving it. Unknown qualified names report an error.
 
 | What you want to do | Use | Working example |
 | --- | --- | --- |
-| Generate diagrams for documentation, reports, or build jobs | Node.js: write PNG bytes or SVG text to a file | [Node sample](https://github.com/drawmotive/textgraph/tree/main/samples/node) |
+| Generate diagrams for documentation, reports, or build jobs | Render CLI or Node.js SDK: save PNG or SVG files | [Node sample](https://github.com/drawmotive/textgraph/tree/main/samples/node) |
 | Embed live diagrams in dashboards or internal tools | React component and shared provider | [React + Vite sample](https://github.com/drawmotive/textgraph/tree/main/samples/react-vite) |
 | Add editable source and previews to a web app | Browser SDK | [Plain JavaScript sample](https://github.com/drawmotive/textgraph/tree/main/samples/browser) |
 | Keep the UI responsive while rendering larger diagrams | SDK in a module Web Worker | [Worker sample](https://github.com/drawmotive/textgraph/tree/main/samples/worker) |
@@ -138,6 +138,23 @@ The standalone audit on 2026-10-01 ran Linux x64 with Node 22.23.2 and npm
 10.9.8. The support and CI targets above do not claim that Windows, macOS
 or every browser was executed in that audit. Browser hosts must provide
 WebAssembly, JavaScript modules, Web Crypto and a secure origin.
+
+## Render from the command line
+
+After installing the package, render a TextGraph source file directly:
+
+```bash
+npx textgraph render diagram.textgraph --output diagram.png
+npx textgraph render diagram.textgraph --output diagram-dark.svg --dark
+cat diagram.textgraph | npx textgraph render - --output diagram-dark.png --dark
+```
+
+The output extension selects PNG or SVG. Light output is the default; `--dark`
+selects the native dark theme for the exported image. Use `--language ja` or
+`--language zh-CN` to disambiguate Han text. The CLI uses the same bundled runtime
+and automatic font loading as the Node SDK. Rendering errors produce diagnostics
+and a nonzero exit code without replacing the output file. Run `npx textgraph --help`
+for usage.
 
 ## Render a PNG in Node.js
 
@@ -178,8 +195,14 @@ if (vector.success) {
 ```
 
 SVG returns logical `displayWidth` and `displayHeight`. It accepts `padding`,
-`language`, and `signal`; raster settings such as `scale` apply only to PNG.
+`dark`, `language`, and `signal`; raster settings such as `scale` apply only to PNG.
 React components continue to use PNG; browser and Worker SDK instances also expose `renderSvg()`.
+
+Both `renderPng(source, { dark: true })` and `renderSvg(source, { dark: true })`
+render with the native dark theme. The boolean `dark` option defaults to `false`
+and affects the exported image itself. Deploy matching runtime assets; older
+runtimes without `textgraph-render-dark-v1` reject dark requests with
+`UNSUPPORTED_CAPABILITY`.
 
 ## Add a diagram to React
 
@@ -211,6 +234,8 @@ export function Diagram({ source }: { source: string }) {
 
 Changing `source` updates the image. For several diagrams, put one provider
 around their common parent. Loading states and rendering diagnostics are built in.
+Use `renderOptions={{ dark: true }}` to export a dark image; changing this option
+updates the rendered diagram.
 The component renders on the main thread; use the Worker sample for heavier
 interactive workloads.
 

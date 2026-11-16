@@ -20,7 +20,7 @@ Initialization resolves after manifest and real bridge agree on ABI, protocol an
 
 ## PNG rendering
 
-`renderPng(source, options?)` returns `{ success: true, png, width, height, displayWidth?, displayHeight?, diagnostics }` or `{ success: false, diagnostics }`. `width` and `height` are raster pixels. The optional display dimensions are positive numbers representing logical size: raster dimensions divided by the effective scale after any `maxWidth` reduction. Older runtimes omit both fields. Diagram failures resolve with diagnostics and contain no image data. Successful results and diagnostics are frozen; byte output is a detached, caller-owned `Uint8Array`. Output uses a white background.
+`renderPng(source, options?)` returns `{ success: true, png, width, height, displayWidth?, displayHeight?, diagnostics }` or `{ success: false, diagnostics }`. `width` and `height` are raster pixels. The optional display dimensions are positive numbers representing logical size: raster dimensions divided by the effective scale after any `maxWidth` reduction. Older runtimes omit both fields. Diagram failures resolve with diagnostics and contain no image data. Successful results and diagnostics are frozen; byte output is a detached, caller-owned `Uint8Array`. Output uses the light theme by default.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
@@ -28,11 +28,16 @@ Initialization resolves after manifest and real bridge agree on ABI, protocol an
 | `scale` | `1` | Positive finite raster density relative to logical diagram size. |
 | `padding` | `10` | Non-negative finite padding in diagram units. |
 | `maxWidth` | Omitted | Positive safe integer maximum output width in pixels; preserves proportions and only reduces output size. |
+| `dark` | `false` | Boolean selecting the native dark theme for the exported image. |
 | `signal` | Omitted | Cancels queued work or discards completed work after cancellation. |
 
 Literal encodings infer their corresponding PNG type in TypeScript; union encodings return `Uint8Array | string`. Render diagnostics may use `parse`, `semantic`, `layout`, `render`, or `font` stages. `validate()` retains its original parse/semantic contract.
 
 Scale and padding must remain finite when represented as 32-bit floats; scale must also remain greater than zero. Invalid arguments reject with `INVALID_ARGUMENT`.
+The `dark` option accepts only booleans. Dark output requires the additive
+`textgraph-render-dark-v1` capability; unsupported runtimes reject with
+`UNSUPPORTED_CAPABILITY` before resource preparation or native execution.
+Omitting the option preserves the default light wire request.
 
 For web display, use scale `2` and the returned display dimensions as image dimensions, with `max-width: 100%; height: auto`. Increasing density then improves sharpness without enlarging the diagram. DPI metadata does not change CSS sizing. When an older runtime omits display dimensions, dividing raster dimensions by the requested scale works only when `maxWidth` did not reduce the effective density.
 
@@ -40,7 +45,7 @@ After applying `maxWidth`, output is limited to 16,384 pixels per side and 16,77
 
 ## SVG rendering
 
-`renderSvg(source, { padding, language, signal }?)` returns `{ success: true, svg, displayWidth, displayHeight, diagnostics }` or `{ success: false, diagnostics }`. The SVG is a complete vector document, and both display dimensions are positive logical diagram units matching its padded viewBox. Results and diagnostics are frozen. Diagram failures contain no image data or dimensions.
+`renderSvg(source, { padding, dark, language, signal }?)` returns `{ success: true, svg, displayWidth, displayHeight, diagnostics }` or `{ success: false, diagnostics }`. The SVG is a complete vector document, and both display dimensions are positive logical diagram units matching its padded viewBox. Results and diagnostics are frozen. Diagram failures contain no image data or dimensions.
 
 ```javascript
 const image = await runtime.renderSvg("browser -> api -> database", { padding: 24 });
@@ -50,6 +55,8 @@ if (image.success) {
 ```
 
 Padding defaults to `10` and has the same finite float32 constraints as PNG. The optional language hint selects fonts in the same way as PNG. SVG rejects PNG-only `encoding`, `scale`, and `maxWidth` settings and all unknown option keys with `INVALID_ARGUMENT`. Cancellation and resource preparation share the instance queue with PNG and validation.
+The boolean `dark` option defaults to `false` and shares PNG's native theme
+selection and `textgraph-render-dark-v1` capability requirement.
 
 SVG requires the additive `textgraph-render-svg-v1` capability; older runtimes reject with `UNSUPPORTED_CAPABILITY` before preparing resources or calling the bridge. The wrapper checks the document root and SVG namespace, positive display dimensions, and consistency between success and error diagnostics. Malformed responses reject with `INVALID_RESPONSE`; the document check is not a general XML parser or sanitizer.
 
@@ -161,4 +168,8 @@ The rendering wire uses one `Execute(requestJson)` export. Configuration is perf
 
 For rendering-capable bridges, disposal sends `{ protocolVersion: 1, operation: "dispose" }` and validates the same success/diagnostics envelope as configuration. This request releases native resources without loading fonts or shutting down the host runtime. Legacy validation-only bridges release wrapper references directly.
 
-SVG uses the same `Execute` export with `{ protocolVersion: 1, operation: "render", source, language?, export: { format: "svg", padding } }`. Native success returns `{ protocolVersion: 1, success: true, svg, displayWidth, displayHeight, diagnostics }`; failures omit `svg` and dimensions. `schemas/render-svg.schema.json` describes this separate additive response.
+SVG uses the same `Execute` export with `{ protocolVersion: 1, operation: "render", source, language?, export: { format: "svg", padding, dark? } }`. Native success returns `{ protocolVersion: 1, success: true, svg, displayWidth, displayHeight, diagnostics }`; failures omit `svg` and dimensions. `schemas/render-svg.schema.json` describes this separate additive response.
+
+Both image formats accept additive `export.dark` as a boolean. Omitting it selects
+light rendering. The bridge and manifest advertise `textgraph-render-dark-v1`
+before the wrapper allows dark rendering; a mismatched bridge fails startup.
