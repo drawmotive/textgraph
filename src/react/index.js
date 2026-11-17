@@ -1,13 +1,29 @@
 'use client';
 
-import { Fragment, createContext, createElement, useContext, useEffect, useMemo, useState } from 'react';
+import { Fragment, createContext, createElement, useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createRuntimeResource } from './runtime.js';
 
 const RuntimeContext = createContext(null);
 const defaultOptions = Object.freeze({});
 
-/** A Blob URL lets the browser read the PNG bytes directly; a data URL would base64-encode them. */
-const withImageUrl = result => result.success ? { ...result, src: URL.createObjectURL(new Blob([result.png], { type: 'image/png' })) } : result;
+// Layout effects publish the image URL before paint; servers never run effects and React 18 warns there.
+const useClientLayoutEffect = typeof document === 'undefined' ? useEffect : useLayoutEffect;
+
+/**
+ * A Blob URL lets the browser read the PNG bytes directly; a data URL would base64-encode them.
+ * The URL is created and revoked by one effect keyed by committed bytes, so results that React
+ * batches away (for example a preview superseded in the same task) never allocate a URL to leak.
+ */
+function useImageUrl(png) {
+  const [image, setImage] = useState(null);
+  useClientLayoutEffect(() => {
+    if (!png) return undefined;
+    const src = URL.createObjectURL(new Blob([png], { type: 'image/png' }));
+    setImage({ png, src });
+    return () => URL.revokeObjectURL(src);
+  }, [png]);
+  return png && image?.png === png ? image.src : undefined;
+}
 
 /** Shares a lazy browser runtime across diagrams and owns its eventual disposal. */
 export function TextGraphProvider({ options = defaultOptions, children }) {
@@ -34,9 +50,9 @@ export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = d
         const runtime = await resource.get();
         if (controller.signal.aborted) return;
         const result = await runtime.renderPng(source, { scale, padding, maxWidth, dark, language, signal: controller.signal,
-          onPreview: result => { if (!controller.signal.aborted) setState({ request, result: withImageUrl(result), fontsLoading: true }); },
+          onPreview: result => { if (!controller.signal.aborted) setState({ request, result, fontsLoading: true }); },
         });
-        if (!controller.signal.aborted) setState({ request, result: withImageUrl(result) });
+        if (!controller.signal.aborted) setState({ request, result });
       } catch (error) {
         if (!controller.signal.aborted) {
           // Host loaders may reject arbitrary values, including null. Keep the
@@ -48,23 +64,24 @@ export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = d
     })();
     return () => { controller.abort(); release(); };
   }, [request]);
-  // Each published image owns one Blob URL; release it once a newer state or unmount replaces it.
-  const src = state?.result?.src;
-  useEffect(() => src ? () => URL.revokeObjectURL(src) : undefined, [src]);
+  const current = state?.request === request ? state : null;
+  const src = useImageUrl(current?.result?.success ? current.result.png : undefined);
 
   // State is keyed by the whole request so old images disappear immediately,
   // even before passive effects clean up the previous asynchronous render.
-  if (state?.request !== request) return createElement('span', { role: 'status' }, loading);
+  if (!current) return createElement('span', { role: 'status' }, loading);
   if (!state.result?.success) {
     const message = state.error?.message ?? state.result.diagnostics.map(item => item.message).join('\n');
     return createElement('span', { role: 'alert' }, message || 'Could not render diagram');
   }
+  // The URL arrives in the layout effect right after the bytes commit, before the browser paints.
+  if (!src) return createElement('span', { role: 'status' }, loading);
   const result = state.result;
   // Density improves sharpness without enlarging the diagram. Native dimensions
   // also preserve logical size when maxWidth lowers the actual render density.
   const image = createElement('img', { width: result.displayWidth ?? result.width / scale, height: result.displayHeight ?? result.height / scale, ...imageProps,
     style: { maxWidth: '100%', ...(imageProps.height == null ? { height: 'auto' } : {}), ...style },
-    src: result.src, alt });
+    src, alt });
   if (state.error) return createElement(Fragment, null, image, createElement('span', { role: 'alert' }, state.error.message));
   if (state.fontsLoading) return createElement(Fragment, null, image, createElement('span', { role: 'status' }, fontsLoading));
   return image;

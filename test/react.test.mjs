@@ -131,6 +131,25 @@ test('images display through Blob URLs that are revoked once replaced or unmount
   }
 });
 
+test('previews superseded before React commits them never leave unrevoked Blob URLs', async () => {
+  const live = new Set();
+  const { createObjectURL, revokeObjectURL } = URL;
+  URL.createObjectURL = blob => { const url = createObjectURL(blob); live.add(url); return url; };
+  URL.revokeObjectURL = url => { live.delete(url); revokeObjectURL(url); };
+  try {
+    // The preview and the final image arrive in one batch, so the preview state is never committed.
+    const f = fixture(async (request, context) => { context.onPreview(png(10)); return png(20); });
+    await render(view(f.options, 'A: 中文'));
+    assert.equal(container.querySelector('img').width, 20);
+    assert.equal(live.size, 1, 'only the displayed image may own a Blob URL');
+    await render(null);
+    assert.equal(live.size, 0);
+  } finally {
+    URL.createObjectURL = createObjectURL;
+    URL.revokeObjectURL = revokeObjectURL;
+  }
+});
+
 test('render settings update the image while equivalent options and alt changes reuse output', async () => {
   const f = fixture(request => png(request.export.scale));
   await render(view(f.options, 'A', { renderOptions: { scale: 3 } }));
