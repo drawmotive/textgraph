@@ -37,7 +37,7 @@ function png(width = 10, height = 10, displayDimensions = {}) {
   bytes.write('IHDR', 12);
   bytes.writeUInt32BE(width, 16);
   bytes.writeUInt32BE(height, 20);
-  return JSON.stringify({ protocolVersion: 1, success: true, png: bytes.toString('base64'), width, height, ...displayDimensions, diagnostics: [] });
+  return { json: JSON.stringify({ protocolVersion: 2, success: true, width, height, ...displayDimensions, diagnostics: [] }), png: new Uint8Array(bytes) };
 }
 function fixture(execute = async () => png()) {
   const stats = { loads: 0, disposed: 0, calls: [] };
@@ -105,6 +105,32 @@ test('new DSL hides old output and cancels stale work before it can publish', as
   assert.equal(container.querySelector('img').className, 'diagram');
 });
 
+test('images display through Blob URLs that are revoked once replaced or unmounted', async () => {
+  const created = [];
+  const revoked = [];
+  const { createObjectURL, revokeObjectURL } = URL;
+  URL.createObjectURL = blob => { const url = createObjectURL(blob); created.push({ url, blob }); return url; };
+  URL.revokeObjectURL = url => { revoked.push(url); revokeObjectURL(url); };
+  try {
+    const f = fixture(request => png(request.source === 'A' ? 10 : 20));
+    await render(view(f.options, 'A'));
+    const first = container.querySelector('img').src;
+    assert.equal(first, created[0].url);
+    assert.match(first, /^blob:/);
+    assert.equal(created[0].blob.type, 'image/png');
+    assert.deepEqual(new Uint8Array(await created[0].blob.arrayBuffer()).subarray(0, 8), new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]));
+    assert.deepEqual(revoked, []);
+    await render(view(f.options, 'B'));
+    assert.equal(container.querySelector('img').src, created[1].url);
+    assert.deepEqual(revoked, [first]);
+    await render(null);
+    assert.deepEqual(revoked, [first, created[1].url]);
+  } finally {
+    URL.createObjectURL = createObjectURL;
+    URL.revokeObjectURL = revokeObjectURL;
+  }
+});
+
 test('render settings update the image while equivalent options and alt changes reuse output', async () => {
   const f = fixture(request => png(request.export.scale));
   await render(view(f.options, 'A', { renderOptions: { scale: 3 } }));
@@ -154,9 +180,9 @@ test('explicit image dimensions and styles override web defaults without droppin
 
 test('DSL diagnostics and operational errors replace images, and corrected input recovers', async () => {
   const f = fixture(request => {
-    if (request.source === 'invalid') return JSON.stringify({ protocolVersion: 1, success: false, diagnostics: [
+    if (request.source === 'invalid') return { json: JSON.stringify({ protocolVersion: 2, success: false, diagnostics: [
       { code: 'TG_PARSE_ERROR', severity: 'error', stage: 'parse', message: '<script>invalid DSL</script>' },
-    ] });
+    ] }) };
     if (request.source === 'failure') throw new Error('Render failed');
     return png();
   });

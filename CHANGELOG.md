@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Breaking: protocol 2. Fonts and rendered images cross the WASM boundary through
+  native memory views instead of base64 or escaped JSON, lowering the permanent
+  WASM memory peak and removing encode/parse work on both sides.
+- Breaking: `renderPng` always returns `png` as a `Uint8Array`; the `encoding`
+  option is removed. The React component displays PNGs through Blob URLs.
+- Breaking: custom `loadRuntime` adapters return `{ json, png?, svg? }` from
+  `execute` and pass the same shape to `onPreview`.
+
 ## 0.2.2-alpha.3
 
 - Add renderSvg with logical dimensions, vector viewBox and the same production

@@ -1,15 +1,16 @@
 import { DrawMotiveError } from './errors.js';
+import { protocolVersion } from './manifest.js';
 
 /** Validates the wire boundary before publishing detached public diagnostic data. */
 export function decodeValidation(json) {
   try {
     const value = JSON.parse(json);
-    if (value?.protocolVersion !== 1 || typeof value.valid !== 'boolean' || !Array.isArray(value.diagnostics)) throw new Error('Invalid envelope');
+    if (value?.protocolVersion !== protocolVersion || typeof value.valid !== 'boolean' || !Array.isArray(value.diagnostics)) throw new Error('Invalid envelope');
     const diagnostics = decodeDiagnostics(value.diagnostics, ['parse', 'semantic']);
     if (value.valid === diagnostics.some(item => item.severity === 'error')) throw new Error('Inconsistent validity');
     return Object.freeze({ valid: value.valid, diagnostics });
   } catch (cause) {
-    throw new DrawMotiveError('INVALID_RESPONSE', 'The validation response violates protocol 1', { cause });
+    throw new DrawMotiveError('INVALID_RESPONSE', `The validation response violates protocol ${protocolVersion}`, { cause });
   }
 }
 

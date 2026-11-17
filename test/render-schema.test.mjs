@@ -30,28 +30,29 @@ test('manifest schema requires resource declarations and Execute when rendering 
   assert.equal(validate({ ...valid, rendering: { ...rendering, fonts: [] } }), false);
 });
 
-test('render protocol schema separates successes and failures and enforces PNG metadata', async () => {
+test('render protocol schema separates successes and failures and keeps PNG data out of the envelope', async () => {
   const validate = await schema('render');
-  const success = { protocolVersion: 1, success: true, png: 'iVBORw0KGgo=', width: 1, height: 1, diagnostics: [] };
+  const success = { protocolVersion: 2, success: true, width: 1, height: 1, diagnostics: [] };
   const error = { code: 'TG_LAYOUT_ERROR', severity: 'error', stage: 'layout', message: 'Cannot arrange nodes' };
   assert.equal(validate(success), true, JSON.stringify(validate.errors));
   assert.equal(validate({ ...success, displayWidth: 1.5, displayHeight: 1.5 }), true, JSON.stringify(validate.errors));
-  assert.equal(validate({ protocolVersion: 1, success: false, diagnostics: [error] }), true, JSON.stringify(validate.errors));
-  for (const value of [{ ...success, width: 0 }, { ...success, height: 1.5 }, { ...success, png: 'invalid' },
-    { ...success, diagnostics: [error] }, { ...success, success: false }, { protocolVersion: 1, success: false, diagnostics: [] },
+  assert.equal(validate({ protocolVersion: 2, success: false, diagnostics: [error] }), true, JSON.stringify(validate.errors));
+  for (const value of [{ ...success, width: 0 }, { ...success, height: 1.5 }, { ...success, png: 'iVBORw0KGgo=' }, { ...success, svg: '<svg/>' },
+    { ...success, protocolVersion: 1 },
+    { ...success, diagnostics: [error] }, { ...success, success: false }, { protocolVersion: 2, success: false, diagnostics: [] },
     { ...success, displayWidth: 0, displayHeight: 1 }, { ...success, displayWidth: 1 }, { ...success, displayHeight: 1 },
-    { protocolVersion: 1, success: false, diagnostics: [error], displayWidth: 1, displayHeight: 1 }]) assert.equal(validate(value), false);
+    { protocolVersion: 2, success: false, diagnostics: [error], displayWidth: 1, displayHeight: 1 }]) assert.equal(validate(value), false);
 });
 
-test('SVG protocol schema requires vector data and logical dimensions only on success', async () => {
+test('SVG protocol schema requires logical dimensions only on success and keeps the document out of the envelope', async () => {
   const validate = await schema('render-svg');
-  const success = { protocolVersion: 1, success: true, svg: '<svg xmlns="http://www.w3.org/2000/svg"/>', displayWidth: 40.5, displayHeight: 20.25, diagnostics: [] };
+  const success = { protocolVersion: 2, success: true, displayWidth: 40.5, displayHeight: 20.25, diagnostics: [] };
   const error = { code: 'TG_RENDER_ERROR', severity: 'error', stage: 'render', message: 'Cannot render' };
-  const failure = { protocolVersion: 1, success: false, diagnostics: [error] };
+  const failure = { protocolVersion: 2, success: false, diagnostics: [error] };
   assert.equal(validate(success), true, JSON.stringify(validate.errors));
   assert.equal(validate({ ...success, diagnostics: [{ ...error, severity: 'warning', stage: 'font' }] }), true, JSON.stringify(validate.errors));
   assert.equal(validate(failure), true, JSON.stringify(validate.errors));
-  for (const value of [{ ...success, svg: '' }, { ...success, svg: null }, { ...success, svg: undefined },
+  for (const value of [{ ...success, svg: '<svg xmlns="http://www.w3.org/2000/svg"/>' }, { ...success, png: 'iVBORw0KGgo=' }, { ...success, protocolVersion: 1 },
     { ...success, displayWidth: 0 }, { ...success, displayHeight: -1 }, { ...success, displayWidth: '1' },
     { ...success, displayHeight: undefined }, { ...success, displayWidth: undefined },
     { ...success, diagnostics: [error] }, { ...failure, diagnostics: [] },

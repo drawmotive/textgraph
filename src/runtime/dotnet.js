@@ -1,14 +1,12 @@
 import { createRuntimeAssetPlan } from './shared.js';
 import { DrawMotiveError } from './errors.js';
-import { validateManifest, validateBootConfig, validationCapability, renderingCapability, svgRenderingCapability, darkRenderingCapability, supportsRendering, isRuntimeAsset } from './manifest.js';
+import { validateManifest, validateBootConfig, validationCapability, renderingCapability, svgRenderingCapability, darkRenderingCapability, supportsRendering, isRuntimeAsset, protocolVersion } from './manifest.js';
 import { throwIfAborted } from './lifecycle.js';
 import { readVerifiedAsset } from './integrity.js';
 import { createRenderingExecutor } from './render-resources.js';
 import { decodeConfiguration } from './rendering.js';
-import { createFontHost, fontViewsCapability, fontCapability } from './font-resources.js';
-
-/** JavaScript module the bridge imports `copyFontBytes` from; it must match the C# JSImport. */
-const fontHostModule = 'drawmotive-textgraph-fonts';
+import { fontCapability } from './font-resources.js';
+import { createNativeHost, nativeHostModule } from './native-host.js';
 
 /** Starts one isolated .NET module graph; platform loaders own all data I/O. */
 export async function startTextGraphRuntime(options, manifest, readAsset) {
@@ -66,9 +64,9 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
       return Promise.resolve(new Response(data.get(item.asset.path), { headers: { 'Content-Type': item.asset.mediaType } }));
     }).create();
     throwIfAborted(options.signal);
-    // Register before any export runs: the bridge binds this module when it first installs view fonts.
-    const fontHost = createFontHost();
-    runtime.setModuleImports(fontHostModule, fontHost.imports);
+    // Register before any export runs: the bridge binds this module on its first font or image payload.
+    const host = createNativeHost();
+    runtime.setModuleImports(nativeHostModule, host.imports);
     const exports = await runtime.getAssemblyExports(manifest.bridge.assembly);
     bridge = manifest.bridge.type.split('.').reduce((value, key) => value?.[key], exports);
     if (typeof bridge?.[manifest.bridge.info] !== 'function' || typeof bridge?.[manifest.bridge.validate] !== 'function') {
@@ -87,7 +85,7 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
     }
     if (manifest.capabilities.includes(fontCapability) && !info.capabilities.includes(fontCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement lazy fonts');
     if (renders && typeof bridge[manifest.bridge.execute] !== 'function') throw new DrawMotiveError('ABI_MISMATCH', 'Rendering bridge export is missing');
-    return createBridgeRuntime({ manifest, options, readAsset, bridge, info, fontHost });
+    return createBridgeRuntime({ manifest, options, readAsset, bridge, info, host });
   } catch (cause) {
     bridge = undefined;
     if (cause instanceof DrawMotiveError || cause?.name === 'AbortError') throw cause;
@@ -96,7 +94,7 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
 }
 
 /** Owns managed bridge resources; the instance queue drains calls before invoking disposal. */
-export function createBridgeRuntime({ manifest, options, readAsset, bridge, info, fontHost = createFontHost() }) {
+export function createBridgeRuntime({ manifest, options, readAsset, bridge, info, host = createNativeHost() }) {
   const renders = supportsRendering(manifest.capabilities);
   return {
     // A bridge may support operations intentionally omitted by the selected
@@ -104,15 +102,12 @@ export function createBridgeRuntime({ manifest, options, readAsset, bridge, info
     abiVersion: info.abiVersion, capabilities: info.capabilities.filter(capability => manifest.capabilities.includes(capability)),
     validate: source => bridge[manifest.bridge.validate](source),
     ...(renders ? { execute: createRenderingExecutor({ manifest, options, readAsset,
-      // Native font views are a bridge implementation detail, not a consumer capability.
-      fontViews: info.capabilities.includes(fontViewsCapability),
-      execute: (request, fonts) => fonts === undefined ? bridge[manifest.bridge.execute](request)
-        : fontHost.supply(fonts, () => bridge[manifest.bridge.execute](request)) }) } : {}),
+      execute: (request, fonts) => host.run(() => bridge[manifest.bridge.execute](request), fonts) }) } : {}),
     async dispose() {
       if (!bridge) return;
       try {
         // Release native font caches and their timers without .NET exit(), which terminates Node.
-        if (renders) decodeConfiguration(await bridge[manifest.bridge.execute](JSON.stringify({ protocolVersion: 1, operation: 'dispose' })), 'disposal');
+        if (renders) decodeConfiguration(host.run(() => bridge[manifest.bridge.execute](JSON.stringify({ protocolVersion, operation: 'dispose' }))).json, 'disposal');
       } catch (cause) {
         if (cause instanceof DrawMotiveError) throw cause;
         throw new DrawMotiveError('RUNTIME_FAILED', 'Native resource disposal failed', { cause });

@@ -6,6 +6,9 @@ import { createRuntimeResource } from './runtime.js';
 const RuntimeContext = createContext(null);
 const defaultOptions = Object.freeze({});
 
+/** A Blob URL lets the browser read the PNG bytes directly; a data URL would base64-encode them. */
+const withImageUrl = result => result.success ? { ...result, src: URL.createObjectURL(new Blob([result.png], { type: 'image/png' })) } : result;
+
 /** Shares a lazy browser runtime across diagrams and owns its eventual disposal. */
 export function TextGraphProvider({ options = defaultOptions, children }) {
   const resource = useMemo(() => createRuntimeResource(options), [options]);
@@ -30,10 +33,10 @@ export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = d
       try {
         const runtime = await resource.get();
         if (controller.signal.aborted) return;
-        const result = await runtime.renderPng(source, { scale, padding, maxWidth, dark, language, encoding: 'base64', signal: controller.signal,
-          onPreview: result => { if (!controller.signal.aborted) setState({ request, result, fontsLoading: true }); },
+        const result = await runtime.renderPng(source, { scale, padding, maxWidth, dark, language, signal: controller.signal,
+          onPreview: result => { if (!controller.signal.aborted) setState({ request, result: withImageUrl(result), fontsLoading: true }); },
         });
-        if (!controller.signal.aborted) setState({ request, result });
+        if (!controller.signal.aborted) setState({ request, result: withImageUrl(result) });
       } catch (error) {
         if (!controller.signal.aborted) {
           // Host loaders may reject arbitrary values, including null. Keep the
@@ -45,6 +48,9 @@ export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = d
     })();
     return () => { controller.abort(); release(); };
   }, [request]);
+  // Each published image owns one Blob URL; release it once a newer state or unmount replaces it.
+  const src = state?.result?.src;
+  useEffect(() => src ? () => URL.revokeObjectURL(src) : undefined, [src]);
 
   // State is keyed by the whole request so old images disappear immediately,
   // even before passive effects clean up the previous asynchronous render.
@@ -58,7 +64,7 @@ export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = d
   // also preserve logical size when maxWidth lowers the actual render density.
   const image = createElement('img', { width: result.displayWidth ?? result.width / scale, height: result.displayHeight ?? result.height / scale, ...imageProps,
     style: { maxWidth: '100%', ...(imageProps.height == null ? { height: 'auto' } : {}), ...style },
-    src: `data:image/png;base64,${result.png}`, alt });
+    src: result.src, alt });
   if (state.error) return createElement(Fragment, null, image, createElement('span', { role: 'alert' }, state.error.message));
   if (state.fontsLoading) return createElement(Fragment, null, image, createElement('span', { role: 'status' }, fontsLoading));
   return image;

@@ -6,7 +6,7 @@ export interface TextGraphRuntimeManifest {
 
 export interface TextGraphAbiManifest extends TextGraphRuntimeManifest {
   readonly schemaVersion: 1;
-  readonly protocolVersion: 1;
+  readonly protocolVersion: 2;
   readonly targetFramework: 'net10.0' | 'net11.0';
   readonly privateSource: { readonly commit: string; readonly project: string };
   readonly entryAssembly: string;
@@ -52,9 +52,7 @@ export interface TextGraphInstance {
   readonly state: 'ready' | 'disposing' | 'disposed';
   readonly info: TextGraphRuntimeInfo;
   validate(source: string, options?: { signal?: AbortSignal }): Promise<TextGraphValidationResult>;
-  renderPng(source: string, options?: TextGraphRenderPngOptions<'bytes'>): Promise<TextGraphRenderPngResult<Uint8Array>>;
-  renderPng(source: string, options: TextGraphRenderPngOptions<'base64'> & { encoding: 'base64' }): Promise<TextGraphRenderPngResult<string>>;
-  renderPng(source: string, options: TextGraphRenderPngOptions): Promise<TextGraphRenderPngResult<Uint8Array | string>>;
+  renderPng(source: string, options?: TextGraphRenderPngOptions): Promise<TextGraphRenderPngResult>;
   renderSvg(source: string, options?: TextGraphRenderSvgOptions): Promise<TextGraphRenderSvgResult>;
   readonly<T>(operation: () => T | Promise<T>): Promise<T>;
   mutate<T>(operation: () => T | Promise<T>): Promise<T>;
@@ -65,7 +63,16 @@ export interface TextGraphRuntime {
   readonly abiVersion: string;
   readonly capabilities?: readonly string[];
   validate?(source: string): string | Promise<string>;
-  execute?(requestJson: string, context?: { signal?: AbortSignal; onPreview?(responseJson: string): void }): string | Promise<string>;
+  execute?(requestJson: string, context?: { signal?: AbortSignal; onPreview?(response: TextGraphNativeResponse): void }): TextGraphNativeResponse | Promise<TextGraphNativeResponse>;
+}
+
+/** One protocol 2 native call: the JSON envelope plus the image payload delivered beside it. */
+export interface TextGraphNativeResponse {
+  readonly json: string;
+  /** Encoded PNG owned by the receiver; present only for a successful PNG render. */
+  readonly png?: Uint8Array;
+  /** SVG document; present only for a successful SVG render. */
+  readonly svg?: string;
   dispose?(): void | Promise<void>;
 }
 
@@ -124,17 +131,13 @@ export interface TextGraphLanguagePack {
   readonly fallbackFamilies?: readonly string[];
 }
 
-export type TextGraphPngEncoding = 'bytes' | 'base64';
-
-export interface TextGraphRenderPngOptions<Encoding extends TextGraphPngEncoding = TextGraphPngEncoding> {
+export interface TextGraphRenderPngOptions {
   /** Use the native dark theme. Defaults to false; true requires textgraph-render-dark-v1. */
   dark?: boolean;
   /** Receives a provisional image before optional fonts load; the promise returns the final image. */
-  onPreview?(result: Extract<TextGraphRenderPngResult<Encoding extends 'base64' ? string : Uint8Array>, { success: true }>): void;
+  onPreview?(result: Extract<TextGraphRenderPngResult, { success: true }>): void;
   /** Optional language hint for ambiguous Han text, e.g. ja or zh-CN. */
   language?: string;
-  /** Defaults to bytes. Base64 contains no data-URL prefix. */
-  encoding?: Encoding;
   /** Positive raster density relative to logical diagram size. Defaults to 1. */
   scale?: number;
   /** Non-negative padding in diagram units. Defaults to 10. */
@@ -145,8 +148,8 @@ export interface TextGraphRenderPngOptions<Encoding extends TextGraphPngEncoding
   signal?: AbortSignal;
 }
 
-export type TextGraphRenderPngResult<Png extends Uint8Array | string = Uint8Array | string> =
-  | { readonly success: true; readonly png: Png; readonly width: number; readonly height: number;
+export type TextGraphRenderPngResult =
+  | { readonly success: true; readonly png: Uint8Array; readonly width: number; readonly height: number;
       /** Logical display dimensions before density scaling; omitted by older runtimes. */
       readonly displayWidth?: number; readonly displayHeight?: number; readonly diagnostics: readonly TextGraphRenderDiagnostic[] }
   | { readonly success: false; readonly diagnostics: readonly TextGraphRenderDiagnostic[] };
@@ -170,7 +173,7 @@ export type TextGraphRenderSvgResult =
   | { readonly success: false; readonly diagnostics: readonly TextGraphRenderDiagnostic[] };
 
 export interface TextGraphRuntimeInfo extends TextGraphRuntimeManifest {
-  readonly protocolVersion: 1;
+  readonly protocolVersion: 2;
   readonly capabilities: readonly string[];
 }
 

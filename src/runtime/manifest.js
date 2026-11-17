@@ -1,5 +1,8 @@
 import { DrawMotiveError } from './errors.js';
 
+/** Wire protocol shared by the manifest, the bridge envelopes and the public results.
+ * Protocol 2 carries fonts and rendered images beside JSON through the native host module. */
+export const protocolVersion = 2;
 export const validationCapability = 'textgraph-validate-v1';
 export const renderingCapability = 'textgraph-render-v1';
 export const svgRenderingCapability = 'textgraph-render-svg-v1';
@@ -38,7 +41,7 @@ export function validateBootConfig(config, manifest) {
 export function validateManifest(manifest) {
   const invalid = () => { throw new DrawMotiveError('INVALID_MANIFEST', 'Invalid TextGraph runtime manifest'); };
   if (!manifest || manifest.schemaVersion !== 1 || manifest.packageName !== '@drawmotive/textgraph'
-      || typeof manifest.packageVersion !== 'string' || !manifest.packageVersion || manifest.protocolVersion !== 1
+      || typeof manifest.packageVersion !== 'string' || !manifest.packageVersion || manifest.protocolVersion !== protocolVersion
       || !['net10.0', 'net11.0'].includes(manifest.targetFramework) || !/^[a-f0-9]{40}$/.test(manifest.privateSource?.commit ?? '')
       || manifest.privateSource?.project !== 'DrawMotive.TextGraph.Bridge' || !Array.isArray(manifest.assets)) invalid();
   if (manifest.abiVersion !== '1.0.0') throw new DrawMotiveError('ABI_MISMATCH', 'Unsupported TextGraph ABI');

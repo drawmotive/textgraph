@@ -3,18 +3,20 @@ import test from 'node:test';
 import { initializeTextGraph, DrawMotiveError } from '../src/index.js';
 
 const svg = '<?xml version="1.0" encoding="utf-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40.5 20.25"><path d="M0 0L20 10"/></svg>';
-const success = { protocolVersion: 1, success: true, svg, displayWidth: 40.5, displayHeight: 20.25, diagnostics: [] };
-const valid = { protocolVersion: 1, valid: true, diagnostics: [] };
+const success = { protocolVersion: 2, success: true, svg, displayWidth: 40.5, displayHeight: 20.25, diagnostics: [] };
+const valid = { protocolVersion: 2, valid: true, diagnostics: [] };
+// Protocol 2 delivers the document beside the JSON envelope; fixtures describe both in one object.
+const respond = ({ svg: document, ...value }) => ({ json: JSON.stringify(value), ...(document === undefined ? {} : { svg: document }) });
 const error = { code: 'TG_RENDER_ERROR', severity: 'error', stage: 'render', message: 'Cannot render' };
 const warning = { code: 'TG_FONT_WARNING', severity: 'warning', stage: 'font', message: 'Missing glyph', location: { line: 0, column: 2 } };
-const create = (execute = () => JSON.stringify(success), extras = {}) => initializeTextGraph({
+const create = (execute = () => respond(success), extras = {}) => initializeTextGraph({
   loadRuntime: async () => ({ abiVersion: '1.0.0', capabilities: ['textgraph-validate-v1', 'textgraph-render-v1', 'textgraph-render-svg-v1'],
     execute, validate: () => JSON.stringify(valid), ...extras }),
 });
 
 test('renderSvg returns frozen vector output and sends only SVG export defaults', async () => {
   const requests = [];
-  const instance = await create(request => { requests.push(JSON.parse(request)); return JSON.stringify({ ...success, diagnostics: [warning] }); });
+  const instance = await create(request => { requests.push(JSON.parse(request)); return respond({ ...success, diagnostics: [warning] }); });
   try {
     const result = await instance.renderSvg('A -> B');
     assert.deepEqual(result, { success: true, svg, displayWidth: 40.5, displayHeight: 20.25, diagnostics: [warning] });
@@ -22,16 +24,16 @@ test('renderSvg returns frozen vector output and sends only SVG export defaults'
     assert.ok(Object.isFrozen(result.diagnostics));
     assert.ok(Object.isFrozen(result.diagnostics[0]));
     assert.ok(Object.isFrozen(result.diagnostics[0].location));
-    assert.deepEqual(requests[0], { protocolVersion: 1, operation: 'render', source: 'A -> B', export: { format: 'svg', padding: 10 } });
+    assert.deepEqual(requests[0], { protocolVersion: 2, operation: 'render', source: 'A -> B', export: { format: 'svg', padding: 10 } });
     await instance.renderSvg('A: 日本語', { padding: 0, language: 'ja' });
-    assert.deepEqual(requests[1], { protocolVersion: 1, operation: 'render', source: 'A: 日本語', language: 'ja', export: { format: 'svg', padding: 0 } });
+    assert.deepEqual(requests[1], { protocolVersion: 2, operation: 'render', source: 'A: 日本語', language: 'ja', export: { format: 'svg', padding: 0 } });
   } finally { await instance.dispose(); }
 });
 
 test('renderSvg requires explicit SVG capability before executing any work', async () => {
   for (const capabilities of [undefined, [], ['textgraph-render-v1']]) {
     let calls = 0;
-    const instance = await create(() => { calls++; return JSON.stringify(success); }, { capabilities });
+    const instance = await create(() => { calls++; return respond(success); }, { capabilities });
     try {
       await assert.rejects(instance.renderSvg('A'), { code: 'UNSUPPORTED_CAPABILITY' });
       assert.equal(calls, 0);
@@ -45,7 +47,7 @@ test('renderSvg requires explicit SVG capability before executing any work', asy
 
 test('SVG options reject PNG settings, unknown properties and invalid values before execution', async () => {
   let calls = 0;
-  const instance = await create(() => { calls++; return JSON.stringify(success); });
+  const instance = await create(() => { calls++; return respond(success); });
   try {
     for (const source of [undefined, null, 42, {}]) await assert.rejects(instance.renderSvg(source), { code: 'INVALID_ARGUMENT' });
     for (const options of [null, [], 42, { encoding: 'bytes' }, { scale: 1 }, { maxWidth: 100 }, { format: 'svg' }, { unknown: undefined },
@@ -60,7 +62,7 @@ test('SVG options reject PNG settings, unknown properties and invalid values bef
 test('SVG diagnostics resolve as frozen failures without image fields', async () => {
   for (const stage of ['parse', 'semantic', 'layout', 'render', 'font']) {
     const diagnostic = { ...error, stage, location: { line: 1, column: 3 } };
-    const instance = await create(() => JSON.stringify({ protocolVersion: 1, success: false, diagnostics: [diagnostic] }));
+    const instance = await create(() => respond({ protocolVersion: 2, success: false, diagnostics: [diagnostic] }));
     try {
       const result = await instance.renderSvg('invalid');
       assert.deepEqual(result, { success: false, diagnostics: [diagnostic] });
@@ -71,8 +73,11 @@ test('SVG diagnostics resolve as frozen failures without image fields', async ()
 });
 
 test('SVG responses reject invalid envelopes, document roots, dimensions and diagnostic consistency', async () => {
-  const failure = { protocolVersion: 1, success: false, diagnostics: [error] };
-  for (const response of ['not JSON', {}, { ...success, protocolVersion: 2 }, { ...success, success: 'true' },
+  const failure = { protocolVersion: 2, success: false, diagnostics: [error] };
+  const invalid = [{ json: JSON.stringify(success) }, 'legacy JSON string', { json: JSON.stringify({ ...success, svg: undefined }) }];
+  // The document belongs beside the envelope, never inside it.
+  invalid.push({ json: JSON.stringify(success), svg }, { ...respond(success), png: new Uint8Array([137]) });
+  for (const response of [...invalid, { json: 'not JSON' }, {}, { ...success, protocolVersion: 1 }, { ...success, success: 'true' },
     { ...success, svg: '' }, { ...success, svg: '   ' }, { ...success, svg: null },
     { ...success, svg: '<svg></svg>' }, { ...success, svg: '<svg xmlns="urn:other"></svg>' },
     { ...success, svg: `<svg label=" xmlns='http://www.w3.org/2000/svg'"/>` },
@@ -85,7 +90,8 @@ test('SVG responses reject invalid envelopes, document roots, dimensions and dia
     { ...success, diagnostics: [ { ...warning, location: { line: -1, column: 0 } } ] },
     { ...failure, diagnostics: [] }, { ...failure, diagnostics: [warning] },
     ...['svg', 'displayWidth', 'displayHeight', 'png', 'width', 'height'].map(key => ({ ...failure, [key]: null }))]) {
-    const instance = await create(() => typeof response === 'string' ? response : JSON.stringify(response));
+    const native = typeof response === 'string' || 'json' in response ? response : respond(response);
+    const instance = await create(() => native);
     try { await assert.rejects(instance.renderSvg('A'), { code: 'INVALID_RESPONSE' }); }
     finally { await instance.dispose(); }
   }
@@ -95,7 +101,7 @@ test('SVG rendering shares the validation queue and skips cancelled or disposed 
   let release;
   const gate = new Promise(resolve => { release = resolve; });
   const order = [];
-  const instance = await create(async request => { order.push(JSON.parse(request).source); await gate; return JSON.stringify(success); }, {
+  const instance = await create(async request => { order.push(JSON.parse(request).source); await gate; return respond(success); }, {
     validate: () => { order.push('validate'); return JSON.stringify(valid); },
     dispose: () => { order.push('dispose'); },
   });
@@ -123,7 +129,7 @@ test('SVG rendering preserves operational errors and cancellation precedence', a
       assert.equal(context.signal, controller.signal);
       controller.abort();
       if (fails) throw new Error('native');
-      return JSON.stringify(success);
+      return respond(success);
     });
     try { await assert.rejects(instance.renderSvg('A', { signal: controller.signal }), { name: 'AbortError' }); }
     finally { await instance.dispose(); }

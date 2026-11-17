@@ -134,7 +134,7 @@ test('bundled native runtime retains display size when maxWidth reduces raster d
   } finally { await runtime.dispose(); }
 });
 
-test('real Node runtime renders isolated PNGs with matching byte and base64 output', async () => {
+test('real Node runtime renders isolated PNG bytes that each caller owns', async () => {
   const runtime = await initializeTextGraph();
   try {
     assert.equal(typeof runtime.renderPng, 'function');
@@ -150,9 +150,11 @@ test('real Node runtime renders isolated PNGs with matching byte and base64 outp
       if (decoded.data[i] < 240 || decoded.data[i + 1] < 240 || decoded.data[i + 2] < 240) ink++;
     }
     assert.ok(ink > 100, 'PNG must contain visible diagram content');
-    const encoded = await runtime.renderPng('A -> B', { encoding: 'base64' });
-    assert.equal(encoded.success, true);
-    assert.deepEqual(Buffer.from(encoded.png, 'base64'), Buffer.from(first.png));
+    // Each result owns bytes copied out of WASM memory; later renders cannot alias or overwrite them.
+    const again = await runtime.renderPng('A -> B');
+    assert.notEqual(again.png.buffer, first.png.buffer);
+    assert.deepEqual(Buffer.from(again.png), Buffer.from(first.png));
+    await assert.rejects(runtime.renderPng('A -> B', { encoding: 'base64' }), { code: 'INVALID_ARGUMENT' });
     const enlarged = await runtime.renderPng('A -> B', { scale: 4 });
     assert.equal(enlarged.success, true);
     assert.ok(Math.abs(enlarged.width - first.width * 4) <= 3);

@@ -41,7 +41,7 @@ Use your deployed base path instead of `/` for subdirectory hosting. The [React/
 | `fontsLoading` | Content shown beside the provisional image while optional fonts load; defaults to `Fonts are still loading…`. |
 | Other image attributes | Passed to the successful `<img>`, including `className`, `style`, `width`, and `height`. |
 
-The component owns `src`, encoding, and cancellation. While new input renders, old images are replaced by loading content. A stale result cannot replace newer input. DSL diagnostics and operational failures appear as escaped text with `role="alert"`; corrected input renders again. Changing only `alt` or image styles does not rerun layout.
+The component owns `src` and cancellation. It displays PNG bytes through a Blob URL and revokes that URL when a newer image or unmount replaces it, so CSP must allow `img-src blob:`. While new input renders, old images are replaced by loading content. A stale result cannot replace newer input. DSL diagnostics and operational failures appear as escaped text with `role="alert"`; corrected input renders again. Changing only `alt` or image styles does not rerun layout.
 Changing `renderOptions.dark` rerenders the exported PNG using the selected native
 theme. The default is `false`; `true` requires matching runtime assets advertising
 `textgraph-render-dark-v1`. Language hints and font previews use the same request.

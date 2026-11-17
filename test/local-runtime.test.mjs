@@ -102,7 +102,7 @@ test('Node Workers inherit explicit local runtime selection without silently fal
 test('an explicit runtime loader remains authoritative over development environment selection', async t => {
   await fixture(t, { copy: false });
   const runtime = await initializeTextGraph({ loadRuntime: async () => ({
-    abiVersion: '1.0.0', validate: () => JSON.stringify({ protocolVersion: 1, valid: true, diagnostics: [] }),
+    abiVersion: '1.0.0', validate: () => JSON.stringify({ protocolVersion: 2, valid: true, diagnostics: [] }),
   }) });
   try { assert.equal((await runtime.validate('A -> B')).valid, true); }
   finally { await runtime.dispose(); }

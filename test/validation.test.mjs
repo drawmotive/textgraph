@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { initializeTextGraph } from '../src/index.js';
 
-const valid = { protocolVersion: 1, valid: true, diagnostics: [] };
+const valid = { protocolVersion: 2, valid: true, diagnostics: [] };
 const create = (validate = () => JSON.stringify(valid), extras = {}) => initializeTextGraph({
   loadRuntime: async () => ({ abiVersion: '1.0.0', validate, ...extras }),
 });
@@ -18,7 +18,7 @@ test('validate returns an immutable detached result and actual runtime capabilit
 
 test('DSL errors resolve as diagnostics with zero-based source locations', async () => {
   const diagnostic = { code: 'TG_PARSE_ERROR', severity: 'error', stage: 'parse', message: 'Expected identifier', location: { line: 0, column: 4 } };
-  const instance = await create(() => JSON.stringify({ protocolVersion: 1, valid: false, diagnostics: [diagnostic] }));
+  const instance = await create(() => JSON.stringify({ protocolVersion: 2, valid: false, diagnostics: [diagnostic] }));
   assert.deepEqual(await instance.validate('A ->'), { valid: false, diagnostics: [diagnostic] });
   await instance.dispose();
 });
@@ -33,7 +33,7 @@ test('invalid arguments do not reach the runtime', async () => {
 });
 
 test('malformed or inconsistent bridge responses fail at the protocol boundary', async () => {
-  for (const response of ['not JSON', {}, { ...valid, protocolVersion: 2 }, { ...valid, valid: false }, { ...valid, diagnostics: [{ severity: 'error' }] }]) {
+  for (const response of ['not JSON', {}, { ...valid, protocolVersion: 1 }, { ...valid, valid: false }, { ...valid, diagnostics: [{ severity: 'error' }] }]) {
     const instance = await create(() => typeof response === 'string' ? response : JSON.stringify(response));
     await assert.rejects(instance.validate('A'), { code: 'INVALID_RESPONSE' });
     await instance.dispose();

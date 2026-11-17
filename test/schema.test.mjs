@@ -28,7 +28,7 @@ test('JSON and ESM manifest projections match and conform to the shipped schema'
 test('validation protocol accepts diagnostics and rejects invalid source positions', async () => {
   const validate = new Ajv({ strict: true }).compile(await read('../schemas/validation.schema.json'));
   const diagnostic = { code: 'TG_PARSE_ERROR', severity: 'error', stage: 'parse', message: 'Bad source', location: { line: 0, column: 4 } };
-  const result = { protocolVersion: 1, valid: false, diagnostics: [diagnostic] };
+  const result = { protocolVersion: 2, valid: false, diagnostics: [diagnostic] };
   assert.equal(validate(result), true);
   diagnostic.location.column = -1;
   assert.equal(validate(result), false);

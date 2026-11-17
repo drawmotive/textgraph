@@ -11,11 +11,13 @@ const font = (id, language, point) => ({ id, family: id, path: `${id}.ttf`, byte
 const entries = [font("chinese", "zh", 0x4e2d), font("japanese", "ja", 0x3042), font("emoji", "emoji", 0x1f600)];
 const catalog = { schemaVersion: 1, fonts: entries };
 const manifest = { capabilities: ["textgraph-fonts-v1"], rendering: { theme: "wasm/theme.css", fonts: [{ family: "base", asset: "wasm/base.ttf" }] }, assets: [...base].map(([path, bytes]) => ({ path, bytes: bytes.length, sha256: hash(bytes) })) };
-const ok = { protocolVersion: 1, success: true, diagnostics: [] };
-const request = source => JSON.stringify({ protocolVersion: 1, operation: "render", source });
+const ok = { protocolVersion: 2, success: true, diagnostics: [] };
+// Every native call returns its JSON envelope inside a protocol 2 response object.
+const native = value => ({ json: JSON.stringify(value) });
+const request = source => JSON.stringify({ protocolVersion: 2, operation: "render", source });
 function fixture(options = {}, overrides = {}) {
   const reads = [], calls = [], installed = new Set();
-  const execute = createRenderingExecutor({ manifest, fontViews: overrides.fontViews, options: { ...options, languagePacks: normalizeLanguagePacks(options.languagePacks), fontAssets: normalizeFontAssets(options.fontAssets), resolveAsset: a => new URL(a.path, "https://site.test/") },
+  const execute = createRenderingExecutor({ manifest, options: { ...options, languagePacks: normalizeLanguagePacks(options.languagePacks), fontAssets: normalizeFontAssets(options.fontAssets), resolveAsset: a => new URL(a.path, "https://site.test/") },
     readAsset: async (item, context) => {
       reads.push(item.url.href);
       if (overrides.read) { const result = await overrides.read(item, context); if (result) return result; }
@@ -29,18 +31,18 @@ function fixture(options = {}, overrides = {}) {
       const command = JSON.parse(json); calls.push(fontData === undefined ? command : { ...command, fontData: fontData.map(bytes => [...bytes]) });
       if (command.operation === "install-fonts") for (const font of command.fonts) installed.add(font.family);
       if (command.operation === "prepare-fonts") {
-        if (command.source === "invalid") return JSON.stringify({ ...ok, success: false, diagnostics: [{ severity: "error", stage: "parse", code: "TG_PARSE_ERROR", message: "invalid" }], fontRuns: [] });
-        return JSON.stringify({ ...ok, fontRuns: entries.filter(e => command.source.includes(String.fromCodePoint(e.coverage[0][0]))).map(e => ({ text: String.fromCodePoint(e.coverage[0][0]), language: e.languages[0], missing: !installed.has(e.family) })) });
+        if (command.source === "invalid") return native({ ...ok, success: false, diagnostics: [{ severity: "error", stage: "parse", code: "TG_PARSE_ERROR", message: "invalid" }], fontRuns: [] });
+        return native({ ...ok, fontRuns: entries.filter(e => command.source.includes(String.fromCodePoint(e.coverage[0][0]))).map(e => ({ text: String.fromCodePoint(e.coverage[0][0]), language: e.languages[0], missing: !installed.has(e.family) })) });
       }
       if (command.operation === "render" && overrides.render) return overrides.render(command);
-      return JSON.stringify(ok);
+      return native(ok);
     },
   });
   return { execute, reads, calls, installed };
 }
 
-test("view bridges receive lazily installed font buffers beside the install request", async () => {
-  const f = fixture({ fontAssets: { catalog: new URL("https://site.test/fonts/font-catalog.json"), fallback: false } }, { fontViews: true });
+test("lazily installed fonts travel as byte lengths with their buffers beside the install request", async () => {
+  const f = fixture({ fontAssets: { catalog: new URL("https://site.test/fonts/font-catalog.json"), fallback: false } });
   await f.execute(request("中"));
   const installation = f.calls.find(c => c.operation === "install-fonts");
   assert.deepEqual(installation.fonts, [{ family: "chinese", byteLength: 1, languages: ["zh"] }]);
@@ -86,7 +88,7 @@ test("official descriptors are lazy, verified, and suppress implicit remote look
 
 test("invalid diagrams perform no optional font I/O", async () => {
   const f = fixture();
-  const result = JSON.parse(await f.execute(request("invalid")));
+  const result = JSON.parse((await f.execute(request("invalid"))).json);
   assert.equal(result.success, false);
   assert.equal(f.reads.length, 2);
   assert.equal(f.calls.some(c => c.operation === "render"), false);
@@ -166,7 +168,7 @@ test("SVG public API prepares and reuses fonts before submitting the vector expo
     render: command => {
       assert.deepEqual(command.export, { format: "svg", padding: 10 });
       assert.ok(f.installed.has("chinese"));
-      return JSON.stringify({ ...ok, svg, displayWidth: 20.5, displayHeight: 30.25 });
+      return { ...native({ ...ok, displayWidth: 20.5, displayHeight: 30.25 }), svg };
     },
   });
   const runtime = await initializeTextGraph({ loadRuntime: async () => ({ abiVersion: "1.0.0", capabilities: ["textgraph-render-svg-v1"], execute: f.execute }) });
@@ -186,7 +188,7 @@ test("preview is published before slow catalog and font downloads; the final ren
   const f = fixture({}, { read: async item => {
     if (item.url.pathname.endsWith("font-catalog.json")) await gate.promise;
   } });
-  const rendering = f.execute(request("中"), { onPreview: json => preview.resolve(JSON.parse(json)) });
+  const rendering = f.execute(request("中"), { onPreview: response => preview.resolve(JSON.parse(response.json)) });
   try {
     assert.equal((await preview.promise).success, true);
     assert.equal(f.installed.size, 0);
@@ -209,15 +211,15 @@ for (const format of ["png", "svg"]) {
   test(`${format} native dark settings survive font preparation, preview and final rendering`, async () => {
     const gate = Promise.withResolvers();
     const preview = Promise.withResolvers();
-    const command = { protocolVersion: 1, operation: "render", source: "中", language: "zh-CN",
+    const command = { protocolVersion: 2, operation: "render", source: "中", language: "zh-CN",
       export: { format, padding: 3, dark: true, ...(format === "png" ? { scale: 2 } : {}) } };
     const f = fixture({}, { read: async item => {
       if (item.url.pathname.endsWith("font-catalog.json")) await gate.promise;
     }, render: actual => {
       assert.deepEqual(actual, command);
-      return JSON.stringify(ok);
+      return native(ok);
     } });
-    const rendering = f.execute(JSON.stringify(command), { onPreview: json => preview.resolve(JSON.parse(json)) });
+    const rendering = f.execute(JSON.stringify(command), { onPreview: response => preview.resolve(JSON.parse(response.json)) });
     try {
       assert.equal((await preview.promise).success, true);
       assert.equal(f.installed.size, 0);

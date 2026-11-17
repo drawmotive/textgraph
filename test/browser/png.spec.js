@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('browser renders base64 PNG with lazy fonts and decodable visible content', async ({ page }) => {
+test('browser renders PNG bytes with lazy fonts and decodable visible content', async ({ page }) => {
   await page.goto('http://127.0.0.1:4178/');
   const result = await page.evaluate(async () => {
     const { initializeTextGraph } = await import('/src/platform/browser.js');
@@ -11,11 +11,12 @@ test('browser renders base64 PNG with lazy fonts and decodable visible content',
     try {
       await runtime.validate('A -> B');
       const before = requests.filter(url => /[.](ttf|css)(?:[?]|$)/.test(url));
-      const rendered = await runtime.renderPng('A -> B', { encoding: 'base64', maxWidth: 500 });
+      const rendered = await runtime.renderPng('A -> B', { maxWidth: 500 });
       if (!rendered.success) throw new Error(JSON.stringify(rendered.diagnostics));
       const image = new Image();
-      image.src = `data:image/png;base64,${rendered.png}`;
+      image.src = URL.createObjectURL(new Blob([rendered.png], { type: 'image/png' }));
       await image.decode();
+      URL.revokeObjectURL(image.src);
       const canvas = document.createElement('canvas');
       canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
       const context = canvas.getContext('2d');

@@ -4,7 +4,7 @@ import {
   type TextGraphInitializeOptions,
   type TextGraphRuntimeManifest,
   type TextGraphLanguagePack,
-  type TextGraphPngEncoding,
+  type TextGraphNativeResponse,
   type TextGraphRenderPngOptions,
   type TextGraphRenderSvgOptions,
   type TextGraphRenderSvgResult,
@@ -18,6 +18,14 @@ import { createTextGraphRuntimeLoader as createNodeLoader } from '@drawmotive/te
 const options: TextGraphInitializeOptions = {
   loadRuntime: async () => ({ abiVersion: '1.0.0' }),
 };
+// Protocol 2 adapters return the JSON envelope with the image payload beside it.
+const nativeResponse: TextGraphNativeResponse = { json: '{}', png: new Uint8Array(0) };
+const nativeAdapter: TextGraphInitializeOptions = {
+  loadRuntime: async () => ({ abiVersion: '1.0.0', execute: (_request, context) => { context?.onPreview?.(nativeResponse); return nativeResponse; } }),
+};
+// @ts-expect-error Native adapters no longer return bare JSON strings.
+const legacyAdapter: TextGraphInitializeOptions = { loadRuntime: async () => ({ abiVersion: '1.0.0', execute: () => '{}' }) };
+void nativeAdapter; void legacyAdapter;
 
 const instance: Promise<TextGraphInstance> = initializeTextGraph(options);
 const manifest: TextGraphRuntimeManifest = {
@@ -53,7 +61,7 @@ async function stableApi() {
 }
 void stableApi;
 
-async function renderingApi(encoding: TextGraphPngEncoding, options: TextGraphRenderPngOptions) {
+async function renderingApi(options: TextGraphRenderPngOptions) {
   const languagePack: TextGraphLanguagePack = { fonts: [{ family: 'Chinese', source: new URL('https://example.test/font.ttf') }], fallbackFamilies: ['Chinese'] };
   const runtime = await initializeTextGraph({ languagePacks: [languagePack], fontAssets: { fallback: false } });
   await runtime.renderPng('A: 日本語', { language: 'ja', dark: true });
@@ -61,40 +69,25 @@ async function renderingApi(encoding: TextGraphPngEncoding, options: TextGraphRe
   // @ts-expect-error Dark rendering requires a boolean.
   await runtime.renderPng('A', { dark: 'true' });
   await runtime.renderPng('A: 中文', { onPreview: preview => { const png: Uint8Array = preview.png; void png; } });
-  await runtime.renderPng('A: 中文', { encoding: 'base64', onPreview: preview => { const png: string = preview.png; void png; } });
   const bytes = await runtime.renderPng('A -> B');
   if (bytes.success) {
     const image: Uint8Array = bytes.png;
     const width: number = bytes.width;
     const displayWidth: number | undefined = bytes.displayWidth;
     const displayHeight: number | undefined = bytes.displayHeight;
-    // @ts-expect-error Byte results are not base64 strings.
+    // @ts-expect-error PNG results are always bytes.
     const base64: string = bytes.png;
     void image; void width; void displayWidth; void displayHeight; void base64;
   } else {
     // @ts-expect-error Failure results do not contain PNG data.
     void bytes.png;
   }
-  const highResolution = await runtime.renderPng('A', { scale: 3, padding: 20 });
+  const highResolution = await runtime.renderPng('A', { scale: 3, padding: 20, maxWidth: 1024 });
   if (highResolution.success) { const image: Uint8Array = highResolution.png; void image; }
-  const base64 = await runtime.renderPng('A', { encoding: 'base64', maxWidth: 1024 });
-  if (base64.success) { const image: string = base64.png; void image; }
-  const union = await runtime.renderPng('A', { encoding });
-  if (union.success) {
-    const image: string | Uint8Array = union.png;
-    // @ts-expect-error A variable encoding cannot guarantee bytes.
-    const onlyBytes: Uint8Array = union.png;
-    void image; void onlyBytes;
-  }
-  const optionalUnion = await runtime.renderPng('A', options);
-  if (optionalUnion.success) {
-    const image: string | Uint8Array = optionalUnion.png;
-    // @ts-expect-error Broad options cannot guarantee bytes.
-    const onlyBytes: Uint8Array = optionalUnion.png;
-    void image; void onlyBytes;
-  }
-  // @ts-expect-error Encoding must be bytes or base64.
-  await runtime.renderPng('A', { encoding: 'data-url' });
+  const configured = await runtime.renderPng('A', options);
+  if (configured.success) { const image: Uint8Array = configured.png; void image; }
+  // @ts-expect-error Protocol 2 removed text encodings of PNG output.
+  await runtime.renderPng('A', { encoding: 'base64' });
   // @ts-expect-error Font paths must use URL objects rather than ambiguous strings.
   await initializeTextGraph({ languagePacks: [{ fonts: [{ family: 'A', source: './font.ttf' }] }] });
   await runtime.dispose();

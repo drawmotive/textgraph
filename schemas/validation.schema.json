@@ -2,7 +2,7 @@
   "type": "object",
   "properties": {
     "protocolVersion": {
-      "const": 1
+      "const": 2
     },
     "valid": {
       "type": "boolean"

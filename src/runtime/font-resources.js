@@ -1,4 +1,6 @@
 import { DrawMotiveError } from './errors.js';
+import { protocolVersion } from './manifest.js';
+import { encodeFontBatch } from './native-host.js';
 import { normalizeFontMetadata } from './language-packs.js';
 import { decodeDiagnostics } from './validation.js';
 import { decodeConfiguration } from './rendering.js';
@@ -6,48 +8,8 @@ import { readVerifiedFontAsset } from './font-cache.js';
 import { throwIfAborted } from './lifecycle.js';
 
 export const fontCapability = 'textgraph-fonts-v1';
-// Bridge-only transport capability: the bridge asks the host to write font bytes into native memory.
-export const fontViewsCapability = 'textgraph-font-views-v1';
 // Shared online assets publish independently of applications and offline npm packs.
 const defaultFontCatalog = 'https://assets.drawmotive.com/static/font-catalog.json';
-
-export function fontBase64(bytes) {
-  const chunks = [];
-  for (let offset = 0; offset < bytes.length; offset += 32768) chunks.push(String.fromCharCode(...bytes.subarray(offset, offset + 32768)));
-  return btoa(chunks.join(''));
-}
-
-/**
- * Encodes one configure/install font batch for the bridge. WASM linear memory never shrinks, so
- * view-capable bridges receive only byte lengths and then ask the host to write each font straight
- * into the native block that backs its typeface. Base64 JSON would leave several transient copies
- * of a large CJK font as a permanent memory high-water mark. Older bridges keep the base64 `data` wire.
- */
-export function encodeFontBatch(entries, views) {
-  if (!views) return { fonts: entries.map(({ bytes, ...font }) => ({ ...font, data: fontBase64(bytes) })) };
-  return { fonts: entries.map(({ bytes, ...font }) => ({ ...font, byteLength: bytes.length })), data: entries.map(entry => entry.bytes) };
-}
-
-/**
- * Serves the bridge's synchronous `copyFontBytes(index, view)` import. Bytes are available only
- * while one execute call owns them, and the view aliases WASM memory only during that callback.
- */
-export function createFontHost() {
-  let pending;
-  return {
-    imports: {
-      copyFontBytes(index, view) {
-        const bytes = pending?.[index];
-        if (!(bytes instanceof Uint8Array) || bytes.length !== view.length) throw new Error(`Font ${index} does not match its native buffer`);
-        view.set(bytes);
-      },
-    },
-    supply(fonts, call) {
-      pending = fonts;
-      try { return call(); } finally { pending = undefined; }
-    },
-  };
-}
 
 /** Catalog paths stay within their deployment directory, independent of the hosting origin. */
 function decodeCatalog(value, url) {
@@ -75,7 +37,7 @@ function decodeCatalog(value, url) {
 function decodePreparation(json) {
   try {
     const value = JSON.parse(json);
-    if (value?.protocolVersion !== 1 || typeof value.success !== 'boolean') throw new Error('Invalid envelope');
+    if (value?.protocolVersion !== protocolVersion || typeof value.success !== 'boolean') throw new Error('Invalid envelope');
     const diagnostics = decodeDiagnostics(value.diagnostics, ['parse', 'semantic', 'layout', 'render', 'font']);
     if (value.success === diagnostics.some(d => d.severity === 'error')) throw new Error('Inconsistent success');
     if (!Array.isArray(value.fontRuns) || value.fontRuns.some(run => !run || typeof run.text !== 'string' || !run.text
@@ -106,8 +68,9 @@ function matches(font, run) {
   return points.length > 0 && points.every(point => contains(font.coverage, point));
 }
 
-/** Owns optional font I/O inside the instance queue; native owns text, shaping and final coverage. */
-export function createFontPreparation({ options, readAsset, execute, fontViews = false }) {
+/** Owns optional font I/O inside the instance queue; native owns text, shaping and final coverage.
+ * `execute(requestJson, fonts?)` returns a native response `{ json, png?, svg? }`. */
+export function createFontPreparation({ options, readAsset, execute }) {
   const packs = options.languagePacks ?? [];
   const fallbackOrder = [...new Set(packs.flatMap(pack => pack.fallbackFamilies))];
   const descriptors = packs.flatMap(pack => pack.fonts);
@@ -141,9 +104,9 @@ export function createFontPreparation({ options, readAsset, execute, fontViews =
     try {
       while (true) {
         throwIfAborted(context.signal);
-        const prepared = decodePreparation(await execute(JSON.stringify({ protocolVersion: 1, operation: 'prepare-fonts', source: render.source, ...(render.language === undefined ? {} : { language: render.language }) })));
+        const prepared = decodePreparation((await execute(JSON.stringify({ protocolVersion, operation: 'prepare-fonts', source: render.source, ...(render.language === undefined ? {} : { language: render.language }) }))).json);
         throwIfAborted(context.signal);
-        if (!prepared.success) return JSON.stringify({ protocolVersion: 1, success: false, diagnostics: prepared.diagnostics });
+        if (!prepared.success) return Object.freeze({ json: JSON.stringify({ protocolVersion, success: false, diagnostics: prepared.diagnostics }) });
         const missing = prepared.fontRuns.filter(run => run.missing && run.language);
         if (!missing.length) break;
         // Native can render with its installed fallback fonts. Publish that image
@@ -177,8 +140,8 @@ export function createFontPreparation({ options, readAsset, execute, fontViews =
         }
         const installedAfter = new Set([...installed, ...fonts.map(font => font.family)]);
         const order = [...fallbackOrder, ...(catalog ?? []).map(font => font.family)].filter(family => installedAfter.has(family));
-        const batch = encodeFontBatch(fonts, fontViews);
-        decodeConfiguration(await execute(JSON.stringify({ protocolVersion: 1, operation: 'install-fonts', fonts: batch.fonts, fallbackFamilies: order }), batch.data), 'font installation');
+        const batch = encodeFontBatch(fonts);
+        decodeConfiguration((await execute(JSON.stringify({ protocolVersion, operation: 'install-fonts', fonts: batch.fonts, fallbackFamilies: order }), batch.data)).json, 'font installation');
         // Native has committed before cancellation can be observed: preserve that installation identity.
         for (const font of fonts) installed.add(font.family);
       }
@@ -187,7 +150,7 @@ export function createFontPreparation({ options, readAsset, execute, fontViews =
       consumed = true;
       return result;
     } finally {
-      if (!consumed) decodeConfiguration(await execute(JSON.stringify({ protocolVersion: 1, operation: 'cancel-prepare' })), 'font preparation cleanup');
+      if (!consumed) decodeConfiguration((await execute(JSON.stringify({ protocolVersion, operation: 'cancel-prepare' }))).json, 'font preparation cleanup');
     }
   };
 }

@@ -254,12 +254,13 @@ const textgraph = await initializeTextGraph({
 });
 try {
   const result = await textgraph.renderPng("browser -> api -> database", {
-    encoding: "base64",
     scale: 2,
   });
   if (result.success) {
     const image = document.createElement("img");
-    image.src = `data:image/png;base64,${result.png}`;
+    // A Blob URL hands the PNG bytes to the browser without base64 encoding.
+    image.src = URL.createObjectURL(new Blob([result.png], { type: "image/png" }));
+    image.onload = () => URL.revokeObjectURL(image.src);
     image.alt = "Browser connects to API, which connects to database";
     image.width = result.displayWidth ?? result.width / 2;
     image.height = result.displayHeight ?? result.height / 2;

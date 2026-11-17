@@ -4,8 +4,8 @@ import { initializeTextGraph } from '../src/index.js';
 
 const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWQAAAABJRU5ErkJggg==';
 const results = {
-  png: { protocolVersion: 1, success: true, png, width: 1, height: 1, diagnostics: [] },
-  svg: { protocolVersion: 1, success: true, svg: '<svg xmlns="http://www.w3.org/2000/svg"/>', displayWidth: 1, displayHeight: 1, diagnostics: [] },
+  png: () => ({ json: JSON.stringify({ protocolVersion: 2, success: true, width: 1, height: 1, diagnostics: [] }), png: Uint8Array.from(Buffer.from(png, 'base64')) }),
+  svg: () => ({ json: JSON.stringify({ protocolVersion: 2, success: true, displayWidth: 1, displayHeight: 1, diagnostics: [] }), svg: '<svg xmlns="http://www.w3.org/2000/svg"/>' }),
 };
 const capabilities = ['textgraph-render-v1', 'textgraph-render-svg-v1', 'textgraph-render-dark-v1'];
 async function fixture(execute, supported = capabilities) {
@@ -14,7 +14,7 @@ async function fixture(execute, supported = capabilities) {
     execute: (json, context) => {
       const request = JSON.parse(json);
       requests.push(request);
-      return execute?.(request, context) ?? JSON.stringify(results[request.export.format]);
+      return execute?.(request, context) ?? results[request.export.format]();
     },
   }) });
   return { runtime, requests };
@@ -23,7 +23,7 @@ async function fixture(execute, supported = capabilities) {
 test('legacy inferred PNG support never implies native dark capability', async () => {
   let calls = 0;
   const runtime = await initializeTextGraph({ loadRuntime: async () => ({ abiVersion: '1.0.0',
-    execute: () => { calls++; return JSON.stringify(results.png); },
+    execute: () => { calls++; return results.png(); },
   }) });
   try {
     await assert.rejects(runtime.renderPng('A', { dark: true }), error => error.code === 'UNSUPPORTED_CAPABILITY' && /dark/.test(error.message));
@@ -74,11 +74,11 @@ for (const [format, method] of [['png', 'renderPng'], ['svg', 'renderSvg']]) {
     const previews = [];
     const { runtime, requests } = await fixture(async (request, context) => {
       if (request.export.dark) {
-        context.onPreview(JSON.stringify(results[format]));
+        context.onPreview(results[format]());
         started.resolve();
         await gate.promise;
       }
-      return JSON.stringify(results[format]);
+      return results[format]();
     });
     const options = { dark: true, onPreview: preview => previews.push(preview) };
     const first = runtime[method]('dark', options);

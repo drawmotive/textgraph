@@ -28,11 +28,12 @@ async function startupFixture(t, targetFramework, mainAssemblyName, invalidResou
         async create() {
           if (!state.configured?.resources?.wasmNative?.length) throw new Error('Boot resources were not supplied to the runtime builder');
           state.wasm = new Uint8Array(await (await state.loader('dotnetwasm', 'dotnet.native.wasm')).arrayBuffer());
-          return { async getAssemblyExports(assembly) {
+          return { setModuleImports(name, imports) { state.hostModule = name; state.hostImports = Object.keys(imports).sort(); },
+            async getAssemblyExports(assembly) {
             state.exportAssembly = assembly;
             return { DrawMotive: { TextGraph: { Bridge: { Program: {
-              GetRuntimeInfo: () => JSON.stringify({ abiVersion: '1.0.0', protocolVersion: 1, packageKind: 'textgraph', capabilities: ['textgraph-validate-v1'] }),
-              Validate: () => JSON.stringify({ protocolVersion: 1, valid: true, diagnostics: [] })
+              GetRuntimeInfo: () => JSON.stringify({ abiVersion: '1.0.0', protocolVersion: 2, packageKind: 'textgraph', capabilities: ['textgraph-validate-v1'] }),
+              Validate: () => JSON.stringify({ protocolVersion: 2, valid: true, diagnostics: [] })
             } } } } };
           } };
         }
@@ -66,6 +67,9 @@ for (const [targetFramework, mainAssemblyName] of [
       assert.equal(fixture.state.configured, fixture.state.boot);
       assert.equal(fixture.state.configured.mainAssemblyName, mainAssemblyName);
       assert.equal(fixture.state.exportAssembly, 'DrawMotive.TextGraph.Bridge.dll');
+      // The native host must be registered before the bridge can bind its payload imports.
+      assert.equal(fixture.state.hostModule, 'drawmotive-textgraph-host');
+      assert.deepEqual(fixture.state.hostImports, ['acceptPng', 'acceptSvg', 'copyFontBytes']);
       assert.deepEqual(fixture.state.wasm, new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]));
       assert.equal(JSON.parse(runtime.validate('A -> B')).valid, true);
     } finally { await runtime.dispose(); }

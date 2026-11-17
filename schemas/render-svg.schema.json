@@ -2,9 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
-    "protocolVersion": { "const": 1 },
+    "protocolVersion": { "const": 2 },
     "success": { "type": "boolean" },
-    "svg": { "type": "string", "minLength": 1 },
+    "svg": false,
+    "png": false,
     "displayWidth": { "type": "number", "exclusiveMinimum": 0 },
     "displayHeight": { "type": "number", "exclusiveMinimum": 0 },
     "diagnostics": {
@@ -36,9 +37,9 @@
   "allOf": [{
     "if": { "properties": { "success": { "const": true } } },
     "then": {
-      "required": ["svg", "displayWidth", "displayHeight"],
+      "required": ["displayWidth", "displayHeight"],
       "properties": {
-        "svg": {}, "displayWidth": {}, "displayHeight": {},
+        "displayWidth": {}, "displayHeight": {},
         "diagnostics": {
           "type": "array",
           "not": { "contains": { "type": "object", "properties": { "severity": { "const": "error" } } } }
@@ -47,10 +48,8 @@
     },
     "else": {
       "not": { "anyOf": [
-        { "required": ["svg"], "properties": { "svg": {} } },
         { "required": ["displayWidth"], "properties": { "displayWidth": {} } },
         { "required": ["displayHeight"], "properties": { "displayHeight": {} } },
-        { "required": ["png"], "properties": { "png": {} } },
         { "required": ["width"], "properties": { "width": {} } },
         { "required": ["height"], "properties": { "height": {} } }
       ] },

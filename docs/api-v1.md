@@ -1,4 +1,4 @@
-# TextGraph API, protocol 1
+# TextGraph API, protocol 2
 
 This contract covers validation and PNG/SVG rendering. Validation checks parsing and semantic reference resolution; it does not certify layout feasibility or renderability. Empty source is valid. Public AST, editable layout and file APIs remain separate milestones.
 
@@ -20,18 +20,17 @@ Initialization resolves after manifest and real bridge agree on ABI, protocol an
 
 ## PNG rendering
 
-`renderPng(source, options?)` returns `{ success: true, png, width, height, displayWidth?, displayHeight?, diagnostics }` or `{ success: false, diagnostics }`. `width` and `height` are raster pixels. The optional display dimensions are positive numbers representing logical size: raster dimensions divided by the effective scale after any `maxWidth` reduction. Older runtimes omit both fields. Diagram failures resolve with diagnostics and contain no image data. Successful results and diagnostics are frozen; byte output is a detached, caller-owned `Uint8Array`. Output uses the light theme by default.
+`renderPng(source, options?)` returns `{ success: true, png, width, height, displayWidth?, displayHeight?, diagnostics }` or `{ success: false, diagnostics }`. `width` and `height` are raster pixels. The optional display dimensions are positive numbers representing logical size: raster dimensions divided by the effective scale after any `maxWidth` reduction. Older runtimes omit both fields. Diagram failures resolve with diagnostics and contain no image data. Successful results and diagnostics are frozen; `png` is always a detached, caller-owned `Uint8Array` copied once out of WASM memory. Output uses the light theme by default.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `encoding` | `"bytes"` | `"bytes"` returns `Uint8Array`; `"base64"` returns a string without a data-URL prefix. |
 | `scale` | `1` | Positive finite raster density relative to logical diagram size. |
 | `padding` | `10` | Non-negative finite padding in diagram units. |
 | `maxWidth` | Omitted | Positive safe integer maximum output width in pixels; preserves proportions and only reduces output size. |
 | `dark` | `false` | Boolean selecting the native dark theme for the exported image. |
 | `signal` | Omitted | Cancels queued work or discards completed work after cancellation. |
 
-Literal encodings infer their corresponding PNG type in TypeScript; union encodings return `Uint8Array | string`. Render diagnostics may use `parse`, `semantic`, `layout`, `render`, or `font` stages. `validate()` retains its original parse/semantic contract.
+Protocol 2 removed the `encoding` option: passing it rejects with `INVALID_ARGUMENT`. Display bytes through a Blob URL (`URL.createObjectURL(new Blob([png], { type: 'image/png' }))`) rather than a base64 data URL. Render diagnostics may use `parse`, `semantic`, `layout`, `render`, or `font` stages. `validate()` retains its original parse/semantic contract.
 
 Scale and padding must remain finite when represented as 32-bit floats; scale must also remain greater than zero. Invalid arguments reject with `INVALID_ARGUMENT`.
 The `dark` option accepts only booleans. Dark output requires the additive
@@ -54,7 +53,7 @@ if (image.success) {
 }
 ```
 
-Padding defaults to `10` and has the same finite float32 constraints as PNG. The optional language hint selects fonts in the same way as PNG. SVG rejects PNG-only `encoding`, `scale`, and `maxWidth` settings and all unknown option keys with `INVALID_ARGUMENT`. Cancellation and resource preparation share the instance queue with PNG and validation.
+Padding defaults to `10` and has the same finite float32 constraints as PNG. The optional language hint selects fonts in the same way as PNG. SVG rejects PNG-only `scale` and `maxWidth` settings and all unknown option keys with `INVALID_ARGUMENT`. Cancellation and resource preparation share the instance queue with PNG and validation.
 The boolean `dark` option defaults to `false` and shares PNG's native theme
 selection and `textgraph-render-dark-v1` capability requirement.
 
@@ -143,7 +142,7 @@ Browser, Worker and Node entry points share this concurrent startup loader. Mark
 
 Serve WASM as `application/wasm`, JS as `text/javascript`, and provide applicable CORS headers for cross-origin assets. Same-origin CSP: `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'self'`. No eval, new Function or DOM script injection is used. Cross-origin isolation and SharedArrayBuffer are not required by this single-threaded runtime.
 
-Serve font files as `font/ttf` and themes as `text/css`. To display base64 PNGs, add `img-src 'self' data:` to CSP; include `blob:` too when displaying Blob URLs.
+Serve font files as `font/ttf` and themes as `text/css`. To display PNGs through Blob URLs, as the React component does, add `img-src 'self' blob:` to CSP.
 
 ## Errors
 
@@ -158,17 +157,27 @@ fonts with language metadata; `cancel-prepare` releases interrupted preparation.
 Render commands accept the same language hint. Existing configuration/disposal
 envelopes remain unchanged. The wrapper checks this capability before using a catalog.
 
-ABI 1.0.0 retains GetAbiVersion/GetPackageKind/CountParseDiagnostics and adds GetRuntimeInfo(), Validate(source) and Execute(requestJson) on DrawMotive.TextGraph.Bridge.Program. Info returns JSON `{ abiVersion, packageKind, protocolVersion: 1, capabilities }`; Validate returns `{ protocolVersion: 1, valid, diagnostics }`. Wrappers require `textgraph-validate-v1`; PNG rendering additionally requires `textgraph-render-v1`, and SVG requires `textgraph-render-svg-v1`. Both require the manifest `bridge.execute` export and rendering resources. Legacy validation exports remain supported. This is a managed export/JSON protocol, not a raw WASM pointer ABI.
+ABI 1.0.0 retains GetAbiVersion/GetPackageKind/CountParseDiagnostics and adds GetRuntimeInfo(), Validate(source) and Execute(requestJson) on DrawMotive.TextGraph.Bridge.Program. Info returns JSON `{ abiVersion, packageKind, protocolVersion: 2, capabilities }`; Validate returns `{ protocolVersion: 2, valid, diagnostics }`. Wrappers require `textgraph-validate-v1`; PNG rendering additionally requires `textgraph-render-v1`, and SVG requires `textgraph-render-svg-v1`. Both require the manifest `bridge.execute` export and rendering resources. Legacy validation exports remain supported. This is a managed export/JSON protocol, not a raw WASM pointer ABI: binary payloads cross only through .NET memory views that are valid during one synchronous host import call.
 
 `generated/wasm-manifest.json` is authoritative; its ESM projection avoids JSON-module browser assumptions. Shipped schemas describe the manifest, validation response and separate PNG/SVG rendering responses. Manifest schema, ABI, protocol and npm versions are separate. Additive exports use capabilities; incompatible wire changes require a new supported version. npm versions and bundled assets are released together. DSL/file-format versions are not frozen by this milestone.
 
 Assets have relative path, media type, byte count and SHA-256. Packaging checks reject missing/extra assets, debug files, hash/projection/version drift. Runtime data assets are hash-checked before native startup. Bundled fonts and themes are loaded and hash-checked lazily before the first render; license files require no runtime I/O. These checks establish distribution consistency, not authenticated runtime signatures. `privateSource.commit` identifies committed private C# and bridge inputs. Toolchain changes may change bytes; cross-toolchain byte-for-byte reproducibility is not promised.
 
-The rendering wire uses one `Execute(requestJson)` export. Configuration is performed once before the first render with `{ protocolVersion: 1, operation: "configure", theme, fonts: [{ family, data }], fallbackFamilies }`, where `data` is base64 font data. Bridges whose runtime info lists the bridge-only `textgraph-font-views-v1` capability accept `byteLength` instead of `data` for `configure` and `install-fonts` fonts. During that synchronous `Execute` call, the bridge allocates each font's final native block and calls the host's `copyFontBytes(index, view)` import from module `drawmotive-textgraph-fonts`; the host writes the font's bytes into that WASM memory view. The wrapper prefers this form because WASM linear memory never shrinks: base64 JSON or a marshalled byte array would retain transient copies of a large CJK font as the page's permanent memory peak. It does not advertise the capability to consumers. Its response is `{ protocolVersion: 1, success, diagnostics }`. A render request is `{ protocolVersion: 1, operation: "render", source, export: { format: "png", scale, padding, maxWidth? } }`. Native success returns base64 `png`, `width`, `height`, and diagnostics, plus an additive optional `displayWidth`/`displayHeight` pair; failures contain only `success: false` and diagnostics beside the protocol version. The JavaScript wrapper validates the display dimensions when present and converts image data to the requested encoding.
+The rendering wire uses one `Execute(requestJson)` export whose return value is only a JSON envelope. Fonts and images never travel inside JSON: before any export runs, the host registers module `drawmotive-textgraph-host` with three synchronous imports. WASM linear memory never shrinks, so base64 or escaped JSON copies of a large CJK font or image would remain the page's permanent memory peak, and both sides would pay for encoding and parsing them.
 
-For rendering-capable bridges, disposal sends `{ protocolVersion: 1, operation: "dispose" }` and validates the same success/diagnostics envelope as configuration. This request releases native resources without loading fonts or shutting down the host runtime. Legacy validation-only bridges release wrapper references directly.
+| Import | Called during | Host action |
+| --- | --- | --- |
+| `copyFontBytes(index, view)` | `configure`, `install-fonts` | Write font `index` of the call's batch into `view`, the native block that becomes the typeface's memory. |
+| `acceptPng(view)` | successful PNG `render` | Copy the encoded PNG out with `view.slice()`. |
+| `acceptSvg(text)` | successful SVG `render` | Keep the SVG document string. |
 
-SVG uses the same `Execute` export with `{ protocolVersion: 1, operation: "render", source, language?, export: { format: "svg", padding, dark? } }`. Native success returns `{ protocolVersion: 1, success: true, svg, displayWidth, displayHeight, diagnostics }`; failures omit `svg` and dimensions. `schemas/render-svg.schema.json` describes this separate additive response.
+Memory views alias WASM memory only for the duration of the import call. Wrapper adapters therefore model one native call as `{ json, png?, svg? }`; a custom `loadRuntime` adapter's `execute(requestJson, context)` returns this object and passes the same shape to `context.onPreview`.
+
+Configuration is performed once before the first render with `{ protocolVersion: 2, operation: "configure", theme, fonts: [{ family, byteLength, languages? }], fallbackFamilies }`; `install-fonts` uses the same font descriptors. Its response is `{ protocolVersion: 2, success, diagnostics }`. A render request is `{ protocolVersion: 2, operation: "render", source, export: { format: "png", scale, padding, maxWidth? } }`. Native success returns `width`, `height`, `displayWidth`, `displayHeight` and diagnostics in the envelope and delivers the PNG through `acceptPng`; failures contain only `success: false` and diagnostics beside the protocol version and deliver no image. The JavaScript wrapper checks the PNG signature and header dimensions against the envelope. An envelope that itself contains `png` or `svg` is rejected.
+
+For rendering-capable bridges, disposal sends `{ protocolVersion: 2, operation: "dispose" }` and validates the same success/diagnostics envelope as configuration. This request releases native resources without loading fonts or shutting down the host runtime. Legacy validation-only bridges release wrapper references directly.
+
+SVG uses the same `Execute` export with `{ protocolVersion: 2, operation: "render", source, language?, export: { format: "svg", padding, dark? } }`. Native success returns `{ protocolVersion: 2, success: true, displayWidth, displayHeight, diagnostics }` and delivers the document through `acceptSvg`; failures omit dimensions and deliver no document. `schemas/render-svg.schema.json` describes this envelope.
 
 Both image formats accept additive `export.dark` as a boolean. Omitting it selects
 light rendering. The bridge and manifest advertise `textgraph-render-dark-v1`

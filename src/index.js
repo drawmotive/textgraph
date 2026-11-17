@@ -5,7 +5,7 @@ import { DrawMotiveError } from './runtime/errors.js';
 import { normalizeFontAssets, normalizeLanguagePacks } from './runtime/language-packs.js';
 import { decodeRender, decodeSvgRender, normalizeRenderOptions, normalizeSvgOptions } from './runtime/rendering.js';
 import manifest from '../generated/wasm-manifest.js';
-import { darkRenderingCapability } from './runtime/manifest.js';
+import { darkRenderingCapability, protocolVersion } from './runtime/manifest.js';
 
 export { validateTextGraphAdapters } from './adapters.js';
 export { DrawMotiveError } from './runtime/errors.js';
@@ -35,11 +35,11 @@ export async function initializeTextGraph(options = {}) {
     ...(typeof runtime.validate === 'function' ? ['textgraph-validate-v1'] : []),
     ...(typeof runtime.execute === 'function' ? ['textgraph-render-v1'] : []),
   ];
-  const info = Object.freeze({ packageName: abiManifest.packageName, packageVersion: abiManifest.packageVersion, abiVersion: runtime.abiVersion, protocolVersion: 1, capabilities: Object.freeze([...capabilities]) });
+  const info = Object.freeze({ packageName: abiManifest.packageName, packageVersion: abiManifest.packageVersion, abiVersion: runtime.abiVersion, protocolVersion, capabilities: Object.freeze([...capabilities]) });
   // Every export format uses the same operation queue and resource-preparing executor.
   const render = async (source, callOptions, normalize, decode, capability, format) => {
     if (instance.state !== 'ready') throw new DrawMotiveError('INSTANCE_DISPOSED', 'The runtime instance is disposing or disposed');
-    const { request, encoding, signal, onPreview } = normalize(source, callOptions);
+    const { request, signal, onPreview } = normalize(source, callOptions);
     throwIfAborted(signal);
     if (typeof runtime.execute !== 'function' || !capabilities.includes(capability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', `Runtime does not support ${format} rendering`);
     // Older bridges ignore additive export fields; require native support before any resource I/O.
@@ -48,9 +48,10 @@ export async function initializeTextGraph(options = {}) {
       throwIfAborted(signal);
       let response;
       const context = { signal };
-      if (onPreview) context.onPreview = json => {
+      // Native responses pair the JSON envelope with an out-of-band image payload.
+      if (onPreview) context.onPreview = nativeResponse => {
         throwIfAborted(signal);
-        const preview = decode(json, encoding);
+        const preview = decode(nativeResponse);
         if (preview.success) onPreview(preview);
       };
       try { response = await runtime.execute(JSON.stringify(request), context); }
@@ -60,7 +61,7 @@ export async function initializeTextGraph(options = {}) {
         throw new DrawMotiveError('RUNTIME_FAILED', `${format} rendering could not execute`, { cause });
       }
       throwIfAborted(signal);
-      return decode(response, encoding);
+      return decode(response);
     });
   };
   return Object.assign(instance, {

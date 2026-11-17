@@ -5,8 +5,8 @@ import { initializeTextGraph } from '../src/index.js';
 
 const manifest = { capabilities: ['textgraph-validate-v1', 'textgraph-render-v1'], bridge: { validate: 'Validate', execute: 'Execute' } };
 const info = { abiVersion: '1.0.0', capabilities: manifest.capabilities };
-const success = JSON.stringify({ protocolVersion: 1, success: true, diagnostics: [] });
-const validation = JSON.stringify({ protocolVersion: 1, valid: true, diagnostics: [] });
+const success = JSON.stringify({ protocolVersion: 2, success: true, diagnostics: [] });
+const validation = JSON.stringify({ protocolVersion: 2, valid: true, diagnostics: [] });
 
 test('render-capable loader disposes native resources without preparing fonts and releases bridge references', async () => {
   const calls = [];
@@ -16,12 +16,12 @@ test('render-capable loader disposes native resources without preparing fonts an
   });
   await runtime.dispose();
   await runtime.dispose();
-  assert.deepEqual(calls, [{ protocolVersion: 1, operation: 'dispose' }]);
+  assert.deepEqual(calls, [{ protocolVersion: 2, operation: 'dispose' }]);
   assert.throws(() => runtime.validate('A'));
 });
 
 test('native cleanup protocol failures release references and keep managed disposal idempotent', async () => {
-  for (const [response, code] of [['not JSON', 'INVALID_RESPONSE'], [JSON.stringify({ protocolVersion: 1, success: false, diagnostics: [{ code: 'TG_ERROR', stage: 'render', severity: 'error', message: 'cleanup failed' }] }), 'RUNTIME_FAILED']]) {
+  for (const [response, code] of [['not JSON', 'INVALID_RESPONSE'], [JSON.stringify({ protocolVersion: 2, success: false, diagnostics: [{ code: 'TG_ERROR', stage: 'render', severity: 'error', message: 'cleanup failed' }] }), 'RUNTIME_FAILED']]) {
     let calls = 0;
     const runtime = createBridgeRuntime({ manifest, info, options: {},
       bridge: { Validate: () => validation, Execute: () => { calls++; return response; } },
