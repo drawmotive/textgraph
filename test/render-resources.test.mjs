@@ -8,7 +8,7 @@ import { validateManifest, validateBootConfig } from '../src/runtime/manifest.js
 import { config } from '../generated/wasm/dotnet.boot.js';
 import { loadNodeRuntime } from '../src/runtime/node.js';
 import { createBridgeRuntime } from '../src/runtime/dotnet.js';
-import { encodeFontBatch, fontBytesCapability } from '../src/runtime/font-resources.js';
+import { createFontHost, encodeFontBatch, fontViewsCapability } from '../src/runtime/font-resources.js';
 
 const resources = new Map([['wasm/themes.css', new TextEncoder().encode('text { color: black; }')], ['wasm/NotoSans-Regular.ttf', new Uint8Array([1, 2, 3])], ['wasm/FuzzyBubbles-Regular.ttf', new Uint8Array([4, 5, 6])]]);
 const rendering = { theme: 'wasm/themes.css', fonts: [{ family: 'Noto Sans', asset: 'wasm/NotoSans-Regular.ttf' }, { family: 'Fuzzy Bubbles', asset: 'wasm/FuzzyBubbles-Regular.ttf' }] };
@@ -47,45 +47,65 @@ test('render preparation loads bundled resources lazily through the resolver and
   ], fallbackFamilies: ['Chinese', 'Japanese'] });
 });
 
-test('font batches keep base64 data for older bridges and send raw bytes beside JSON for binary bridges', () => {
+test('font batches keep base64 data for older bridges and send only byte lengths to view bridges', () => {
   const first = new Uint8Array([1, 2, 3]);
   const second = new Uint8Array([4, 5]);
   const entries = [{ family: 'A', bytes: first, languages: ['zh'] }, { family: 'B', bytes: second }];
   assert.deepEqual(encodeFontBatch(entries, false), { fonts: [{ family: 'A', data: 'AQID', languages: ['zh'] }, { family: 'B', data: 'BAU=' }] });
-  const binary = encodeFontBatch(entries, true);
-  assert.deepEqual(binary.fonts, [{ family: 'A', byteLength: 3, languages: ['zh'] }, { family: 'B', byteLength: 2 }]);
-  assert.deepEqual([...binary.data], [1, 2, 3, 4, 5]);
-  // A single large font must not be copied again before it crosses into WASM memory.
-  assert.equal(encodeFontBatch([entries[0]], true).data, first);
+  const views = encodeFontBatch(entries, true);
+  assert.deepEqual(views.fonts, [{ family: 'A', byteLength: 3, languages: ['zh'] }, { family: 'B', byteLength: 2 }]);
+  // The host keeps its original buffers; the only copy is the one into native memory.
+  assert.equal(views.data[0], first);
+  assert.equal(views.data[1], second);
 });
 
-test('binary render preparation configures with byte lengths and one concatenated font buffer', async () => {
+test('font host fills native views only during the owning call and rejects mismatched lengths', () => {
+  const host = createFontHost();
+  const view = new Uint8Array(3);
+  host.supply([new Uint8Array([7, 8, 9])], () => host.imports.copyFontBytes(0, view));
+  assert.deepEqual([...view], [7, 8, 9]);
+  assert.throws(() => host.supply([new Uint8Array([7, 8])], () => host.imports.copyFontBytes(0, view)), /native buffer/);
+  assert.throws(() => host.imports.copyFontBytes(0, view), /native buffer/);
+});
+
+test('view render preparation configures with byte lengths and supplies each font buffer', async () => {
   const calls = [];
   const languagePacks = normalizeLanguagePacks([{ fonts: [{ family: 'Japanese', source: new Uint8Array([10, 11, 12]) }], fallbackFamilies: ['Japanese'] }]);
-  const execute = createRenderingExecutor({ manifest: renderManifest(), options: { languagePacks }, binaryFonts: true,
-    execute: (json, fontData) => { calls.push({ command: JSON.parse(json), fontData }); return JSON.parse(json).operation === 'configure' ? configured : 'rendered'; },
+  const execute = createRenderingExecutor({ manifest: renderManifest(), options: { languagePacks }, fontViews: true,
+    execute: (json, fonts) => { calls.push({ command: JSON.parse(json), fonts }); return JSON.parse(json).operation === 'configure' ? configured : 'rendered'; },
     readAsset: async item => new Response(resources.get(item.asset.path)),
   });
   assert.equal(await execute(request), 'rendered');
   assert.deepEqual(calls[0].command.fonts, [{ family: 'Noto Sans', byteLength: 3 }, { family: 'Fuzzy Bubbles', byteLength: 3 }, { family: 'Japanese', byteLength: 3 }]);
-  assert.deepEqual([...calls[0].fontData], [1, 2, 3, 4, 5, 6, 10, 11, 12]);
-  assert.equal(calls[1].fontData, undefined);
+  assert.deepEqual(calls[0].fonts.map(bytes => [...bytes]), [[1, 2, 3], [4, 5, 6], [10, 11, 12]]);
+  assert.equal(calls[1].fonts, undefined);
 });
 
-test('bridge runtime uses binary fonts only when the bridge advertises them and keeps the capability private', async () => {
-  for (const binary of [false, true]) {
+test('bridge runtime uses native font views only when the bridge advertises them and keeps the capability private', async () => {
+  for (const views of [false, true]) {
     const declared = renderManifest();
+    const fontHost = createFontHost();
     const calls = [];
-    const runtime = createBridgeRuntime({ manifest: declared, options: {}, readAsset: async item => new Response(resources.get(item.asset.path)),
-      info: { abiVersion: '1.0.0', capabilities: binary ? [...declared.capabilities, fontBytesCapability] : declared.capabilities },
-      bridge: { Validate: () => 'validated', Execute: (...args) => { calls.push(args); return configured; } },
+    const runtime = createBridgeRuntime({ manifest: declared, options: {}, readAsset: async item => new Response(resources.get(item.asset.path)), fontHost,
+      info: { abiVersion: '1.0.0', capabilities: views ? [...declared.capabilities, fontViewsCapability] : declared.capabilities },
+      bridge: { Validate: () => 'validated', Execute: (...args) => {
+        // Emulate the C# bridge: allocate each native block, then ask the host to fill it.
+        const fonts = JSON.parse(args[0]).fonts ?? [];
+        const filled = fonts.filter(font => font.byteLength).map((font, index) => {
+          const view = new Uint8Array(font.byteLength);
+          fontHost.imports.copyFontBytes(index, view);
+          return [...view];
+        });
+        calls.push({ args, filled });
+        return configured;
+      } },
     });
     try {
-      assert.equal(runtime.capabilities.includes(fontBytesCapability), false);
+      assert.equal(runtime.capabilities.includes(fontViewsCapability), false);
       await runtime.execute(request);
-      assert.equal(calls[0].length, binary ? 2 : 1);
-      assert.equal('data' in JSON.parse(calls[0][0]).fonts[0], !binary);
-      assert.equal(calls[1].length, 1);
+      assert.ok(calls.every(call => call.args.length === 1));
+      assert.equal('data' in JSON.parse(calls[0].args[0]).fonts[0], !views);
+      assert.deepEqual(calls[0].filled, views ? [[1, 2, 3], [4, 5, 6]] : []);
     } finally { await runtime.dispose(); }
   }
 });

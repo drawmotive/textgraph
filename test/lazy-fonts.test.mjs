@@ -15,7 +15,7 @@ const ok = { protocolVersion: 1, success: true, diagnostics: [] };
 const request = source => JSON.stringify({ protocolVersion: 1, operation: "render", source });
 function fixture(options = {}, overrides = {}) {
   const reads = [], calls = [], installed = new Set();
-  const execute = createRenderingExecutor({ manifest, binaryFonts: overrides.binaryFonts, options: { ...options, languagePacks: normalizeLanguagePacks(options.languagePacks), fontAssets: normalizeFontAssets(options.fontAssets), resolveAsset: a => new URL(a.path, "https://site.test/") },
+  const execute = createRenderingExecutor({ manifest, fontViews: overrides.fontViews, options: { ...options, languagePacks: normalizeLanguagePacks(options.languagePacks), fontAssets: normalizeFontAssets(options.fontAssets), resolveAsset: a => new URL(a.path, "https://site.test/") },
     readAsset: async (item, context) => {
       reads.push(item.url.href);
       if (overrides.read) { const result = await overrides.read(item, context); if (result) return result; }
@@ -26,7 +26,7 @@ function fixture(options = {}, overrides = {}) {
       return new Response(new Uint8Array([entry.coverage[0][0] % 255]));
     },
     execute: (json, fontData) => {
-      const command = JSON.parse(json); calls.push(fontData === undefined ? command : { ...command, fontData: [...fontData] });
+      const command = JSON.parse(json); calls.push(fontData === undefined ? command : { ...command, fontData: fontData.map(bytes => [...bytes]) });
       if (command.operation === "install-fonts") for (const font of command.fonts) installed.add(font.family);
       if (command.operation === "prepare-fonts") {
         if (command.source === "invalid") return JSON.stringify({ ...ok, success: false, diagnostics: [{ severity: "error", stage: "parse", code: "TG_PARSE_ERROR", message: "invalid" }], fontRuns: [] });
@@ -39,12 +39,12 @@ function fixture(options = {}, overrides = {}) {
   return { execute, reads, calls, installed };
 }
 
-test("binary bridges receive lazily installed font bytes beside the install request", async () => {
-  const f = fixture({ fontAssets: { catalog: new URL("https://site.test/fonts/font-catalog.json"), fallback: false } }, { binaryFonts: true });
+test("view bridges receive lazily installed font buffers beside the install request", async () => {
+  const f = fixture({ fontAssets: { catalog: new URL("https://site.test/fonts/font-catalog.json"), fallback: false } }, { fontViews: true });
   await f.execute(request("中"));
   const installation = f.calls.find(c => c.operation === "install-fonts");
   assert.deepEqual(installation.fonts, [{ family: "chinese", byteLength: 1, languages: ["zh"] }]);
-  assert.deepEqual(installation.fontData, [0x4e2d % 255]);
+  assert.deepEqual(installation.fontData, [[0x4e2d % 255]]);
   assert.ok(f.installed.has("chinese"));
 });
 

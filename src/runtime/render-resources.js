@@ -7,10 +7,10 @@ import { createFontPreparation, encodeFontBatch, fontCapability } from './font-r
 import { DrawMotiveError } from './errors.js';
 
 /** Preparation lives inside the instance operation queue; validation never triggers font I/O. */
-export function createRenderingExecutor({ manifest, options, readAsset, execute, binaryFonts = false }) {
+export function createRenderingExecutor({ manifest, options, readAsset, execute, fontViews = false }) {
   let configured = false;
   const lazy = manifest.capabilities?.includes(fontCapability);
-  const prepareFonts = lazy ? createFontPreparation({ options, readAsset, execute, binaryFonts }) : undefined;
+  const prepareFonts = lazy ? createFontPreparation({ options, readAsset, execute, fontViews }) : undefined;
   return async (request, context = {}) => {
     const loadingOptions = { ...options, signal: context.signal };
     throwIfAborted(context.signal);
@@ -44,7 +44,7 @@ export function createRenderingExecutor({ manifest, options, readAsset, execute,
         for (const family of pack.fallbackFamilies) if (fonts.some(font => font.family === family) && !fallbackFamilies.includes(family)) fallbackFamilies.push(family);
       }
       throwIfAborted(context.signal);
-      const batch = encodeFontBatch(fonts, binaryFonts);
+      const batch = encodeFontBatch(fonts, fontViews);
       decodeConfiguration(await execute(JSON.stringify({ protocolVersion: 1, operation: 'configure', theme, fonts: batch.fonts, fallbackFamilies }), batch.data));
       // Native configuration is committed even when the caller cancels during that synchronous operation.
       configured = true;

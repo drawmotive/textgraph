@@ -6,8 +6,8 @@ import { readVerifiedFontAsset } from './font-cache.js';
 import { throwIfAborted } from './lifecycle.js';
 
 export const fontCapability = 'textgraph-fonts-v1';
-// Bridge-only transport capability: font bytes travel beside the JSON request.
-export const fontBytesCapability = 'textgraph-font-bytes-v1';
+// Bridge-only transport capability: the bridge asks the host to write font bytes into native memory.
+export const fontViewsCapability = 'textgraph-font-views-v1';
 // Shared online assets publish independently of applications and offline npm packs.
 const defaultFontCatalog = 'https://assets.drawmotive.com/static/font-catalog.json';
 
@@ -18,19 +18,35 @@ export function fontBase64(bytes) {
 }
 
 /**
- * Encodes one configure/install font batch for the bridge. WASM linear memory never shrinks,
- * so binary-capable bridges receive raw bytes beside the JSON: base64 JSON text would leave
- * several transient copies of a large CJK font as a permanent memory high-water mark.
- * Older bridges keep the base64 `data` wire.
+ * Encodes one configure/install font batch for the bridge. WASM linear memory never shrinks, so
+ * view-capable bridges receive only byte lengths and then ask the host to write each font straight
+ * into the native block that backs its typeface. Base64 JSON would leave several transient copies
+ * of a large CJK font as a permanent memory high-water mark. Older bridges keep the base64 `data` wire.
  */
-export function encodeFontBatch(entries, binary) {
-  if (!binary) return { fonts: entries.map(({ bytes, ...font }) => ({ ...font, data: fontBase64(bytes) })) };
-  const fonts = entries.map(({ bytes, ...font }) => ({ ...font, byteLength: bytes.length }));
-  if (entries.length === 1) return { fonts, data: entries[0].bytes };
-  const data = new Uint8Array(entries.reduce((total, entry) => total + entry.bytes.length, 0));
-  let offset = 0;
-  for (const entry of entries) { data.set(entry.bytes, offset); offset += entry.bytes.length; }
-  return { fonts, data };
+export function encodeFontBatch(entries, views) {
+  if (!views) return { fonts: entries.map(({ bytes, ...font }) => ({ ...font, data: fontBase64(bytes) })) };
+  return { fonts: entries.map(({ bytes, ...font }) => ({ ...font, byteLength: bytes.length })), data: entries.map(entry => entry.bytes) };
+}
+
+/**
+ * Serves the bridge's synchronous `copyFontBytes(index, view)` import. Bytes are available only
+ * while one execute call owns them, and the view aliases WASM memory only during that callback.
+ */
+export function createFontHost() {
+  let pending;
+  return {
+    imports: {
+      copyFontBytes(index, view) {
+        const bytes = pending?.[index];
+        if (!(bytes instanceof Uint8Array) || bytes.length !== view.length) throw new Error(`Font ${index} does not match its native buffer`);
+        view.set(bytes);
+      },
+    },
+    supply(fonts, call) {
+      pending = fonts;
+      try { return call(); } finally { pending = undefined; }
+    },
+  };
 }
 
 /** Catalog paths stay within their deployment directory, independent of the hosting origin. */
@@ -91,7 +107,7 @@ function matches(font, run) {
 }
 
 /** Owns optional font I/O inside the instance queue; native owns text, shaping and final coverage. */
-export function createFontPreparation({ options, readAsset, execute, binaryFonts = false }) {
+export function createFontPreparation({ options, readAsset, execute, fontViews = false }) {
   const packs = options.languagePacks ?? [];
   const fallbackOrder = [...new Set(packs.flatMap(pack => pack.fallbackFamilies))];
   const descriptors = packs.flatMap(pack => pack.fonts);
@@ -161,7 +177,7 @@ export function createFontPreparation({ options, readAsset, execute, binaryFonts
         }
         const installedAfter = new Set([...installed, ...fonts.map(font => font.family)]);
         const order = [...fallbackOrder, ...(catalog ?? []).map(font => font.family)].filter(family => installedAfter.has(family));
-        const batch = encodeFontBatch(fonts, binaryFonts);
+        const batch = encodeFontBatch(fonts, fontViews);
         decodeConfiguration(await execute(JSON.stringify({ protocolVersion: 1, operation: 'install-fonts', fonts: batch.fonts, fallbackFamilies: order }), batch.data), 'font installation');
         // Native has committed before cancellation can be observed: preserve that installation identity.
         for (const font of fonts) installed.add(font.family);
