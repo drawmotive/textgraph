@@ -5,6 +5,18 @@ import Ajv from 'ajv/dist/2020.js';
 import manifest from '../generated/wasm-manifest.js';
 const schema = async name => new Ajv({ strict: true }).compile(JSON.parse(await readFile(new URL(`../schemas/${name}.schema.json`, import.meta.url), 'utf8')));
 
+test('dark capability in manifest schema requires rendering resources and Execute', async () => {
+  const validate = await schema('wasm-manifest');
+  const valid = { ...manifest, capabilities: ['textgraph-validate-v1', 'textgraph-render-dark-v1'],
+    bridge: { ...manifest.bridge, execute: 'Execute' },
+    rendering: { theme: 'wasm/themes.css', fonts: [{ family: 'Noto Sans', asset: 'wasm/NotoSans-Regular.ttf' }] },
+  };
+  assert.equal(validate(valid), true, JSON.stringify(validate.errors));
+  const { rendering, ...missing } = valid;
+  assert.equal(validate(missing), false);
+  assert.equal(validate({ ...valid, bridge: { ...valid.bridge, execute: undefined } }), false);
+});
+
 test('manifest schema requires resource declarations and Execute when rendering is advertised', async () => {
   const validate = await schema('wasm-manifest');
   const valid = { ...manifest, bridge: { ...manifest.bridge, execute: 'Execute' },

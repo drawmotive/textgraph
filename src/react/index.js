@@ -18,9 +18,9 @@ export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = d
   loading = 'Rendering diagram…', fontsLoading = 'Fonts are still loading…', style, ...imageProps }) {
   const shared = useContext(RuntimeContext);
   const resource = useMemo(() => shared ?? createRuntimeResource(defaultOptions), [shared]);
-  const { scale = 1, padding, maxWidth, language } = renderOptions;
-  const request = useMemo(() => ({ source, scale, padding, maxWidth, language, resource }),
-    [source, scale, padding, maxWidth, language, resource]);
+  const { scale = 1, padding, maxWidth, dark, language } = renderOptions;
+  const request = useMemo(() => ({ source, scale, padding, maxWidth, dark, language, resource }),
+    [source, scale, padding, maxWidth, dark, language, resource]);
   const [state, setState] = useState(null);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export function TextGraph({ source, alt = 'TextGraph diagram', renderOptions = d
       try {
         const runtime = await resource.get();
         if (controller.signal.aborted) return;
-        const result = await runtime.renderPng(source, { scale, padding, maxWidth, language, encoding: 'base64', signal: controller.signal,
+        const result = await runtime.renderPng(source, { scale, padding, maxWidth, dark, language, encoding: 'base64', signal: controller.signal,
           onPreview: result => { if (!controller.signal.aborted) setState({ request, result, fontsLoading: true }); },
         });
         if (!controller.signal.aborted) setState({ request, result });

@@ -17,6 +17,13 @@ const renderManifest = () => ({ ...structuredClone(manifest), rendering, bridge:
 const configured = JSON.stringify({ protocolVersion: 1, success: true, diagnostics: [] });
 const request = JSON.stringify({ protocolVersion: 1, operation: 'render', source: 'A', export: { format: 'png', scale: 2, padding: 10 } });
 
+test('dark capability requires shared resources at manifest preflight', () => {
+  const declared = { ...renderManifest(), capabilities: ['textgraph-validate-v1', 'textgraph-render-dark-v1'] };
+  const { rendering, ...missing } = declared;
+  assert.throws(() => validateManifest(missing), { code: 'INVALID_MANIFEST' });
+  assert.throws(() => validateManifest({ ...declared, bridge: { ...declared.bridge, execute: undefined } }), { code: 'INVALID_MANIFEST' });
+});
+
 test('render preparation loads bundled resources lazily through the resolver and configures once', async () => {
   const reads = [];
   const requests = [];

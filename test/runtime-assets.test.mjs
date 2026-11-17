@@ -15,7 +15,9 @@ test('TextGraph ships a complete package-owned Release WASM manifest', async () 
   const packageJson = JSON.parse(await readFile(path.join(packageRoot, 'package.json'), 'utf8'));
   assert.equal(manifest.packageVersion, packageJson.version);
   assert.equal(manifest.abiVersion, '1.0.0');
-  assert.equal(manifest.targetFramework, 'net10.0');
+  assert.ok(['net10.0', 'net11.0'].includes(manifest.targetFramework));
+  const runtimeConfig = JSON.parse(await readFile(path.join(packageRoot, 'generated', manifest.runtimeConfig), 'utf8'));
+  assert.equal(manifest.targetFramework, runtimeConfig.runtimeOptions.tfm);
   assert.match(manifest.privateSource.commit, /^[0-9a-f]{40}$/);
   assert.equal(manifest.privateSource.project, 'DrawMotive.TextGraph.Bridge');
   assert.equal(manifest.entryAssembly, 'wasm/DrawMotive.TextGraph.Bridge.wasm');

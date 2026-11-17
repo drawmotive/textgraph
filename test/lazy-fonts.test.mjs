@@ -204,3 +204,27 @@ test("English and invalid sources never publish a font preview", async () => {
   }
   assert.equal(f.reads.length, 2);
 });
+
+for (const format of ["png", "svg"]) {
+  test(`${format} native dark settings survive font preparation, preview and final rendering`, async () => {
+    const gate = Promise.withResolvers();
+    const preview = Promise.withResolvers();
+    const command = { protocolVersion: 1, operation: "render", source: "中", language: "zh-CN",
+      export: { format, padding: 3, dark: true, ...(format === "png" ? { scale: 2 } : {}) } };
+    const f = fixture({}, { read: async item => {
+      if (item.url.pathname.endsWith("font-catalog.json")) await gate.promise;
+    }, render: actual => {
+      assert.deepEqual(actual, command);
+      return JSON.stringify(ok);
+    } });
+    const rendering = f.execute(JSON.stringify(command), { onPreview: json => preview.resolve(JSON.parse(json)) });
+    try {
+      assert.equal((await preview.promise).success, true);
+      assert.equal(f.installed.size, 0);
+    } finally { gate.resolve(); }
+    await rendering;
+    assert.ok(f.installed.has("chinese"));
+    assert.deepEqual(f.calls.filter(call => call.operation === "render"), [command, command]);
+    assert.equal(f.calls.find(call => call.operation === "prepare-fonts").language, "zh-CN");
+  });
+}

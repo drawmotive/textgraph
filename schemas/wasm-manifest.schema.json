@@ -18,7 +18,7 @@
       "const": 1
     },
     "targetFramework": {
-      "const": "net10.0"
+      "enum": ["net10.0", "net11.0"]
     },
     "privateSource": {
       "type": "object",
@@ -178,7 +178,7 @@
         "properties": {
           "capabilities": {
             "contains": {
-              "enum": ["textgraph-render-v1", "textgraph-render-svg-v1"]
+              "enum": ["textgraph-render-v1", "textgraph-render-svg-v1", "textgraph-render-dark-v1"]
             },
             "type": "array"
           }

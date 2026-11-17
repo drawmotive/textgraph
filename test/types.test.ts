@@ -56,7 +56,10 @@ void stableApi;
 async function renderingApi(encoding: TextGraphPngEncoding, options: TextGraphRenderPngOptions) {
   const languagePack: TextGraphLanguagePack = { fonts: [{ family: 'Chinese', source: new URL('https://example.test/font.ttf') }], fallbackFamilies: ['Chinese'] };
   const runtime = await initializeTextGraph({ languagePacks: [languagePack], fontAssets: { fallback: false } });
-  await runtime.renderPng('A: 日本語', { language: 'ja' });
+  await runtime.renderPng('A: 日本語', { language: 'ja', dark: true });
+  await runtime.renderPng('A', { dark: false });
+  // @ts-expect-error Dark rendering requires a boolean.
+  await runtime.renderPng('A', { dark: 'true' });
   await runtime.renderPng('A: 中文', { onPreview: preview => { const png: Uint8Array = preview.png; void png; } });
   await runtime.renderPng('A: 中文', { encoding: 'base64', onPreview: preview => { const png: string = preview.png; void png; } });
   const bytes = await runtime.renderPng('A -> B');
@@ -100,7 +103,10 @@ void renderingApi;
 
 async function svgRenderingApi(options: TextGraphRenderSvgOptions) {
   const runtime = await initializeTextGraph();
-  const result: TextGraphRenderSvgResult = await runtime.renderSvg('A: 日本語', { padding: 0, language: 'ja', signal: new AbortController().signal });
+  const result: TextGraphRenderSvgResult = await runtime.renderSvg('A: 日本語', { padding: 0, language: 'ja', dark: true, signal: new AbortController().signal });
+  await runtime.renderSvg('A', { dark: false });
+  // @ts-expect-error Dark rendering requires a boolean.
+  await runtime.renderSvg('A', { dark: 1 });
   await runtime.renderSvg('A -> B', options);
   await runtime.renderSvg('A: 中文', { onPreview: preview => { const svg: string = preview.svg; void svg; } });
   if (result.success) {

@@ -51,6 +51,20 @@ function fixture(execute = async () => png()) {
 const view = (options, source, props = {}) => h(TextGraphProvider, { options }, h(TextGraph, { source, ...props }));
 const render = async element => act(async () => root.render(element));
 
+test('dark selection updates React requests while equivalent settings reuse output', async () => {
+  const f = fixture();
+  f.native.capabilities = ['textgraph-render-v1', 'textgraph-render-dark-v1'];
+  await render(view(f.options, 'A', { renderOptions: { dark: true, language: 'ja' } }));
+  assert.ok(container.querySelector('img'));
+  assert.equal(f.stats.calls[0].export.dark, true);
+  await render(view(f.options, 'A', { renderOptions: { dark: true, language: 'ja' }, alt: 'Updated' }));
+  assert.equal(f.stats.calls.length, 1);
+  await render(view(f.options, 'A', { renderOptions: { dark: false, language: 'ja' } }));
+  assert.deepEqual(f.stats.calls.map(call => call.export.dark), [true, false]);
+  assert.deepEqual(f.stats.calls.map(call => call.language), ['ja', 'ja']);
+  assert.equal(f.stats.loads, 1);
+});
+
 test('SSR renders a deterministic placeholder without starting WASM', () => {
   const f = fixture();
   const html = renderToString(view(f.options, 'A -> B', { loading: 'Loading graph' }));

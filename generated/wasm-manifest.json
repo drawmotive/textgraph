@@ -33,7 +33,7 @@
   },
   "targetFramework": "net10.0",
   "privateSource": {
-    "commit": "0c8fb440624e16d401433220dd4c6b4d70112a95",
+    "commit": "4ad7d0f8627b9fde581ac846938bcdcc63ad952a",
     "project": "DrawMotive.TextGraph.Bridge"
   },
   "entryAssembly": "wasm/DrawMotive.TextGraph.Bridge.wasm",
@@ -45,6 +45,7 @@
     "textgraph-validate-v1",
     "textgraph-render-v1",
     "textgraph-render-svg-v1",
+    "textgraph-render-dark-v1",
     "textgraph-fonts-v1"
   ],
   "assets": [
@@ -57,8 +58,8 @@
     {
       "path": "wasm/DrawMotive.TextGraph.Bridge.wasm",
       "mediaType": "application/wasm",
-      "bytes": 79637,
-      "sha256": "69ff198944c6c6b4ed041865772716587ab610f3f5b07232f81f4015e42c4e1c"
+      "bytes": 80661,
+      "sha256": "ee7969572557938fe11c86cbe25531b1b59b6d205932681578518cfb51c69fb7"
     },
     {
       "path": "wasm/ExCSS.wasm",
@@ -81,14 +82,14 @@
     {
       "path": "wasm/Graphics.Core.wasm",
       "mediaType": "application/wasm",
-      "bytes": 3794713,
-      "sha256": "8a50a89b973a0b6a97c1e84455854e8827f1f2b4ef892abb7b4a93139b12a66c"
+      "bytes": 3796761,
+      "sha256": "eae98d20f04e1b10a3e197973c92d206e70e7f05e09163bf846061fcbebaa4d3"
     },
     {
       "path": "wasm/HarfBuzzSharp.wasm",
       "mediaType": "application/wasm",
       "bytes": 27925,
-      "sha256": "b9c72e41c5fca02a987b86283d462d38d0eba5a2d30c2ec863dd30fd6a953cfa"
+      "sha256": "5613665bdc2396b12856d832d02c6eba14328c8d4f1e22991d868607298ec6d9"
     },
     {
       "path": "wasm/Markdig.wasm",
@@ -172,19 +173,19 @@
       "path": "wasm/RBush.wasm",
       "mediaType": "application/wasm",
       "bytes": 14101,
-      "sha256": "44c2858d3ad39358f793a059cb4d174e971950b99615848572bd4843099eca35"
+      "sha256": "d56d7d78c255e9ec8216e33281837ec6f7a689a11ff86228e49ec1a8bd4a6b9e"
     },
     {
       "path": "wasm/SkiaSharp.HarfBuzz.wasm",
       "mediaType": "application/wasm",
       "bytes": 6421,
-      "sha256": "ac0e57259ea7b8087da91429728c31b532f1c9c2a3ad5f647bcc16e9973bb72f"
+      "sha256": "902d52ee09d592d994469418433130ab8cac4c1e33c58caaa54dd6241b3cfd08"
     },
     {
       "path": "wasm/SkiaSharp.wasm",
       "mediaType": "application/wasm",
       "bytes": 104725,
-      "sha256": "7ece4a6df883c9010edbf75b5b6ca7632ede24240ec7628b18a5f89f0557e4ff"
+      "sha256": "2522a651826afa482921eec589f2c0374cd3868f6b83d655c375d2af9c38cda5"
     },
     {
       "path": "wasm/System.Collections.Concurrent.wasm",
@@ -358,7 +359,7 @@
       "path": "wasm/dotnet.boot.js",
       "mediaType": "text/javascript",
       "bytes": 11347,
-      "sha256": "0e2a08ddd682422ec43af71ecc0425f22486aa8a7a33644688187d114baa94bb"
+      "sha256": "40245546bdec879c2b4ef77a57af5a8bcb98b368126dc2e5a42ba82f2461b8d1"
     },
     {
       "path": "wasm/dotnet.js",

@@ -7,7 +7,7 @@ export interface TextGraphRuntimeManifest {
 export interface TextGraphAbiManifest extends TextGraphRuntimeManifest {
   readonly schemaVersion: 1;
   readonly protocolVersion: 1;
-  readonly targetFramework: 'net10.0';
+  readonly targetFramework: 'net10.0' | 'net11.0';
   readonly privateSource: { readonly commit: string; readonly project: string };
   readonly entryAssembly: string;
   readonly runtimeWasm: string;
@@ -127,6 +127,8 @@ export interface TextGraphLanguagePack {
 export type TextGraphPngEncoding = 'bytes' | 'base64';
 
 export interface TextGraphRenderPngOptions<Encoding extends TextGraphPngEncoding = TextGraphPngEncoding> {
+  /** Use the native dark theme. Defaults to false; true requires textgraph-render-dark-v1. */
+  dark?: boolean;
   /** Receives a provisional image before optional fonts load; the promise returns the final image. */
   onPreview?(result: Extract<TextGraphRenderPngResult<Encoding extends 'base64' ? string : Uint8Array>, { success: true }>): void;
   /** Optional language hint for ambiguous Han text, e.g. ja or zh-CN. */
@@ -151,6 +153,8 @@ export type TextGraphRenderPngResult<Png extends Uint8Array | string = Uint8Arra
 
 /** Vector export uses logical diagram units and requires textgraph-render-svg-v1. */
 export interface TextGraphRenderSvgOptions {
+  /** Use the native dark theme. Defaults to false; true requires textgraph-render-dark-v1. */
+  dark?: boolean;
   /** Receives a provisional vector before optional fonts load; the promise returns the final vector. */
   onPreview?(result: Extract<TextGraphRenderSvgResult, { success: true }>): void;
   /** Optional language hint for ambiguous Han text, e.g. ja or zh-CN. */
