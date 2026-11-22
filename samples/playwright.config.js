@@ -15,9 +15,9 @@ export default defineConfig({
     name: browserName, use: { browserName },
   })),
   webServer: ['browser', 'react-vite', 'worker'].map((sample, index) => ({
-    command: `npm --prefix samples/${sample} run preview -- --port ${4180 + index} --strictPort`,
+    command: `npm --prefix samples/${sample} run preview -- --port 0 --strictPort`,
     cwd: root,
-    url: `http://127.0.0.1:${4180 + index}`,
-    reuseExistingServer: false,
+    env: { NO_COLOR: '1', FORCE_COLOR: '0' },
+    wait: { stdout: new RegExp(`(?<TEXTGRAPH_SAMPLE_URL_${index}>http://127[.]0[.]0[.]1:[0-9]+/)`) },
   })),
 });

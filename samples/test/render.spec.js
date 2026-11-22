@@ -30,7 +30,7 @@ for (const [index, sample] of ['browser', 'react-vite', 'worker'].entries()) {
       if (response.url().includes('/textgraph/wasm/')) assets.push({ url: response.url(), status: response.status() });
       if (new URL(response.url()).pathname.endsWith('.ttf')) fontResponses.push(response);
     });
-    await page.goto(`http://127.0.0.1:${4180 + index}`);
+    await page.goto(process.env[`TEXTGRAPH_SAMPLE_URL_${index}`]);
     const image = page.getByAltText('Rendered diagram');
     await expect(image).toBeVisible();
     const before = await pixels(image);
