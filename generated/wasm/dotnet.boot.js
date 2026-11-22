@@ -1,7 +1,7 @@
 export const config = /*json-start*/{
   "mainAssemblyName": "DrawMotive.TextGraph.Bridge",
   "resources": {
-    "hash": "sha256-k5djae2KpZ8hQUGAy6hn4asgKPAul2qQFovw1Zy4/m8=",
+    "hash": "sha256-GJ0BRRtViI5vQrff2HrtDOvJ3+//Q+XfMahZE1Pgi+Q=",
     "jsModuleNative": [
       {
         "name": "dotnet.native.js"
@@ -15,15 +15,15 @@ export const config = /*json-start*/{
     "wasmNative": [
       {
         "name": "dotnet.native.wasm",
-        "hash": "sha256-TMqlbYD9F+n4cf96xaB9YLlqBGEACiAMqXJHEQlknjA="
+        "hash": "sha256-kmesUeOoKBIddjd7BoceSWlhJPtwar5uRDVc5vth9/8="
       }
     ],
     "coreAssembly": [
       {
-        "payloadSize": 2186320,
+        "payloadSize": 2183760,
         "virtualPath": "System.Private.CoreLib.wasm",
         "name": "System.Private.CoreLib.wasm",
-        "hash": "sha256-ElGMAen4w6ehRJBg5n1UhHTyan7KAGWR8Tsb/fPlmHY="
+        "hash": "sha256-xHgnKS1oUkcxj+iSeG5XuHM6dzdL6rTpBNvmBzlGS7o="
       },
       {
         "payloadSize": 43600,
@@ -37,7 +37,7 @@ export const config = /*json-start*/{
         "payloadSize": 85072,
         "virtualPath": "DrawMotive.TextGraph.Bridge.wasm",
         "name": "DrawMotive.TextGraph.Bridge.wasm",
-        "hash": "sha256-lWBpNpwhbDy78V4IiWUXSre7wppF6PQ0IZZe5z+qEVA="
+        "hash": "sha256-EGR84TKIjsf+ZAHBXILz4eUpbtnyiMm9D9QveA2D3G0="
       },
       {
         "payloadSize": 287312,
@@ -46,16 +46,16 @@ export const config = /*json-start*/{
         "hash": "sha256-nHV6RtyouIyLkFXwN8eRdgUGuKZMHebddUFdfF5Ils0="
       },
       {
-        "payloadSize": 3824720,
+        "payloadSize": 3860048,
         "virtualPath": "Graphics.Core.wasm",
         "name": "Graphics.Core.wasm",
-        "hash": "sha256-Q5eSzR9DyasJl0maELy7w0zNaBLY3R244BKTfPUfjj4="
+        "hash": "sha256-fcCLq1ayApumXNUmvx5h4lGbpzjWKEgswFTO4979lzM="
       },
       {
         "payloadSize": 28240,
         "virtualPath": "HarfBuzzSharp.wasm",
         "name": "HarfBuzzSharp.wasm",
-        "hash": "sha256-h2cSETgUXfM9X5NKAZjIQ5VIRGb52ITetYfgB0nhaa4="
+        "hash": "sha256-B9ucEUnfSSeTTGBqMUvoUmQnZtKTSXs0j3Zm+JHUBXE="
       },
       {
         "payloadSize": 309840,
@@ -127,19 +127,19 @@ export const config = /*json-start*/{
         "payloadSize": 13904,
         "virtualPath": "RBush.wasm",
         "name": "RBush.wasm",
-        "hash": "sha256-MABrdeQzSj2BanmOmCIIfTm+bLw2JL0UoK35O6zQFG0="
+        "hash": "sha256-VGLr83RSgfP2zFXIDHPCj0C4VBNorcWj1utR9eFL/to="
       },
       {
         "payloadSize": 6224,
         "virtualPath": "SkiaSharp.HarfBuzz.wasm",
         "name": "SkiaSharp.HarfBuzz.wasm",
-        "hash": "sha256-12XKcArxkNpJFtEX+S5dWYnB4Kyv673iCp0LApm8Yfc="
+        "hash": "sha256-N5fR+D5WnbIdk0CuE8GVRYXtB8MHh9rzrKxZG6Hz2Dg="
       },
       {
-        "payloadSize": 104528,
+        "payloadSize": 104016,
         "virtualPath": "SkiaSharp.wasm",
         "name": "SkiaSharp.wasm",
-        "hash": "sha256-kDOx7UeDq4aqIcQDu5rLAc6vplQVEqq8HFxAF0ikxI4="
+        "hash": "sha256-6Vz13BC2ql4O4AfGMHPK/HtgXtTDzlPneVysDFGeEDY="
       },
       {
         "payloadSize": 12368,
@@ -202,10 +202,10 @@ export const config = /*json-start*/{
         "hash": "sha256-+ggXa/APExm1QBBfyad2yXiaSOxLc/9p2kbc5Wriy5U="
       },
       {
-        "payloadSize": 101456,
+        "payloadSize": 102480,
         "virtualPath": "System.Linq.wasm",
         "name": "System.Linq.wasm",
-        "hash": "sha256-tESUcAtaIpy0DSN7GGL1jmwVKOL8d9eb6lU4D2YHmyU="
+        "hash": "sha256-9xhxwAbbRkKXzameV5DcpIb6gggMhyGG4pKOEQTmyCQ="
       },
       {
         "payloadSize": 16464,

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.4
 
 - Breaking: protocol 2. Fonts and rendered images cross the WASM boundary through
   native memory views instead of base64 or escaped JSON, lowering the permanent
