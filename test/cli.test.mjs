@@ -81,13 +81,31 @@ test('render CLI rejects invalid arguments before starting the runtime', async t
 test('render CLI reports diagnostics and does not overwrite output on failed rendering', async t => {
   const { runCli } = await import('../scripts/textgraph.mjs');
   const { input, directory } = await fixture(t);
-  const f = runtimeFixture({ success: false, diagnostics: [{ severity: 'error', stage: 'parse', code: 'TG_PARSE_ERROR', message: 'Invalid source' }] });
+  const f = runtimeFixture({ success: false, diagnostics: [
+    { severity: 'error', stage: 'layout', code: 'TG_LAYOUT_ERROR', message: 'Could not route this connection.', location: { line: 2, column: 0 } },
+    { severity: 'warning', stage: 'font', code: 'TG_FONT_MISSING_GLYPH', message: 'A character could not be displayed.' },
+  ] });
   const output = path.join(directory, 'existing.png');
   await writeFile(output, 'existing image');
   assert.equal(await runCli(['render', input, '-o', output], f.options), 1);
   assert.equal(await readFile(output, 'utf8'), 'existing image');
-  assert.match(f.messages.join(''), /TG_PARSE_ERROR.*Invalid source/);
+  assert.deepEqual(f.messages, [
+    input + ':3:1: error: TG_LAYOUT_ERROR: Could not route this connection.\n',
+    'warning: TG_FONT_MISSING_GLYPH: A character could not be displayed.\n',
+  ]);
   assert.equal(f.disposed, 1);
+});
+
+test('render CLI names standard input in located diagnostics', async t => {
+  const { runCli } = await import('../scripts/textgraph.mjs');
+  const { directory } = await fixture(t);
+  const f = runtimeFixture({ success: false, diagnostics: [
+    { severity: 'error', stage: 'parse', code: 'TG_PARSE_ERROR', message: 'Expected a node.', location: { line: 0, column: 4 } },
+  ] });
+  assert.equal(await runCli(['render', '-', '-o', path.join(directory, 'invalid.svg')], {
+    ...f.options, stdin: Readable.from(['A ->']),
+  }), 1);
+  assert.deepEqual(f.messages, ['<stdin>:1:5: error: TG_PARSE_ERROR: Expected a node.\n']);
 });
 
 test('render CLI disposes runtime after execution and output failures', async t => {

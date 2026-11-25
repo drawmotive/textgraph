@@ -26,21 +26,26 @@ export async function runCli(argv, { initialize = initializeTextGraph, stdin = p
   } });
   if (values.help) { stdout.write(help); return 0; }
   if (positionals.length !== 1 || !values.output) throw new Error(usage);
+  const [input] = positionals;
   const format = path.extname(values.output).slice(1).toLowerCase();
   if (!['png', 'svg'].includes(format)) throw new Error('Output must have a .png or .svg extension');
   let source;
-  if (positionals[0] === '-') {
+  if (input === '-') {
     // Join bytes before decoding so a multi-byte character may span stdin chunks.
     const chunks = [];
     for await (const chunk of stdin) chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
     source = Buffer.concat(chunks).toString('utf8');
-  } else source = await readFile(positionals[0], 'utf8');
+  } else source = await readFile(input, 'utf8');
   const options = { ...(values.dark === undefined ? {} : { dark: values.dark }),
     ...(values.language === undefined ? {} : { language: values.language }) };
   const runtime = await initialize();
   try {
     const result = await (format === 'png' ? runtime.renderPng(source, options) : runtime.renderSvg(source, options));
-    for (const diagnostic of result.diagnostics) stderr.write(`${diagnostic.severity}: ${diagnostic.code}: ${diagnostic.message}\n`);
+    const sourceName = input === '-' ? '<stdin>' : input;
+    for (const { severity, code, message, location } of result.diagnostics) {
+      const prefix = location ? `${sourceName}:${location.line + 1}:${location.column + 1}: ` : '';
+      stderr.write(`${prefix}${severity}: ${code}: ${message}\n`);
+    }
     if (!result.success) return 1;
     await writeFile(values.output, result[format]);
     stdout.write(`Saved ${values.output}\n`);
