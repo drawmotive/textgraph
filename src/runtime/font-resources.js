@@ -41,7 +41,8 @@ export function decodePreparation(json) {
     const diagnostics = decodeDiagnostics(value.diagnostics, ['parse', 'semantic', 'layout', 'render', 'font']);
     if (value.success === diagnostics.some(d => d.severity === 'error')) throw new Error('Inconsistent success');
     if (!Array.isArray(value.fontRuns) || value.fontRuns.some(run => !run || typeof run.text !== 'string' || !run.text
-        || typeof run.missing !== 'boolean' || (run.language !== undefined && run.language !== null && typeof run.language !== 'string'))) throw new Error('Invalid font runs');
+        || typeof run.missing !== 'boolean' || (run.language !== undefined && run.language !== null && typeof run.language !== 'string')
+        || (run.pendingPack !== undefined && run.pendingPack !== true))) throw new Error('Invalid font runs');
     return { ...value, diagnostics };
   } catch (cause) {
     throw new DrawMotiveError('INVALID_RESPONSE', 'Invalid native font preparation response', { cause });

@@ -50,9 +50,9 @@ export function createInventoryRenderingExecutor({ options, readAsset, bridge, h
     try {
       const prepared = decodePreparation(execute(JSON.stringify({ protocolVersion, operation: 'prepare-fonts', source, language })).json);
       if (!prepared.success) return { json: JSON.stringify({ protocolVersion, success: false, diagnostics: prepared.diagnostics }) };
-      if (context.onPreview && prepared.fontRuns.some(run => run.missing)) context.onPreview(execute(request));
-      throwIfAborted(context.signal);
       // An already-loaded fallback can preview an element whose preferred pack still needs loading.
+      if (context.onPreview && prepared.fontRuns.some(run => run.missing || run.pendingPack)) context.onPreview(execute(request));
+      throwIfAborted(context.signal);
       const json = await host.runInventory(() => bridge.PrepareInventoryFonts(source, language ?? null), loadFont);
       decodeConfiguration(json, 'font preparation');
       throwIfAborted(context.signal);

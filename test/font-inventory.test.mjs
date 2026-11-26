@@ -27,9 +27,10 @@ const inventory = {
 const response = JSON.stringify({ protocolVersion: 2, success: true, diagnostics: [] });
 const command = source => JSON.stringify({ protocolVersion: 2, operation: 'render', source });
 
-function fixture({ corruptTheme = false, capabilities = ['textgraph-font-inventory-v1'] } = {}) {
+function fixture({ corruptTheme = false, hasFallback = false, capabilities = ['textgraph-font-inventory-v1'] } = {}) {
   const reads = [], events = [];
   const host = createNativeHost(true);
+  let extensionLoaded = false;
   async function loadFont(path) {
     const bytes = new Uint8Array(await host.imports.loadInventoryFont(path, inventory.files[path]));
     host.imports.copyInventoryFont(path, bytes);
@@ -60,15 +61,21 @@ function fixture({ corruptTheme = false, capabilities = ['textgraph-font-invento
         return response;
       },
       async PrepareInventoryFonts(source) {
-        if (source === 'œ') {
+        if (source === 'œ' && !extensionLoaded) {
           await loadFont(extPath);
+          extensionLoaded = true;
           events.push('prepare extension');
         }
         return response;
       },
       Execute(request) {
         const { operation, source } = JSON.parse(request);
-        if (operation === 'prepare-fonts') return JSON.stringify({ ...JSON.parse(response), fontRuns: [{ text: source, language: null, missing: source === 'œ' }] });
+        if (operation === 'prepare-fonts') {
+          const pendingPack = source === 'œ' && !extensionLoaded;
+          const run = { text: source, language: null, missing: pendingPack && !hasFallback };
+          if (pendingPack && hasFallback) run.pendingPack = true;
+          return JSON.stringify({ ...JSON.parse(response), fontRuns: [run] });
+        }
         if (operation === 'render') events.push('render ' + source);
         return response;
       },
@@ -86,6 +93,17 @@ test('the inventory supplies the theme and verified core and extension bytes thr
     'https://resources.test/static/NotoSans-Regular-core.ttf', 'https://resources.test/static/NotoSans-Regular-ext.ttf',
   ]);
   assert.deepEqual(events, ['configure inventory', 'render hello', 'render œ', 'preview', 'prepare extension', 'render œ']);
+});
+
+test('a loaded fallback previews before the preferred extension is requested', async () => {
+  const { runtime, reads, events } = fixture({ hasFallback: true });
+  const onPreview = () => {
+    assert.ok(!reads.some(url => new URL(url).pathname === '/' + extPath));
+    events.push('preview');
+  };
+  await runtime.execute(command('œ'), { onPreview });
+  await runtime.execute(command('œ'), { onPreview });
+  assert.deepEqual(events, ['configure inventory', 'render œ', 'preview', 'prepare extension', 'render œ', 'render œ']);
 });
 
 test('an inventory theme with the wrong digest cannot configure the native renderer', async () => {

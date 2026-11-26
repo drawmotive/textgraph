@@ -164,6 +164,10 @@ fonts with language metadata; `cancel-prepare` releases interrupted preparation.
 Render commands accept the same language hint. Existing configuration/disposal
 envelopes remain unchanged. The wrapper checks this capability before using a catalog.
 
+With a split inventory, a font run can also report `pendingPack: true` when native
+preparation needs to try a higher-priority unloaded face. An installed fallback can
+still shape the run in a provisional image.
+
 ABI 1.0.0 retains GetAbiVersion/GetPackageKind/CountParseDiagnostics and adds GetRuntimeInfo(), Validate(source) and Execute(requestJson) on DrawMotive.TextGraph.Bridge.Program. Info returns JSON `{ abiVersion, packageKind, protocolVersion: 2, capabilities }`; Validate returns `{ protocolVersion: 2, valid, diagnostics }`. Wrappers require `textgraph-validate-v1`; PNG rendering additionally requires `textgraph-render-v1`, and SVG requires `textgraph-render-svg-v1`. Both require the manifest `bridge.execute` export and rendering resources. Legacy validation exports remain supported. This is a managed export/JSON protocol, not a raw WASM pointer ABI: binary payloads cross only through .NET memory views that are valid during one synchronous host import call.
 
 `generated/wasm-manifest.json` is authoritative; its ESM projection avoids JSON-module browser assumptions. Shipped schemas describe the manifest, validation response and separate PNG/SVG rendering responses. Manifest schema, ABI, protocol and npm versions are separate. Additive exports use capabilities; incompatible wire changes require a new supported version. npm versions and bundled assets are released together. DSL/file-format versions are not frozen by this milestone.
