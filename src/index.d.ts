@@ -103,13 +103,15 @@ export interface TextGraphInitializeOptions {
   fetch?: typeof globalThis.fetch;
   /** Legacy descriptors load on first render; descriptors with coverage load on demand. */
   languagePacks?: readonly TextGraphLanguagePack[];
-  /** Optional deployed catalog; without a package, online rendering uses the staging catalog. */
+  /** Select the theme and font distribution or control the default catalog fallback. */
   fontAssets?: TextGraphFontAssets;
 }
 
 export interface TextGraphFontAssets {
   /** Catalog URL; files resolve relative to this URL. A configured catalog is authoritative. */
   readonly catalog?: URL;
+  /** Version 2 files.json with adjacent themes.css and split fonts. Exclusive with catalogs and language packs. */
+  readonly inventory?: URL;
   /** Disable external fallback for offline hosts, or select another remote catalog. */
   readonly fallback?: false | URL;
 }

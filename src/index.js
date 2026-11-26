@@ -27,7 +27,10 @@ export async function initializeTextGraph(options = {}) {
   if (typeof options.loadRuntime !== 'function') {
     throw new TypeError('initializeTextGraph requires a loadRuntime function');
   }
-  const normalized = Object.freeze({ ...options, adapters: validateTextGraphAdapters(options.adapters), languagePacks: normalizeLanguagePacks(options.languagePacks), fontAssets: normalizeFontAssets(options.fontAssets) });
+  const fontAssets = normalizeFontAssets(options.fontAssets);
+  const languagePacks = normalizeLanguagePacks(options.languagePacks);
+  if (fontAssets.inventory && languagePacks.length) throw new DrawMotiveError('INVALID_ARGUMENT', 'A font inventory cannot be combined with language packs');
+  const normalized = Object.freeze({ ...options, adapters: validateTextGraphAdapters(options.adapters), languagePacks, fontAssets });
   const runtime = await waitForInitialResource(() => options.loadRuntime(normalized), options.signal);
   await validateAbi(runtime, abiManifest.abiVersion);
   const instance = createManagedInstance([runtime]);

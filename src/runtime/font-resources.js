@@ -34,7 +34,7 @@ function decodeCatalog(value, url) {
   }
 }
 
-function decodePreparation(json) {
+export function decodePreparation(json) {
   try {
     const value = JSON.parse(json);
     if (value?.protocolVersion !== protocolVersion || typeof value.success !== 'boolean') throw new Error('Invalid envelope');

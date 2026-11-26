@@ -7,6 +7,7 @@ import { createRenderingExecutor } from './render-resources.js';
 import { decodeConfiguration } from './rendering.js';
 import { fontCapability } from './font-resources.js';
 import { createNativeHost, nativeHostModule } from './native-host.js';
+import { createInventoryRenderingExecutor, inventoryCapability } from './inventory-resources.js';
 
 /** Starts one isolated .NET module graph; platform loaders own all data I/O. */
 export async function startTextGraphRuntime(options, manifest, readAsset) {
@@ -65,7 +66,7 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
     }).create();
     throwIfAborted(options.signal);
     // Register before any export runs: the bridge binds this module on its first font or image payload.
-    const host = createNativeHost();
+    const host = createNativeHost(manifest.capabilities.includes(inventoryCapability));
     runtime.setModuleImports(nativeHostModule, host.imports);
     const exports = await runtime.getAssemblyExports(manifest.bridge.assembly);
     bridge = manifest.bridge.type.split('.').reduce((value, key) => value?.[key], exports);
@@ -83,7 +84,9 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
     for (const capability of [renderingCapability, svgRenderingCapability, darkRenderingCapability]) {
       if (manifest.capabilities.includes(capability) && !info.capabilities.includes(capability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement rendering');
     }
-    if (manifest.capabilities.includes(fontCapability) && !info.capabilities.includes(fontCapability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement lazy fonts');
+    for (const capability of [fontCapability, inventoryCapability]) {
+      if (manifest.capabilities.includes(capability) && !info.capabilities.includes(capability)) throw new DrawMotiveError('UNSUPPORTED_CAPABILITY', 'Bridge does not implement ' + capability);
+    }
     if (renders && typeof bridge[manifest.bridge.execute] !== 'function') throw new DrawMotiveError('ABI_MISMATCH', 'Rendering bridge export is missing');
     return createBridgeRuntime({ manifest, options, readAsset, bridge, info, host });
   } catch (cause) {
@@ -96,13 +99,16 @@ export async function startTextGraphRuntime(options, manifest, readAsset) {
 /** Owns managed bridge resources; the instance queue drains calls before invoking disposal. */
 export function createBridgeRuntime({ manifest, options, readAsset, bridge, info, host = createNativeHost() }) {
   const renders = supportsRendering(manifest.capabilities);
+  const execute = (request, fonts) => host.run(() => bridge[manifest.bridge.execute](request), fonts);
+  const inventory = options.fontAssets?.inventory;
   return {
     // A bridge may support operations intentionally omitted by the selected
     // manifest; advertise only the intersection that this loader exposes.
     abiVersion: info.abiVersion, capabilities: info.capabilities.filter(capability => manifest.capabilities.includes(capability)),
     validate: source => bridge[manifest.bridge.validate](source),
-    ...(renders ? { execute: createRenderingExecutor({ manifest, options, readAsset,
-      execute: (request, fonts) => host.run(() => bridge[manifest.bridge.execute](request), fonts) }) } : {}),
+    ...(renders ? { execute: inventory
+      ? createInventoryRenderingExecutor({ options, readAsset, bridge, host, execute, supported: manifest.capabilities.includes(inventoryCapability) })
+      : createRenderingExecutor({ manifest, options, readAsset, execute }) } : {}),
     async dispose() {
       if (!bridge) return;
       try {

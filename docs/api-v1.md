@@ -80,6 +80,13 @@ to prohibit that external access, or supply another catalog URL as `fallback`.
 Installing a local package takes precedence over fallback even in offline mode.
 Use `languagePacks: []` with `fallback: false` to explicitly disable automatic font sources.
 
+A runtime advertising `textgraph-font-inventory-v1` can use a version 2
+editor resource distribution. Pass the URL of its `files.json` as
+`fontAssets.inventory`. The SDK loads the adjacent `themes.css` and font packs
+using the inventory's SHA-256 values. The native renderer uses the same
+per-grapheme font rules as the editor, including lazy core and extension faces.
+Select the inventory, a catalog, or explicit language packs for each instance.
+
 Catalog fonts carry actual Unicode coverage, language hints, byte sizes and SHA-256.
 They are verified before native installation. Catalog URLs are cached per instance;
 HTTP font URLs include the content hash as a stable `v` parameter. The SDK automatically

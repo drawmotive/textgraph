@@ -13,7 +13,7 @@ export async function initializeTextGraph(options = {}) {
   const directory = process.env.DRAWMOTIVE_TEXTGRAPH_RUNTIME;
   const languagePacks = normalizeLanguagePacks(options.languagePacks);
   let fontAssets = normalizeFontAssets(options.fontAssets);
-  if (!options.loadRuntime && fontAssets?.catalog === undefined && options.languagePacks === undefined) {
+  if (!options.loadRuntime && !fontAssets.catalog && !fontAssets.inventory && options.languagePacks === undefined) {
     let entry;
     try { entry = import.meta.resolve('@drawmotive/textgraph-fonts'); }
     catch (error) { if (error.code !== 'ERR_MODULE_NOT_FOUND') throw error; }

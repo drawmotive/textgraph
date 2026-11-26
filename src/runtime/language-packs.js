@@ -12,8 +12,10 @@ function copyUrl(value, name) {
 export function normalizeFontAssets(value = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('fontAssets must be an object');
   if (value.fallback !== undefined && value.fallback !== false && !(value.fallback instanceof URL)) fail('fontAssets.fallback must be false or a catalog URL');
+  if (value.inventory !== undefined && (value.catalog !== undefined || value.fallback instanceof URL)) fail('A font inventory cannot be combined with a font catalog');
   return Object.freeze({
     ...(value.catalog === undefined ? {} : { catalog: copyUrl(value.catalog, 'fontAssets.catalog') }),
+    ...(value.inventory === undefined ? {} : { inventory: copyUrl(value.inventory, 'fontAssets.inventory') }),
     ...(value.fallback === undefined ? {} : { fallback: value.fallback === false ? false : copyUrl(value.fallback, 'fontAssets.fallback') }),
   });
 }
