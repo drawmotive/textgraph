@@ -1,6 +1,6 @@
 {
   "name": "@drawmotive/textgraph",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Render TextGraph flowcharts and directed graphs as PNG and SVG in Node.js, browsers, React, Web Workers, and the CLI.",
   "keywords": [
     "textgraph",

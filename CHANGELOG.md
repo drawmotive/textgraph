@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.5
+
+- Include source locations in compiler and CLI diagnostics when available, and explain specific layout and export failures.
+- Support shared split font inventories and display a fallback preview while preferred font packs load.
+
 ## 0.3.4
 
 - Breaking: protocol 2. Fonts and rendered images cross the WASM boundary through
